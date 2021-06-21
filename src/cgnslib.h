@@ -788,8 +788,32 @@ extern CGNSDLL const char * AverageInterfaceTypeName[NofValidAverageInterfaceTyp
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 CGNSDLL int cg_is_cgns(const char *filename, int *file_type);
-
+/**
+ *
+ * \brief Open a CGNS file.
+ *
+ * \param[in] filename Name of the CGNS file, including path name if necessary. There is no limit on the length of this character variable. 
+ * \param[in] mode Mode used for opening the file. The modes currently supported are \p CG_MODE_READ, \p CG_MODE_WRITE, and \p CG_MODE_MODIFY.
+ * \param[out] fn CGNS file index number.
+ * \return ier Error status.
+ *
+ * \details The function cg_open must always be the first one called. It opens a CGNS file for reading and/or writing and returns an index number fn. 
+ * The index number serves to identify the CGNS file in subsequent function calls. Several CGNS files can be opened simultaneously. The current 
+ * limit on the number of files opened at once depends on the platform. On an SGI workstation, this limit is set at 100 (parameter FOPEN_MAX in stdio.h).
+ * The file can be opened in one of the following modes:
+ *
+ *   	CG_MODE_READ	   	Read only mode.
+ *	CG_MODE_WRITE		Write only mode.
+ *	CG_MODE_MODIFY		Reading and/or writing is allowed.
+ *
+ * When the file is opened, if no CGNSLibraryVersion_t node is found, a default value of 1.05 is assumed for the CGNS version number. Note that this 
+ * corresponds to an old version of the CGNS standard, that doesn't include many data structures supported by the current standard.
+ *
+ */
 CGNSDLL int cg_open(const char * filename, int mode, int *fn);
+/**
+ * EMPTY
+ */
 CGNSDLL int cg_version(int fn, float *FileVersion);
 CGNSDLL int cg_precision(int fn, int *precision);
 CGNSDLL int cg_close(int fn);

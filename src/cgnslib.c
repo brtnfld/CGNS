@@ -339,6 +339,31 @@ int cg_is_cgns(const char *filename, int *file_type)
  *
  ***********************************************************************/
 
+/**
+ *
+ * \brief Open a CGNS file.
+ *
+ * \param[in] filename Name of the CGNS file, including path name if necessary. There is no limit on the length of this character variable. 
+ * \param[in] mode Mode used for opening the file. The modes currently supported are \p CG_MODE_READ, \p CG_MODE_WRITE, and \p CG_MODE_MODIFY.
+ * \param[out] file_number CGNS file index number.
+ * \return ier Error status.
+ *
+ * \details The function \e cg_open must always be the first one called. It opens a CGNS file for reading and/or writing and returns an index number \e file_number. 
+ * The index number serves to identify the CGNS file in subsequent function calls. Several CGNS files can be opened simultaneously. The current 
+ * limit on the number of files opened at once depends on the platform. On an SGI workstation, this limit is set at 100 (parameter FOPEN_MAX in stdio.h).
+ * The file can be opened in one of the following modes:
+ *
+ *|   |   |
+ *|---|---|
+ *|__CG_MODE_READ__ | Read only mode.  |
+ *|__CG_MODE_WRITE__| Write only mode. |
+ *|__CG_MODE_MODIFY__| Reading and/or writing is allowed.|
+ *
+ * When the file is opened, if no \e CGNSLibraryVersion_t node is found, a default value of 1.05 is assumed for the CGNS version number. Note that this 
+ * corresponds to an old version of the CGNS standard, that doesn't include many data structures supported by the current standard.
+ *
+ */
+
 int cg_open(const char *filename, int mode, int *file_number)
 {
     int cgio, filetype;
