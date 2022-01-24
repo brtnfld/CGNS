@@ -1957,10 +1957,10 @@ if test "$withfortran" = "yes"; then
 #----------- Determine if the Fortran compiler NAG -------------------
 #   Add compiler flag for C API calls.
 #--------------------------------------------------------------------------
-     fc_vendor="`$FC -V 2>&1 |grep 'NAG'`"
-     if test X != "X$fc_vendor"; then
-       FFLAGS="$FFLAGS -mismatch_all"
-     fi
+#     fc_vendor="`$FC -V 2>&1 |grep 'NAG'`"
+#     if test X != "X$fc_vendor"; then
+#       FFLAGS="$FFLAGS -mismatch_all"
+#     fi
 fi
 #--------------------------------------------------------------------------
 # substitutions and write Makefile and make.defs
