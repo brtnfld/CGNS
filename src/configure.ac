@@ -509,6 +509,69 @@ else
       [AC_MSG_RESULT([no])])
   AC_LANG_POP(Fortran)
 
+# Determine whether the Fortran compiler allows routines to be called with different 
+# argument types.  If not, attempts to determine a command-line argument that permits such use 
+# (The Fortran standard prohibits this usage)
+#
+# The NAG Fortran compiler, nagfor, and gfortran version > 10 are known to enforce this part of the
+# Fortran standard.
+#
+# Reference: Based on mpich tests.
+
+AC_MSG_CHECKING([whether $F77 allows mismatched arguments])
+
+prog_f77_mismatched_args_parm=""
+prog_f77_mismatched_args=no
+
+AC_LANG_PUSH([Fortran])
+AC_COMPILE_IFELSE([
+     AC_LANG_SOURCE([
+      program main
+      integer a
+      real b
+      character c
+      call foo1(a)
+      call foo1(b)
+      call foo1(c)
+      end
+])],[prog_f77_mismatched_args=yes])
+    if test "$prog_f77_mismatched_args" != "yes" ; then
+        # try again with -wmismatch=foo1
+        save_FFLAGS="$FFLAGS"
+        # The best solution is to turn off errors on particular routines
+        # if that isn't possible (e.g., too many of them), then
+        # just try arguments that turn off all checking
+        for flags in ifelse($2,yes,,"-wmismatch=foo1") "-mismatch" "-fallow-argument-mismatch" ; do
+            testok=no
+            FFLAGS="$FFLAGS $flags"
+            AC_COMPILE_IFELSE([
+            AC_LANG_SOURCE([
+        program main
+        integer a
+        real b
+        character c
+        call foo1(a)
+        call foo1(b)
+        call foo1(c)
+        end
+])],[testok=yes])
+            FFLAGS="$save_FFLAGS"
+            if test "$testok" = yes ; then break ; fi
+        done
+        if test "$testok" = yes ; then 
+            prog_f77_mismatched_args_parm="$flags"
+            prog_f77_mismatched_args="yes, with $prog_f77_mismatched_args_parm"
+        fi
+    fi
+AC_LANG_POP([Fortran])
+
+AC_MSG_RESULT($prog_f77_mismatched_args)
+if test "$prog_f77_mismatched_args" = no ; then
+    AC_MSG_ERROR([The Fortran compiler $F77 will not compile files that call 
+the same routine with arguments of different types.])
+fi
+
+
  ## In F2003 and F2008 optional parameters are not allowed for functions that have BIND(C).
  ## In Fortran 2003 it is constraint C530, in the latest Fortran 2008 draft it is C516:
  ## "The ALLOCATABLE, POINTER, or OPTIONAL attribute shall not be specified
@@ -1878,9 +1941,9 @@ if test "$withfortran" = "yes"; then
            test -n "$f9x_vers_minor" || f9x_vers_minor=0
            test -n "$f9x_vers_patch" || f9x_vers_patch=0
       fi
-      if test $f9x_vers_major -ge 10; then
-         FFLAGS="$FFLAGS -fallow-argument-mismatch"
-      fi
+      #if test $f9x_vers_major -ge 10; then
+      #   FFLAGS="$FFLAGS -fallow-argument-mismatch"
+      #fi
       # Warn about a gfortran 10.2.0 bug (GCC Bug 100149) which
       # causes cg_goto_f to segfault, other versions are fine.
       if test $f9x_vers_major = 10 && test $f9x_vers_minor = 2; then

@@ -5347,6 +5347,92 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+# Determine whether the Fortran compiler allows routines to be called with different
+# argument types.  If not, attempts to determine a command-line argument that permits such use
+# (The Fortran standard prohibits this usage)
+#
+# The NAG Fortran compiler, nagfor, and gfortran version > 10 are known to enforce this part of the
+# Fortran standard.
+#
+# Reference: Based on mpich tests.
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $F77 allows mismatched arguments" >&5
+$as_echo_n "checking whether $F77 allows mismatched arguments... " >&6; }
+
+prog_f77_mismatched_args_parm=""
+prog_f77_mismatched_args=no
+
+ac_ext=${ac_fc_srcext-f}
+ac_compile='$FC -c $FCFLAGS $ac_fcflags_srcext conftest.$ac_ext >&5'
+ac_link='$FC -o conftest$ac_exeext $FCFLAGS $LDFLAGS $ac_fcflags_srcext conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_fc_compiler_gnu
+
+cat > conftest.$ac_ext <<_ACEOF
+
+
+      program main
+      integer a
+      real b
+      character c
+      call foo1(a)
+      call foo1(b)
+      call foo1(c)
+      end
+
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"; then :
+  prog_f77_mismatched_args=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+    if test "$prog_f77_mismatched_args" != "yes" ; then
+        # try again with -wmismatch=foo1
+        save_FFLAGS="$FFLAGS"
+        # The best solution is to turn off errors on particular routines
+        # if that isn't possible (e.g., too many of them), then
+        # just try arguments that turn off all checking
+        for flags in "-wmismatch=foo1" "-mismatch" "-fallow-argument-mismatch" ; do
+            testok=no
+            FFLAGS="$FFLAGS $flags"
+            cat > conftest.$ac_ext <<_ACEOF
+
+
+        program main
+        integer a
+        real b
+        character c
+        call foo1(a)
+        call foo1(b)
+        call foo1(c)
+        end
+
+_ACEOF
+if ac_fn_fc_try_compile "$LINENO"; then :
+  testok=yes
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+            FFLAGS="$save_FFLAGS"
+            if test "$testok" = yes ; then break ; fi
+        done
+        if test "$testok" = yes ; then
+            prog_f77_mismatched_args_parm="$flags"
+            prog_f77_mismatched_args="yes, with $prog_f77_mismatched_args_parm"
+        fi
+    fi
+ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $prog_f77_mismatched_args" >&5
+$as_echo "$prog_f77_mismatched_args" >&6; }
+if test "$prog_f77_mismatched_args" = no ; then
+    as_fn_error $? "The Fortran compiler $F77 will not compile files that call
+the same routine with arguments of different types." "$LINENO" 5
+fi
+
+
  ## In F2003 and F2008 optional parameters are not allowed for functions that have BIND(C).
  ## In Fortran 2003 it is constraint C530, in the latest Fortran 2008 draft it is C516:
  ## "The ALLOCATABLE, POINTER, or OPTIONAL attribute shall not be specified
@@ -7531,9 +7617,9 @@ if test "$withfortran" = "yes"; then
            test -n "$f9x_vers_minor" || f9x_vers_minor=0
            test -n "$f9x_vers_patch" || f9x_vers_patch=0
       fi
-      if test $f9x_vers_major -ge 10; then
-         FFLAGS="$FFLAGS -fallow-argument-mismatch"
-      fi
+      #if test $f9x_vers_major -ge 10; then
+      #   FFLAGS="$FFLAGS -fallow-argument-mismatch"
+      #fi
       # Warn about a gfortran 10.2.0 bug (GCC Bug 100149) which
       # causes cg_goto_f to segfault, other versions are fine.
       if test $f9x_vers_major = 10 && test $f9x_vers_minor = 2; then
