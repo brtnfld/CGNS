@@ -4535,6 +4535,95 @@ CGNSDLL void cgp_error_exit_f()
     cgp_error_exit();
 }
 
+/*-----------------------------------------------------------------------*/
+
+CGNSDLL void FMNAME(cgp_coord_general_write_data_f,CGP_COORD_GENERAL_WRITE_DATA_F)(
+	cgint_f *fn, cgint_f *B, cgint_f *Z, cgint_f *C, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *coords, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_coord_general_write_data((int)*fn, (int)*B, (int)*Z, (int)*C,
+                                                rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                                m_rmin, m_rmax, coords);
+}
+
+CGNSDLL void FMNAME(cgp_coord_general_read_data_f,CGP_COORD_GENERAL_READ_DATA_F)(
+	cgint_f *fn, cgint_f *B, cgint_f *Z, cgint_f *C, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *coords, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_coord_general_read_data((int)*fn, (int)*B, (int)*Z, (int)*C,
+                                                rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                                m_rmin, m_rmax, coords);
+}
+
+CGNSDLL void FMNAME(cgp_poly_section_write_f,CGP_POLY_SECTION_WRITE_F)(
+        cgint_f *fn, cgint_f *B, cgint_f *Z, STR_PSTR(section_name),
+        CGNS_ENUMT(DataType_t) *type, cgsize_t *start, cgsize_t *end,
+        cgsize_t *maxoffset, cgint_f *nbndry, cgint_f *S, cgint_f *ier STR_PLEN(section_name))
+{
+  char c_name[CGIO_MAX_NAME_LENGTH+1];
+  int i_S;
+
+  /* convert Fortran-text-string to a C-string */
+  string_2_C_string(STR_PTR(section_name), STR_LEN(section_name),
+                    c_name, CGIO_MAX_NAME_LENGTH, ier);
+  if (*ier) return;
+  *ier = (cgint_f)cgp_poly_section_write((int)*fn, (int)*B, (int)*Z, c_name,
+                                         *type, *start, *end, *maxoffset, (int)*nbndry, &i_S);
+  *S = (cgint_f)i_S;
+
+}
+
+CGNSDLL void FMNAME(cgp_poly_elements_write_data_f,CGP_POLY_ELEMENTS_WRITE_DATA_F)(
+        cgint_f *fn, cgint_f *B, cgint_f *Z, cgint_f *S,
+        cgsize_t *start, cgsize_t *end,
+        cgsize_t *elements, cgsize_t *offsets, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_poly_elements_write_data((int)*fn, (int)*B, (int)*Z, (int)*S,
+                                          *start, *end, elements, offsets);
+}
+
+CGNSDLL void FMNAME(cgp_field_general_write_data_f,CGP_FIELD_GENERAL_WRITE_DATA_F)(
+	cgint_f *fn, cgint_f *B, cgint_f *Z, cgint_f *S, cgint_f *F, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *data, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_field_general_write_data((int)*fn, (int)*B, (int)*Z, (int)*S, (int)*F,
+                                                rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                                m_rmin, m_rmax, data);
+}
+
+CGNSDLL void FMNAME(cgp_field_general_read_data_f,CGP_FIELD_GENERAL_READ_DATA_F)(
+	cgint_f *fn, cgint_f *B, cgint_f *Z, cgint_f *S, cgint_f *F, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *data, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_field_general_read_data((int)*fn, (int)*B, (int)*Z, (int)*S, (int)*F,
+                                                rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                                m_rmin, m_rmax, data);
+}
+
+CGNSDLL void FMNAME(cgp_array_general_write_data_f,CGP_ARRAY_GENERAL_WRITE_DATA_F)(
+	cgint_f *A, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *data, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_array_general_write_data((int)*A,
+                                               rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                               m_rmin, m_rmax, data);
+}
+
+CGNSDLL void FMNAME(cgp_array_general_read_data_f,CGP_ARRAY_GENERAL_READ_DATA_F)(
+	cgint_f *A, cgsize_t *rmin, cgsize_t *rmax,
+	CGNS_ENUMT(DataType_t) *m_type, cgint_f *m_numdim, cgsize_t *m_arg_dimvals,
+        cgsize_t *m_rmin, cgsize_t *m_rmax, void *data, cgint_f *ier)
+{
+  *ier = (cgint_f)cgp_array_general_read_data((int)*A,
+                                              rmin, rmax, *m_type, (int)*m_numdim, m_arg_dimvals,
+                                              m_rmin, m_rmax, data);
+}
+
 #if HDF5_HAVE_MULTI_DATASETS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\

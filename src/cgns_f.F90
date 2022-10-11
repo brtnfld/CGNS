@@ -3679,6 +3679,185 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_coord_write_f
 
+     SUBROUTINE cgp_coord_general_write_data_f(fn, B, Z, C, &
+          rmin, rmax, &
+          m_type, &
+          m_numdim, m_arg_dimvals, &
+          m_rmin, m_rmax, &
+          coords, ier)
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       INTEGER, INTENT(IN) :: C
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: coords
+       INTEGER, INTENT(OUT) :: ier
+     END SUBROUTINE cgp_coord_general_write_data_f
+
+     SUBROUTINE cgp_coord_general_read_data_f(fn, B, Z, C, &
+          rmin, rmax, &
+          m_type, &
+          m_numdim, m_arg_dimvals, &
+          m_rmin, m_rmax, &
+          coords, ier)
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       INTEGER, INTENT(IN) :: C
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: coords
+       INTEGER, INTENT(OUT) :: ier
+     END SUBROUTINE cgp_coord_general_read_data_f
+
+     SUBROUTINE cgp_poly_section_write_f(fn, B, Z, sectionname, &
+          type, start, end, maxoffset, &
+          nbndry, S, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T, C_CHAR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: sectionname
+       INTEGER(CGENUM_T), INTENT(IN) :: type
+       INTEGER(CGSIZE_T), INTENT(IN) :: start
+       INTEGER(CGSIZE_T), INTENT(IN) :: end
+       INTEGER(CGSIZE_T), INTENT(IN) :: maxoffset
+       INTEGER, INTENT(IN) :: nbndry
+       INTEGER, DIMENSION(*), INTENT(IN) :: S
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_poly_section_write_f
+
+     SUBROUTINE cgp_poly_elements_write_data_f(fn, B, Z, S, start, &
+                            end, elements, offsets, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       INTEGER, INTENT(IN) :: S
+       INTEGER(CGSIZE_T), INTENT(IN) :: start
+       INTEGER(CGSIZE_T), INTENT(IN) :: end
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: elements
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: offsets
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_poly_elements_write_data_f
+
+     SUBROUTINE cgp_field_general_write_data_f(fn, B, Z, S, F, &
+                                 rmin, rmax, &
+                                 m_type, &
+                                 m_numdim, m_arg_dimvals, &
+                                 m_rmin, m_rmax, &
+                                 data, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       INTEGER, INTENT(IN) :: S
+       INTEGER, INTENT(IN) :: F
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: data
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_field_general_write_data_f
+
+     SUBROUTINE cgp_field_general_read_data_f(fn, B, Z, S, F, &
+                                rmin, rmax, &
+                                m_type, &
+                                m_numdim, m_arg_dimvals, &
+                                m_rmin, m_rmax, &
+                                DATA, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: fn
+       INTEGER, INTENT(IN) :: B
+       INTEGER, INTENT(IN) :: Z
+       INTEGER, INTENT(IN) :: S
+       INTEGER, INTENT(IN) :: F
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: data
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_field_general_read_data_f
+
+     SUBROUTINE cgp_array_general_write_data_f(A, &
+                                 rmin, rmax, &
+                                 m_type, &
+                                 m_numdim, m_arg_dimvals, &
+                                 m_rmin, m_rmax, &
+                                 data, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: A
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: data
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_array_general_write_data_f
+
+     SUBROUTINE cgp_array_general_read_data_f(A, &
+                                rmin, rmax, &
+                                m_type, &
+                                m_numdim, m_arg_dimvals, &
+                                m_rmin, m_rmax, &
+                                data, ier)
+
+       IMPORT :: CGSIZE_T, CGENUM_T, C_PTR
+       IMPLICIT NONE
+       INTEGER, INTENT(IN) :: A
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: rmax
+       INTEGER(CGENUM_T), INTENT(IN) :: m_type
+       INTEGER, INTENT(IN) :: m_numdim
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_arg_dimvals
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmin
+       INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: m_rmax
+       TYPE(C_PTR), VALUE :: data
+       INTEGER, INTENT(OUT) :: ier
+
+     END SUBROUTINE cgp_array_general_read_data_f
+
 !!$    SUBROUTINE cgp_coord_write_data_f(fn, B, Z, C,
 !!$     CGSIZE_T *rmin, CGSIZE_T *rmax, void *data, ier) BIND(C, NAME="")
 !!$
