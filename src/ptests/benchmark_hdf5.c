@@ -171,7 +171,7 @@ int initialize(int* argc, char** argv[]) {
   if(SUBF) {
     int required = MPI_THREAD_MULTIPLE;
     int provided = 0;
-    MPI_Init_thread(&argc, &argv, required, &provided);
+    MPI_Init_thread(argc, argv, required, &provided);
     if (provided < required) {
       printf("MPI_THREAD_MULTIPLE not supported\n");
       MPI_Abort(MPI_COMM_WORLD, -1);
