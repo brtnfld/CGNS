@@ -117,7 +117,8 @@ jobs:
       run: |
         cd cbuild
         make -j 8
-        make test
+        ctest -VV .
+        #make test
       shell: bash
 
 ##################################
