@@ -141,6 +141,7 @@ jobs:
         make -j 8
         cd examples/fortran/Test1
         make
+         echo "CGWRITE"
         ./cgwrite
         echo "DONE with cgwrite"
         ls
