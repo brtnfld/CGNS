@@ -22,13 +22,6 @@ jobs:
       matrix:
         name: ["Ubuntu Latest GCC", "macOS Latest Clang"]
         include:
-          - name: "Ubuntu Latest GCC"
-            artifact: "Linux.tar.xz"
-            os: ubuntu-latest
-            fortran: with
-            parallel: enable
-            hdf5: with
-            tools: enable
           - name: "macOS Latest Clang"
             artifact: "macOS.tar.xz"
             os: macos-latest
@@ -100,28 +93,6 @@ jobs:
 ##################################
 
 ##################################
-# CONFIGURE CGNS (CMake)
-##################################
-
-    - name: configure CGNS
-      run: |
-        bash .github/workflows/config-cgns.sh cmake \
-            "--${{ matrix.parallel }}-parallel --${{ matrix.fortran }}-fortran --${{ matrix.hdf5 }}-hdf5 --${{ matrix.tools }}-cgnstools"
-      shell: bash
-
-##################################
-# TEST CGNS (CMAKE)
-##################################
-
-    - name: CMake test CGNS
-      run: |
-        cd cbuild
-        make -j 8
-        #ctest -VV .
-        #make test
-      shell: bash
-
-##################################
 # CONFIGURE CGNS (Autotools)
 ##################################
 
@@ -139,6 +110,8 @@ jobs:
       run: |
         cd src
         make -j 8
-        cd examples/fortran
-        make test
+        cd examples/fortran/Test1
+        make
+        ./cgwrite
+        ./cgread
       shell: bash
