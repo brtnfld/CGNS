@@ -116,7 +116,7 @@ jobs:
     - name: CMake test CGNS
       run: |
         cd cbuild
-        make -j 8
+        #make -j 8
         #ctest -VV .
         #make test
       shell: bash

@@ -4635,9 +4635,9 @@ CONTAINS
      !CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: end
      CHARACTER(*), DIMENSION(1), INTENT(IN), OPTIONAL :: end
 
-     IF(PRESENT(UserDataName3)) PRINT*,"PRESENT",UserDataName1(1)
+     IF(PRESENT(UserDataName3)) PRINT*,"PRESENT",UserDataName3(1)
 
-     IF (.NOT. PRESENT(i1)) THEN
+     IF ( ( PRESENT(UserDataName1(1)) .AND. .NOT. PRESENT(i1) ) .OR. PRESENT(end) ) THEN
 #if HAVE_FORTRAN_2008TS
         ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), 0_C_INT))
 #else
