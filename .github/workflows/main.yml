@@ -142,5 +142,7 @@ jobs:
         cd examples/fortran/Test1
         make
         ./cgwrite
+        echo "DONE with cgwrite"
+        ls
         ./cgread
       shell: bash
