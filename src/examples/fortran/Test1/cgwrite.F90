@@ -108,9 +108,11 @@
 ! *** discrete data
 	    call cg_discrete_write_f(cg, base_no, zone_no, 'discrete#1', &
                                      discr_no, ier)
+            PRINT*,"CGWRITE HERE22244 ", ier, ERROR, cg, base_no, zone_no
 	    if (ier .eq. ERROR) call cg_error_exit_f
 
             PRINT*,"CGWRITE HERE4344334222"
+            stop
   	! *** discrete data arrays, defined on vertices:
 	    call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
                            'DiscreteData_t', discr_no, 'end')
