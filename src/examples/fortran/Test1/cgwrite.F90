@@ -104,16 +104,19 @@
  		enddo				! field loop
             enddo				! solution loop
 
+            PRINT*,"CGWRITE HERE222"
 ! *** discrete data
 	    call cg_discrete_write_f(cg, base_no, zone_no, 'discrete#1', &
                                      discr_no, ier)
 	    if (ier .eq. ERROR) call cg_error_exit_f
 
+            PRINT*,"CGWRITE HERE4344334222"
   	! *** discrete data arrays, defined on vertices:
 	    call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
                            'DiscreteData_t', discr_no, 'end')
             if (ier .eq. ERROR) call cg_error_exit_f
 
+            PRINT*,"CGWRITE HERE2sdfsdff22"
 	    DO k=1, SIZE(3)
                DO j=1, SIZE(2)
                   DO i=1, SIZE(1)
