@@ -4634,6 +4634,7 @@ CONTAINS
           i17, i18, i19, i20
      !CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: end
      CHARACTER(*), DIMENSION(1), INTENT(IN), OPTIONAL :: end
+     CHARACTER(:), ALLOCATABLE :: buf
 
      IF(PRESENT(UserDataName3)) PRINT*,"PRESENT",UserDataName3(1)
 
@@ -4655,7 +4656,9 @@ CONTAINS
      ELSE
 #if HAVE_FORTRAN_2008TS
         PRINT*,"ONEIT",TRIM(UserDataName1(1))
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//C_NULL_CHAR, INT(i1,C_INT)))
+        ALLOCATE(CHARACTER(LEN=LEN_TRIM(UserDataName1(1))+1) :: buf)
+        buf=TRIM(UserDataName1(1))//C_NULL_CHAR
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), buf, INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
 #endif
