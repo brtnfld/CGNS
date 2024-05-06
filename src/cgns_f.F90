@@ -4658,6 +4658,7 @@ CONTAINS
         PRINT*,"ONEIT",TRIM(UserDataName1(1))
         ALLOCATE(CHARACTER(LEN=LEN_TRIM(UserDataName1(1))+1) :: buf)
         buf=TRIM(UserDataName1(1))//C_NULL_CHAR
+        buf="Zone_t"//C_NULL_CHAR
         ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), buf, INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
