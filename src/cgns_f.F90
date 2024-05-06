@@ -4620,20 +4620,20 @@ CONTAINS
      INTEGER, INTENT(IN) :: B
      INTEGER, INTENT(OUT) :: ier
 #if 0
-     CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: UserDataName1,UserDataName2, &
+     CHARACTER(*), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
           UserDataName3,UserDataName4,UserDataName5,UserDataName6,UserDataName7,UserDataName8, &
           UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
           UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
 #endif
-     CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: UserDataName1,UserDataName2, &
+     CHARACTER(*), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
           UserDataName3,UserDataName4,UserDataName5,UserDataName6,UserDataName7,UserDataName8, &
           UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
           UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
 
-     INTEGER, INTENT(IN), OPTIONAL :: i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16, &
+     INTEGER, OPTIONAL :: i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16, &
           i17, i18, i19, i20
      !CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: end
-     CHARACTER(*), DIMENSION(1), INTENT(IN), OPTIONAL :: end
+     CHARACTER(*), DIMENSION(1), OPTIONAL :: end
      CHARACTER(:), ALLOCATABLE :: buf
 
      IF(PRESENT(UserDataName3)) PRINT*,"PRESENT",UserDataName3(1)
@@ -4659,6 +4659,7 @@ CONTAINS
         ALLOCATE(CHARACTER(LEN=LEN_TRIM(UserDataName1(1))+1) :: buf)
         buf=TRIM(UserDataName1(1))//C_NULL_CHAR
         buf="Zone_t"//C_NULL_CHAR
+        i1=1000
         ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
