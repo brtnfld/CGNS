@@ -4660,7 +4660,8 @@ CONTAINS
         buf=TRIM(UserDataName1(1))//C_NULL_CHAR
         buf="Zone_t"//C_NULL_CHAR
         i1=1000
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
+        !ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
 #endif
