@@ -111,13 +111,13 @@
             PRINT*,"CGWRITE HERE22244 ", ier, ERROR, cg, base_no, zone_no
 	    if (ier .eq. ERROR) call cg_error_exit_f
 
-            stop
             PRINT*,"CGWRITE HERE4344334222"
   	! *** discrete data arrays, defined on vertices:
 	    call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
                            'DiscreteData_t', discr_no, 'end')
      
             PRINT*,"CGWRITE HERE AFTER ",ier,ERROR
+            stop
             if (ier .eq. ERROR) call cg_error_exit_f
 
             PRINT*,"CGWRITE HERE2sdfsdff22"
