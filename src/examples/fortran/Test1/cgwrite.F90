@@ -132,9 +132,10 @@
                                    size, data, ier)
             if (ier .eq. ERROR) call cg_error_exit_f
 
-  	! *** discrete data arrays attribute: GOTO DataArray node
-	    call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
-      	            'DiscreteData_t', discr_no, 'DataArray_t', 1, 'end')
+        ! *** discrete data arrays attribute: GOTO DataArray node
+            CALL cg_goto_f(cg, base_no, ier, 'end')
+            !call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
+            !        'DiscreteData_t', discr_no, 'DataArray_t', 1, 'end')
 	    if (ier .eq. ERROR) call cg_error_exit_f
             PRINT*,"LKJDF"
             stop

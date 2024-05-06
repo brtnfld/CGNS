@@ -4161,13 +4161,13 @@ MODULE cgns
        USE ISO_C_BINDING
        INTEGER(C_INT), VALUE :: fn
        INTEGER(C_INT), VALUE :: B
-       CHARACTER(C_CHAR), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
+       CHARACTER(KIND=C_CHAR), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
             UserDataName3,UserDataName4,UserDataName5,UserDataName6,UserDataName7,UserDataName8, &
             UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
             UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
        INTEGER(C_INT), OPTIONAL :: i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16, &
             i17, i18, i19, i20
-       CHARACTER(C_CHAR), DIMENSION(*), OPTIONAL :: END
+       CHARACTER(KIND=C_CHAR), DIMENSION(*), OPTIONAL :: END
      END FUNCTION cg_goto
 
 
@@ -4620,7 +4620,7 @@ CONTAINS
      INTEGER, INTENT(IN) :: B
      INTEGER, INTENT(OUT) :: ier
 #if 0
-     CHARACTER(*), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
+     CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: UserDataName1,UserDataName2, &
           UserDataName3,UserDataName4,UserDataName5,UserDataName6,UserDataName7,UserDataName8, &
           UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
           UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
@@ -4640,7 +4640,7 @@ CONTAINS
 
      IF ( ( PRESENT(UserDataName1) .AND. .NOT. PRESENT(i1) ) ) THEN
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=TRIM(UserDataName1(1))//CHAR(0), i1=0_C_INT))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), 0_C_INT))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, 0)
 #endif
@@ -4648,7 +4648,7 @@ CONTAINS
 
      ELSE IF(PRESENT(end)) THEN
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=TRIM(end(1))//CHAR(0), i1=0_C_INT))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(end(1))//CHAR(0), 0_C_INT))
 #else
         CALL cg_goto_f1(fn, B, ier, end, 0)
 #endif
@@ -4659,9 +4659,7 @@ CONTAINS
         ALLOCATE(CHARACTER(LEN=LEN_TRIM(UserDataName1(1))+1) :: buf)
         buf=TRIM(UserDataName1(1))//C_NULL_CHAR
         buf="Zone_t"//C_NULL_CHAR
-        i1=1000
-        !ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
 #endif
