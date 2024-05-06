@@ -13188,20 +13188,20 @@ int cg_goto(int fn, int B, ...)
 
 int cg_goto_f08(int fn, int B, ...)
 {
-
-    int n;
     va_list ap;
+    int n;
     int index[CG_MAX_GOTO_DEPTH];
     char *label[CG_MAX_GOTO_DEPTH];
+    int status;
 
-     /* initialize */
+    va_start(ap, B);
+
+    /* initialize */
     posit = 0;
 
      /* set global variable cg */
     cg = cgi_get_file(fn);
     if (cg == 0) return CG_ERROR;
-
-    va_start(ap, B);
 
      /* read variable argument list */
     for (n = 0; n < CG_MAX_GOTO_DEPTH; n++) {
@@ -13212,7 +13212,10 @@ int cg_goto_f08(int fn, int B, ...)
     }
     va_end(ap);
 
-    return cgi_set_posit(fn, B, n, index, label);
+    printf("n index label %d %d %s\n",n, index, *label);
+    status = cgi_set_posit(fn, B, n, index, label);
+    printf("STATUS %d\n",status);
+    return status;
 }
 
 /*-----------------------------------------------------------------------*/
