@@ -4640,7 +4640,7 @@ CONTAINS
 
      IF ( ( PRESENT(UserDataName1) .AND. .NOT. PRESENT(i1) ) ) THEN
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), 0_C_INT))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=TRIM(UserDataName1(1))//CHAR(0), i1=0_C_INT))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, 0)
 #endif
@@ -4648,7 +4648,7 @@ CONTAINS
 
      ELSE IF(PRESENT(end)) THEN
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(end(1))//CHAR(0), 0_C_INT))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=TRIM(end(1))//CHAR(0), i1=0_C_INT))
 #else
         CALL cg_goto_f1(fn, B, ier, end, 0)
 #endif
@@ -4659,7 +4659,7 @@ CONTAINS
         ALLOCATE(CHARACTER(LEN=LEN_TRIM(UserDataName1(1))+1) :: buf)
         buf=TRIM(UserDataName1(1))//C_NULL_CHAR
         buf="Zone_t"//C_NULL_CHAR
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), buf, INT(i1,C_INT)))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), UserDataName1=buf, i1=INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
 #endif
