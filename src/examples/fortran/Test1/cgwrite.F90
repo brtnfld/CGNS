@@ -117,7 +117,6 @@
                            'DiscreteData_t', discr_no, 'end')
      
             PRINT*,"CGWRITE HERE AFTER ",ier,ERROR
-            stop
             if (ier .eq. ERROR) call cg_error_exit_f
 
             PRINT*,"CGWRITE HERE2sdfsdff22"
@@ -138,6 +137,7 @@
       	            'DiscreteData_t', discr_no, 'DataArray_t', 1, 'end')
 	    if (ier .eq. ERROR) call cg_error_exit_f
             PRINT*,"LKJDF"
+            stop
 	    call cg_units_write_f(CGNS_ENUMV(Kilogram), CGNS_ENUMV(Meter), CGNS_ENUMV(Second), CGNS_ENUMV(Kelvin), &
                                   CGNS_ENUMV(Radian), ier)
             if (ier .eq. ERROR) call cg_error_exit_f
