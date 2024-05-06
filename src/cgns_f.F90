@@ -4654,7 +4654,8 @@ CONTAINS
         RETURN
      ELSE
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), INT(i1,C_INT)))
+        PRINT*,"ONEIT",TRIM(UserDataName1(1))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//C_NULL_CHAR, INT(i1,C_INT)))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, i1)
 #endif
