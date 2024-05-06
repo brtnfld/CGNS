@@ -111,7 +111,7 @@
 
             PRINT*,"CGWRITE cg_goto_f"
         ! *** discrete data arrays, defined on vertices:
-            CALL cg_goto_f(cg, base_no, ier, 'end')
+            CALL cg_goto_f(cg, base_no, ier, UserDataName1='end')
             !call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
             !               'DiscreteData_t', discr_no, 'end')
      
@@ -133,8 +133,8 @@
 
         ! *** discrete data arrays attribute: GOTO DataArray node
             !CALL cg_goto_f(cg, base_no, ier, 'end')
-            call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
-                    'DiscreteData_t', discr_no, 'DataArray_t', 1, 'end')
+            !call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &
+            !        'DiscreteData_t', discr_no, 'DataArray_t', 1, 'end')
 	    if (ier .eq. ERROR) call cg_error_exit_f
             PRINT*,"LKJDF"
             stop
