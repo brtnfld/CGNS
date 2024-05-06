@@ -13206,7 +13206,7 @@ int cg_goto_f08(int fn, int B, ...)
      /* read variable argument list */
     for (n = 0; n < CG_MAX_GOTO_DEPTH; n++) {
         label[n] = va_arg(ap,char *);
-        printf("n, label %d %s\n",n, *label);
+        printf("n, label %d %s\n",(int)*va_arg(ap, int *), *label);
         if (label[n] == NULL || label[n][0] == 0) break;
         if (strcmp("end",label[n])==0 || strcmp("END",label[n])==0) break;
         index[n] = (int)*va_arg(ap, int *);
