@@ -104,14 +104,12 @@
  		enddo				! field loop
             enddo				! solution loop
 
-            PRINT*,"CGWRITE HERE222"
 ! *** discrete data
 	    call cg_discrete_write_f(cg, base_no, zone_no, 'discrete#1', &
                                      discr_no, ier)
-            PRINT*,"CGWRITE HERE22244 ", ier, ERROR, cg, base_no, zone_no
 	    if (ier .eq. ERROR) call cg_error_exit_f
 
-            PRINT*,"CGWRITE HERE4344334222"
+            PRINT*,"CGWRITE cg_goto_f"
         ! *** discrete data arrays, defined on vertices:
             CALL cg_goto_f(cg, base_no, ier, 'end')
             !call cg_goto_f(cg, base_no, ier, 'Zone_t', zone, &

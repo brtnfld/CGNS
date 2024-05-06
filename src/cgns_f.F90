@@ -4625,22 +4625,21 @@ CONTAINS
           UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
           UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
 #endif
-     CHARACTER(*), DIMENSION(*), OPTIONAL :: UserDataName1,UserDataName2, &
+     CHARACTER(*), OPTIONAL :: UserDataName1,UserDataName2, &
           UserDataName3,UserDataName4,UserDataName5,UserDataName6,UserDataName7,UserDataName8, &
           UserDataName9,UserDataName10,UserDataName11,UserDataName12,UserDataName13,UserDataName14, &
-          UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20
+          UserDataName15,UserDataName16,UserDataName17,UserDataName18,UserDataName19,UserDataName20, end
 
-     INTEGER, OPTIONAL :: i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16, &
-          i17, i18, i19, i20
+     INTEGER, OPTIONAL :: i1,i2,i3,i4,i5,i6,i7,i8,i9,i10,i11,i12,i13,i14,i15,i16,i17,i18,i19,i20
      !CHARACTER(*), DIMENSION(*), INTENT(IN), OPTIONAL :: end
-     CHARACTER(*), DIMENSION(1), OPTIONAL :: end
      CHARACTER(:), ALLOCATABLE :: buf
 
      IF(PRESENT(UserDataName3)) PRINT*,"PRESENT",UserDataName3(1)
 
      IF ( ( PRESENT(UserDataName1) .AND. .NOT. PRESENT(i1) ) ) THEN
 #if HAVE_FORTRAN_2008TS
-        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), 0_C_INT))
+        ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), "ENDIT"//CHAR(0), 0_C_INT))
+      !  ier = INT(cg_goto(INT(fn,C_INT), INT(B,C_INT), TRIM(UserDataName1(1))//CHAR(0), 0_C_INT))
 #else
         CALL cg_goto_f1(fn, B, ier, UserDataName1, 0)
 #endif
@@ -4665,6 +4664,7 @@ CONTAINS
 #endif
         IF(ier .NE. 0) RETURN
      END IF
+#if 0
      IF (PRESENT(i2)) THEN
         CALL cg_gorel_f1(fn, ier, UserDataName2, i2)
         IF(ier .NE. 0) RETURN
@@ -4741,6 +4741,7 @@ CONTAINS
         CALL cg_gorel_f1(fn, ier, UserDataName20, i20)
         IF(ier .NE. 0) RETURN
      END IF
+#endif
   END SUBROUTINE cg_goto_f
 
 !DEC$if defined(BUILD_CGNS_DLL)
