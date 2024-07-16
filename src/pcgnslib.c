@@ -24,6 +24,7 @@ freely, subject to the following restrictions:
  * \defgroup ElementConnectivityData Parallel Element Connectivity Data
  * \defgroup SolutionData Parallel Solution Data
  * \defgroup ArrayData Parallel Array Data
+ * \defgroup PointListData Parallel Point List Data
  **/ 
 
 #include <stdio.h>
@@ -2571,7 +2572,7 @@ int cgp_array_multi_read_data(int fn, int *A, const cgsize_t *rmin,
  *
  * \param[in] file_number \FILE_fn
  * \param[in] rmin Lower range index in file
- * \param[in] rmax Upper range index in file
+ * \param[in] end Upper range index in file
  * \param[in] points Array of points
  * \return \ier
  */
