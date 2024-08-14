@@ -688,7 +688,6 @@ extern CGNSDLL const char * ElementTypeName[NofValidElementTypes];
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Zone types                                                       *
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 typedef enum {
   CGNS_ENUMV( ZoneTypeNull ) =CG_Null,
   CGNS_ENUMV( ZoneTypeUserDefined ) =CG_UserDefined,

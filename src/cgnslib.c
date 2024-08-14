@@ -28,12 +28,11 @@ freely, subject to the following restrictions:
  * \defgroup AuxiliaryModel Auxiliary Model
  * \defgroup Axisymmetry   Axisymmetry
  * \defgroup BCData  Boundary Condition Data
- * \defgroup BCDataset  Boundary Condition Datasets
  * \defgroup BaseIterativeData Base Iterative Data
  * \defgroup BoundaryConditionDatasets Boundary Condition Datasets
  * \defgroup BoundaryConditionType  Boundary Condition Type and Location
  * \defgroup CGNSBaseInformation CGNS Base Information
- * \defgroup CGNSFamilyBoundaryDefinition Family Boundary Condition
+ * \defgroup CGNSFamilyBoundaryCondition Family Boundary Condition
  * \defgroup CGNSFamilyDefinition  Family Definition
  * \defgroup CGNSFamilyHierarchyTreeDefinition Family Hierarchy Tree
  * \defgroup CGNSFile File Operations
@@ -2382,7 +2381,7 @@ int cg_node_family_name_read(int N, char* node_name, char* family_name )
 /*----------------------------------------------------------------------*/
 
 /**
- * \ingroup CGNSFamilyBoundaryDefinition
+ * \ingroup CGNSFamilyBoundaryCondition
  *
  * \brief  Read boundary condition type for a family
  *
@@ -2419,7 +2418,7 @@ int cg_fambc_read(int fn, int B, int Fam, int BC,
 }
 
 /**
- * \ingroup CGNSFamilyBoundaryDefinition
+ * \ingroup CGNSFamilyBoundaryCondition
  *
  * \brief  Write boundary condition type for a family
  *
@@ -2503,7 +2502,7 @@ int cg_fambc_write(int fn, int B, int Fam, const char * fambc_name,
 
 /*----------------------------------------------------------------------*/
 /**
- * \ingroup CGNSFamilyBoundaryDefinition
+ * \ingroup CGNSFamilyBoundaryCondition
  *
  * \brief  Read boundary condition information (Family_t level)
  *
@@ -2551,7 +2550,7 @@ int cg_node_fambc_read( int BC, char* fambc_name,
 
 /*----------------------------------------------------------------------*/
 /**
- * \ingroup CGNSFamilyBoundaryDefinition
+ * \ingroup CGNSFamilyBoundaryCondition
  *
  * \brief  Write boundary condition information (Family_t level)
  *
@@ -11103,7 +11102,7 @@ int cg_boco_normal_write(int fn, int B, int Z, int BC, const int * NormalIndex,
 \*****************************************************************************/
 
 /**
- * \ingroup BCDataset
+ * \ingroup BoundaryConditionDatasets
  *
  * \brief  Read boundary condition dataset info 
  * 
@@ -11144,7 +11143,7 @@ int cg_dataset_read(int fn, int B, int Z, int BC, int DSet, char *DatasetName,
 }
 
 /**
- * \ingroup BCDataset
+ * \ingroup BoundaryConditionDatasets
  *
  * \brief  Write boundary condition dataset info
  * 
@@ -17008,7 +17007,7 @@ int cg_ptset_write(CGNS_ENUMT(PointSetType_t) ptset_type, cgsize_t npnts,
 \*****************************************************************************/
 
 /**
- * \ingroup  BoundaryConditionDatasets
+ * \ingroup BoundaryConditionDatasets
  *
  *
  * \brief   Get number of family boundary condition datasets
@@ -17043,7 +17042,7 @@ int cg_bcdataset_info(int *n_dataset)
 
 
 /**
- * \ingroup  BoundaryConditionDatasets
+ * \ingroup BoundaryConditionDatasets
  *
  *
  * \brief  Read family boundary condition dataset info
@@ -17082,7 +17081,7 @@ int cg_bcdataset_read(int index, char *name, CGNS_ENUMT(BCType_t) *BCType,
 
 
 /**
- * \ingroup  BoundaryConditionDatasets
+ * \ingroup BoundaryConditionDatasets
  *
  *
  * \brief  Write family boundary condition dataset info 

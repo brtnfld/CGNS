@@ -2841,7 +2841,7 @@ int cgp_array_multi_read_data(int fn, int *A, const cgsize_t *rmin,
  *
  * \param[in] file_number \FILE_fn
  * \param[in] rmin Lower range index in file
- * \param[in] end Upper range index in file
+ * \param[in] rmax Upper range index in file
  * \param[in] points Array of points
  * \return \ier
  */
