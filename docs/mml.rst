@@ -23,5 +23,12 @@ which contains coding examples using the Mid-Level Library to write and read sim
    api/c_api
    api/f_api
 
+***************************
+Parallel Mid-Level Library
+***************************
+
+.. toctree::
+   api/c_parallel_api
+
 
 This document was originally written by Diane Poirier of ICEM CFD Engineering for the CGNS Project Group.

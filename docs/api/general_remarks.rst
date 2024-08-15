@@ -48,7 +48,7 @@ then the responsibility of the application to release this space by a call to cg
 ****************************************
     Error Status
 ****************************************
-All C functions return an integer value representing the error status. All Fortran functions have an additional parameter, *ier*, which contains the value of the error status. An error status different from zero implies that an error occured. The error message can be printed using the :ref:`error handling functions<errorhandling-ref>` of the CGNS library. The error codes are coded in the C and Fortran include files *cgnslib.h* and *cgnslib_f.h*.
+All C functions return an integer value representing the error status. All Fortran functions have an additional parameter, *ier*, which contains the value of the error status. An error status different from zero implies that an error occurred. The error message can be printed using the :ref:`error handling functions<errorhandling-ref>` of the CGNS library. The error codes are coded in the C and Fortran include files *cgnslib.h* and *cgnslib_f.h*.
 
 .. _Typedefs-ref:
 
@@ -75,7 +75,7 @@ In Fortran, the same key words are defined as integer parameters in the include 
 
 The CGNS library defines character arrays which map the typedefs above to character strings.
 These are global arrays dimensioned to the size of each list of typedefs. To retrieve a character 
-string representation of a typedef, use the typedef value as an index to the appropiate character array. 
+string representation of a typedef, use the typedef value as an index to the appropriate character array. 
 For example, to retrieve the string "*Meter*" for the ``LengthUnits_t`` Meter typedef, use ``LengthUnitsName[Meter]``. 
 Functions are available to retrieve these names without the need for direct global data access. These functions 
 also do bounds checking on the input, and if out of range, will return the string "<invalid>". An additional 

@@ -24,7 +24,7 @@ subprocess.call('doxygen Doxyfile', shell=True)
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'CGNS Sphinx Doxygen Breathe'
-# copyright is overriden by 'css/copyright.css'
+# copyright is overridden by '_static/css/copyright.css'
 # see https://github.com/readthedocs/sphinx_rtd_theme/issues/828
 copyright = ""
 #author = 'CGNS'
