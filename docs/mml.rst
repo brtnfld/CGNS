@@ -27,6 +27,8 @@ which contains coding examples using the Mid-Level Library to write and read sim
 Parallel Mid-Level Library
 ***************************
 
+The Parallel Mid-level Library (aka PMLL) is an extension of CGNS/MLL C and Fortran API to enable parallel aware file mapping.
+
 .. toctree::
    api/c_parallel_api
 
