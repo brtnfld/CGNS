@@ -34,6 +34,63 @@
 !    void * do not have explicit interfaces. They are the routines which
 !    are commented out.
 !
+
+!> \defgroup CGNSFile_F File Operations
+!> \defgroup AccessingANode_F  Accessing a node
+!> \defgroup ArbitraryGridMotion_F Arbitrary Grid Motion
+!> \defgroup AuxiliaryModel_F Auxiliary Model
+!> \defgroup Axisymmetry_F   Axisymmetry
+!> \defgroup BCData_F  Boundary Condition Data
+!> \defgroup BaseIterativeData_F Base Iterative Data
+!> \defgroup BoundaryConditionDatasets_F Boundary Condition Datasets
+!> \defgroup BoundaryConditionType_F  Boundary Condition Type and Location
+!> \defgroup CGNSBaseInformation_F CGNS Base Information
+!> \defgroup CGNSFamilyBoundaryCondition_F Family Boundary Condition
+!> \defgroup CGNSFamilyDefinition_F  Family Definition
+!> \defgroup CGNSFamilyHierarchyTreeDefinition_F Family Hierarchy Tree
+!> \defgroup CGNSFile_F File Operations
+!> \defgroup CGNSGeometryReference_F Geometry Reference
+!> \defgroup CGNSInterfaceCGIO_F Interfacing with CGIO
+!> \defgroup CGNSInternals_F Configuring CGNS Internals
+!> \defgroup CGNSZoneInformation_F CGNS Zone Information
+!> \defgroup ConvergenceHistory_F Convergence History
+!> \defgroup DataArrays_F Data Arrays
+!> \defgroup DataClass_F Data Class
+!> \defgroup DataConversionFactors_F Data Conversion Factors
+!> \defgroup DeletingANode_F  Deleting a node
+!> \defgroup DescriptiveText_F Descriptive Text
+!> \defgroup DimensionalExponents_F Dimensional Exponents
+!> \defgroup DimensionalUnits_F Dimensional Units
+!> \defgroup DiscreteData_F Discrete Data
+!> \defgroup ElementConnectivity_F  Element Connectivity
+!> \defgroup FamilyName_F  Family Name
+!> \defgroup FlowEquationSet_F Flow Equation Set
+!> \defgroup FlowSolution_F  Flow Solution
+!> \defgroup FlowSolutionData_F  Flow Solution Data
+!> \defgroup FreeingMemory_F Freeing Memory
+!> \defgroup GeneralizedConnectivity_F  Generalized Connectivity
+!> \defgroup GoverningEquations_F Governing Equations
+!> \defgroup Gravity_F Gravity
+!> \defgroup GridLocation_F Grid Location
+!> \defgroup IntegralData_F Integral Data
+!> \defgroup Links_F Links
+!> \defgroup OneToOneConnectivity_F  One-to-One Connectivity
+!> \defgroup OrdinalValue_F Ordinal Value
+!> \defgroup OversetHoles_F  Overset Holes
+!> \defgroup PointSets Point_F Sets
+!> \defgroup ReferenceState_F Reference State
+!> \defgroup RigidGridMotion_F Rigid Grid Motion
+!> \defgroup RindLayers_F Rind Layers
+!> \defgroup RotatingCoordinates_F Rotating Coordinates
+!> \defgroup SimulationType_F Simulation Type
+!> \defgroup SpecialBoundaryConditionProperty_F  Special Boundary Condition Property
+!> \defgroup SpecialGridConnectivityProperty_F  Special Grid Connectivity Property
+!> \defgroup UserDefinedData_F User Defined Data
+!> \defgroup ZoneGridConnectivity_F  Zone Grid Connectivity
+!> \defgroup ZoneGridCoordinates_F  Zone Grid Coordinates
+!> \defgroup ZoneIterativeData_F Zone Iterative Data
+!> \defgroup ZoneSubregions_F  Zone Subregions
+
 MODULE cgns
 
   USE ISO_C_BINDING, ONLY : C_INT, C_FLOAT, C_DOUBLE, C_LONG_LONG, C_CHAR, C_PTR, C_NULL_CHAR, C_NULL_PTR, C_LOC
@@ -995,28 +1052,69 @@ MODULE cgns
        INTEGER(C_INT), INTENT(IN), VALUE  :: mode
        INTEGER, INTENT(OUT) :: fn
      END FUNCTION cg_open
-!> @ingroup CGNSFile
-     SUBROUTINE cg_version_f(fn,FileVersion, ier) BIND(C,NAME="cg_version_f")
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Get CGNS file version.
+!!
+!! \param[in]  fn      \b INTEGER; \FILE_fn
+!! \param[out] version \b REAL(C_FLOAT); \FILE_version
+!! \param[out] ier     \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_version()
+!!
+     SUBROUTINE cg_version_f(fn, version, ier) BIND(C,NAME="cg_version_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
        INTEGER :: fn
-       REAL(C_FLOAT)    :: FileVersion
+       REAL(C_FLOAT)    :: version
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_version_f
-!> @ingroup CGNSFile
-     SUBROUTINE cg_precision_f(fn, PRECISION, ier) BIND(C,NAME="cg_precision_f")
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Get CGNS file precision.
+!!
+!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[out] precision \b INTEGER; \FILE_precision
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_precision()
+!!
+     SUBROUTINE cg_precision_f(fn, precision, ier) BIND(C,NAME="cg_precision_f")
        IMPLICIT NONE
        INTEGER :: fn
-       INTEGER :: PRECISION
+       INTEGER :: precision
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_precision_f
-!> @ingroup CGNSFile
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Close a CGNS file.
+!!
+!! \param[in]  fn  \b INTEGER; \FILE_fn
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_close()
+!!
      SUBROUTINE cg_close_f(fn, ier) BIND(C,NAME="cg_close_f")
        IMPLICIT NONE
        INTEGER :: fn
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_close_f
-!> @ingroup CGNSFile
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Save the open CGNS file.
+!!
+!! \param[in]  fn           \b INTEGER; \FILE_fn
+!! \param[in]  filename     \b INTEGER; \FILE_filename
+!! \param[in]  file_type    \b INTEGER; \FILE_file_type
+!! \param[in]  follow_links \b INTEGER; \FILE_follow_links
+!! \param[out] ier          \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_save_as()
+!!
      SUBROUTINE cg_save_as_f(fn, filename, file_type, follow_links, ier) ! BIND(C,NAME="cg_save_as_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
@@ -1026,17 +1124,36 @@ MODULE cgns
        INTEGER :: follow_links
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_save_as_f
-!> @ingroup CGNSFile
-     SUBROUTINE cg_set_file_type_f(ft, ier) BIND(C,NAME="cg_set_file_type_f")
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Set default file type.
+!!
+!! \param[in]  file_type \b INTEGER; \FILE_file_type
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_set_file_type()
+!!
+     SUBROUTINE cg_set_file_type_f(file_type, ier) BIND(C,NAME="cg_set_file_type_f")
        IMPLICIT NONE
-       INTEGER :: ft
+       INTEGER :: file_type
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_set_file_type_f
-!> @ingroup CGNSFile
-     SUBROUTINE cg_get_file_type_f(fn, ft, ier) BIND(C,NAME="cg_get_file_type_f")
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Get file type for open CGNS file.
+!!
+!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[out] file_type \b INTEGER; \FILE_file_type
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_get_file_type()
+!!
+     SUBROUTINE cg_get_file_type_f(fn, file_type, ier) BIND(C,NAME="cg_get_file_type_f")
        IMPLICIT NONE
        INTEGER :: fn
-       INTEGER :: ft
+       INTEGER :: file_type
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_get_file_type_f
 
@@ -4183,7 +4300,18 @@ MODULE cgns
      END FUNCTION cg_golist
 
 #endif
-!> @ingroup CGNSFile
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Open a CGNS file.
+!!
+!! \param[in]  filename  \b CHARACTER; \FILE_filename
+!! \param[in]  mode      \b INTEGER(C_INT); \FILE_mode
+!! \param[out] fn        \b INTEGER; \FILE_fn
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_open()
+!!
      SUBROUTINE cg_open_f(filename, mode, fn, ier)
        IMPORT :: C_CHAR, C_INT
        IMPLICIT NONE
@@ -4192,8 +4320,17 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: fn
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_open_f
-
-!> @ingroup CGNSFile
+!>
+!! \ingroup CGNSFile_F
+!!
+!! \brief Check for a valid CGNS file.
+!!
+!! \param[in]  filename  \b CHARACTER; \FILE_filename
+!! \param[out] file_type \b INTEGER; \FILE_file_type
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_is_cgns()
+!!
      SUBROUTINE cg_is_cgns_f(filename, file_type, ier)
         IMPORT :: C_CHAR
         IMPLICIT NONE

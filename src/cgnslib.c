@@ -381,7 +381,7 @@ void objlist_status(char *tag)
  * \brief Check for a valid CGNS file.
  *
  * \param[in] filename \FILE_filename
- * \param[in] file_type \FILE_file_type
+ * \param[out] file_type \FILE_file_type
  * \return \ier
  *
  * \details For existing files, the function /e cg_is_cgns may be used to determine if a file is a CGNS file or not, and

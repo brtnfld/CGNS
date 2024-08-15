@@ -806,7 +806,7 @@ INPUT_ENCODING         = UTF-8
 # *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf and *.qsf.
 
 #FILE_PATTERNS          = *.h *.c *.F90
-FILE_PATTERNS          = cgnslib.c cgns_error.c cgnslib.h pcgnslib.c
+FILE_PATTERNS          = cgnslib.c cgns_error.c cgnslib.h pcgnslib.c cgns_f.F90
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
