@@ -24,12 +24,10 @@ subprocess.call('doxygen Doxyfile', shell=True)
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'CGNS Sphinx Doxygen Breathe'
-#copyright = '2024, CGNS'
+# copyright is overriden by 'css/copyright.css'
+# see https://github.com/readthedocs/sphinx_rtd_theme/issues/828
+copyright = ""
 #author = 'CGNS'
-
-html_theme_options = {
-    "html_show_copyright": False,
-}
 
 # -- General configuration ---------------------------------------------------
 #
@@ -92,6 +90,18 @@ html_theme_options = {
 # html_logo = ''
 # github_url = ''
 # html_baseurl = 'https://docs.example.org/doc'
+
+# Add any paths that contain custom static files (such as style sheets) here,
+# relative to this directory. They are copied after the builtin static files,
+# so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ["_static"]
+
+# These paths are either relative to html_static_path
+# or fully qualified paths (eg. https://...)
+html_css_files = [
+    "css/copyright.css",
+]
+
 
 # -- Breathe configuration -------------------------------------------------
 

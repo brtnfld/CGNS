@@ -25,7 +25,3 @@ which contains coding examples using the Mid-Level Library to write and read sim
 
 
 This document was originally written by Diane Poirier of ICEM CFD Engineering for the CGNS Project Group.
-
-.. |icol| image:: Public_Domain_Mark_button.svg
-
-This document is in the public domain, |icol|
