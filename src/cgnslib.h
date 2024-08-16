@@ -205,8 +205,8 @@
  *
  * When defining new CG_CONFIG_* options, it is essential to update the documentation
  * for cg_configure, cgnslib.c. Updating adds the new options to the list of
- * acceptable options in the documentation, ensuring comprehensive and up-to-date
- * documentation.
+ * acceptable options in the documentation, ensuring the documentation remains
+ * comprehensive and up-to-date.
  */
 
 /**
@@ -300,8 +300,8 @@
  *
  * When defining new CG_CONFIG_* options, it is essential to update the documentation
  * for cg_configure, cgnslib.c. Updating adds the new options to the list of
- * acceptable options in the documentation, ensuring comprehensive and up-to-date
- * documentation.
+ * acceptable options in the documentation, ensuring the documentation remains
+ * comprehensive and up-to-date.
  */
 
 #define CG_CONFIG_RESET 1000
