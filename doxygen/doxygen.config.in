@@ -2459,6 +2459,7 @@ ALIASES                =
 # CGNS General error
 ##############################################################################
 ALIASES += ier="Error status."
+ALIASES += ier_F="\b INTEGER; \ier"
 
 ##############################################################################
 # CGNS COMMON PARAMETERS
@@ -2467,6 +2468,9 @@ ALIASES += FILE_fn="CGNS file index number."
 ALIASES += B_Base="Base index number, where 1 ≤ \e B ≤ \e nbases."
 ALIASES += Z_Zone="Zone index number, where 1 ≤ \e Z ≤ \e nzones."
 
+ALIASES += FILE_fn_F="\b INTEGER; \FILE_fn"
+ALIASES += B_Base_F="\b INTEGER; \B_Base"
+ALIASES += Z_Zone_F="\b INTEGER; \Z_Zone"
 
 ##############################################################################
 # CGNS FILE

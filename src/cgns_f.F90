@@ -1056,9 +1056,9 @@ MODULE cgns
 !!
 !! \brief Get CGNS file version.
 !!
-!! \param[in]  fn      \b INTEGER; \FILE_fn
+!! \param[in]  fn      \FILE_fn_F
 !! \param[out] version \b REAL(C_FLOAT); \FILE_version
-!! \param[out] ier     \b INTEGER; \ier
+!! \param[out] ier     \ier_F
 !!
 !! For details, see C API: @ref cg_version()
 !!
@@ -1074,9 +1074,9 @@ MODULE cgns
 !!
 !! \brief Get CGNS file precision.
 !!
-!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[in]  fn        \FILE_fn_F
 !! \param[out] precision \b INTEGER; \FILE_precision
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_precision()
 !!
@@ -1091,8 +1091,8 @@ MODULE cgns
 !!
 !! \brief Close a CGNS file.
 !!
-!! \param[in]  fn  \b INTEGER; \FILE_fn
-!! \param[out] ier \b INTEGER; \ier
+!! \param[in]  fn  \FILE_fn_F
+!! \param[out] ier \ier_F
 !!
 !! For details, see C API: @ref cg_close()
 !!
@@ -1106,11 +1106,11 @@ MODULE cgns
 !!
 !! \brief Save the open CGNS file.
 !!
-!! \param[in]  fn           \b INTEGER; \FILE_fn
+!! \param[in]  fn           \FILE_fn_F
 !! \param[in]  filename     \b INTEGER; \FILE_filename
 !! \param[in]  file_type    \b INTEGER; \FILE_file_type
 !! \param[in]  follow_links \b INTEGER; \FILE_follow_links
-!! \param[out] ier          \b INTEGER; \ier
+!! \param[out] ier          \ier_F
 !!
 !! For details, see C API: @ref cg_save_as()
 !!
@@ -1129,7 +1129,7 @@ MODULE cgns
 !! \brief Set default file type.
 !!
 !! \param[in]  file_type \b INTEGER; \FILE_file_type
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_set_file_type()
 !!
@@ -1143,9 +1143,9 @@ MODULE cgns
 !!
 !! \brief Get file type for open CGNS file.
 !!
-!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[in]  fn        \FILE_fn_F
 !! \param[out] file_type \b INTEGER; \FILE_file_type
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_get_file_type()
 !!
@@ -1160,8 +1160,8 @@ MODULE cgns
 !!
 !! \brief Set CGNS compression mode
 !!
-!! \param[in]  compress  \b INTEGER;CGNS compress (rewrite) setting
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[in]  compress  \b INTEGER; CGNS compress (rewrite) setting
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_set_compress()
 !!
@@ -1177,7 +1177,7 @@ MODULE cgns
 !! \brief Get CGNS compression mode
 !!
 !! \param[out] compress  \b INTEGER; CGNS compress (rewrite) setting
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_get_compress()
 !!
@@ -1192,7 +1192,7 @@ MODULE cgns
 !! \brief Set the CGNS link search path
 !!
 !! \param[in] path \b CHARACTER; path to search for linked to files when opening a file with external links.
-!! \param[out] ier \b INTEGER; \ier
+!! \param[out] ier \ier_F
 !!
 !! For details, see C API: @ref cg_set_path()
 !!
@@ -1209,7 +1209,7 @@ MODULE cgns
 !! \brief Add to the CGNS link search path
 !!
 !! \param[in] path \b INTEGER; path to search for linked to files when opening a file with external links.
-!! \param[out] ier \b INTEGER; \ier
+!! \param[out] ier \ier_F
 !!
 !! For details, see C API: @ref cg_add_path()
 !!
@@ -1225,7 +1225,7 @@ MODULE cgns
 !!
 !! \brief For index bounds on structured arrays with rind planes, configures the library to pre-3.4 indexing behavior
 !!
-!! \param[out] ier \b INTEGER; \ier
+!! \param[out] ier \ier_F
 !!
 !! \warning cg_set_rind_zero_f() is considered obsolete, but is provided for backward compatibility.
 !!          Most users should not use this API, and instead rely on the default indexing behavior.
@@ -1242,7 +1242,7 @@ MODULE cgns
 !!
 !! \brief  For index bounds on structured arrays with rind planes, configures the library to new default indexing behavior
 !!
-!! \param[out] ier \b INTEGER; \ier
+!! \param[out] ier \ier_F
 !!
 !! For details, see discussion of CG_CONFIG_RIND_INDEX in C API: @ref cg_configure()
 !!
@@ -1256,7 +1256,7 @@ MODULE cgns
 !! \brief Configure CGNS library internal options.
 !! \param[in] option \b INTEGER; The option to configure. See cg_configure() description for a full list.
 !! \param[in] value \b TYPE(C_PTR); The value to set, type cast as `void *`. In Fortran the type is `TYPE(C_PTR)`.
-!! \param[out] ier \b INTEGER; \ier
+!! \param[out] ier \ier_F
 !!
 !! For details, see C API: @ref cg_configure()
 !!
@@ -1273,9 +1273,9 @@ MODULE cgns
 !!
 !! \brief Get the CGIO database identifier for the specified CGNS file.
 !!
-!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[in]  fn        \FILE_fn_F
 !! \param[out] cgio_num  \b INTEGER; CGIO identifier for the CGNS file
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_get_cgio()
 !!
@@ -1291,9 +1291,9 @@ MODULE cgns
 !!
 !! \brief Get the CGIO root node identifier for the CGNS file.
 !!
-!! \param[in]  fn     \b INTEGER; \FILE_fn
+!! \param[in]  fn     \FILE_fn_F
 !! \param[out] rootid \b REAL(C_DOUBLE); Root node identifier for the CGNS file
-!! \param[out] ier    \b INTEGER; \ier
+!! \param[out] ier    \ier_F
 !!
 !! For details, see C API: @ref cg_root_id()
 !!
@@ -1314,9 +1314,9 @@ MODULE cgns
 !!
 !! \brief Get number of CGNS base nodes in file
 !!
-!! \param[in] fn       \b INTEGER; \FILE_fn
+!! \param[in] fn       \FILE_fn_F
 !! \param[out] nbases  \b INTEGER; Number of bases present in the CGNS file fn.
-!! \param[out] ier     \b INTEGER; \ier
+!! \param[out] ier     \ier_F
 !!
 !! For details, see C API: @ref cg_nbases()
 !!
@@ -1332,12 +1332,12 @@ MODULE cgns
 !!
 !! \brief Read CGNS base information
 !!
-!! \param[in] fn         \b INTEGER; \FILE_fn
-!! \param[in] B 	 \b INTEGER; \B_Base
+!! \param[in] fn         \FILE_fn_F
+!! \param[in] B 	 \B_Base_F
 !! \param[out] basename  \b CHARACTER; Name of the base
 !! \param[out] cell_dim  \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
 !! \param[out] phys_dim  \b INTEGER; Number of coordinates required to define a vector in the field.
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_base_read()
 !!
@@ -1357,10 +1357,10 @@ MODULE cgns
 !!
 !! \brief Get the CGIO identifier of the CGNS base
 !!
-!! \param[in] fn \b INTEGER; \FILE_fn
-!! \param[in] B  \b INTEGER; \B_Base
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
 !! \param[out] base_id REAL(C_DOUBLE); \b CGIO node identifier for the base
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_base_id()
 !!
@@ -1382,8 +1382,8 @@ MODULE cgns
 !! \param[in] basename \b CHARACTER; Name of the base.
 !! \param[in] cell_dim \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
 !! \param[in] phys_dim \b INTEGER; Number of coordinates required to define a vector in the field.
-!! \param[out] B   \b INTEGER; \B_Base
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] B  \B_Base_F
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_base_write()
 !!
@@ -1403,10 +1403,10 @@ MODULE cgns
 !!
 !! \brief Get the cell dimension for the CGNS base
 !!
-!! \param[in] fn \b INTEGER; \FILE_fn
-!! \param[in] B  \b INTEGER; \B_Base
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
 !! \param[out] cell_dim \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_cell_dim()
 !!
@@ -1423,11 +1423,16 @@ MODULE cgns
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get number of zone in base
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B\B_Base_F
+!! \param[out] nzones \b INTEGER; Number of zones present in base B.
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_nzones()
 !!
      SUBROUTINE cg_nzones_f(fn, B, nzones, ier) BIND(C, NAME="cg_nzones_f")
        IMPLICIT NONE
@@ -1438,11 +1443,17 @@ MODULE cgns
      END SUBROUTINE cg_nzones_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get type of zone (structured or unstructured)
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] Z \Z_Zone_F
+!! \param[out] zonetype \b INTEGER(cgenum_t); Type of the zone. The admissible types are Structured and Unstructured.
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_zone_type()
 !!
      SUBROUTINE cg_zone_type_f(fn, B, Z, type, ier) BIND(C, NAME="cg_zone_type_f")
        IMPORT :: cgenum_t, c_char
@@ -1455,11 +1466,31 @@ MODULE cgns
      END SUBROUTINE cg_zone_type_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Read zone information
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] Z \Z_Zone_F
+!! \param[out] zonename \b CHARACTER; Name of the zone
+!! \param[out] size 	**INTEGER(CGSIZE_T), DIMENSION(*)**; Number of vertices, cells, and boundary vertices in each (index)-dimension. For structured grids, the dimensions have unit stride in the array (e.g., `[NVertexI, NVertexJ, NVertexK, NCellI, NCellJ, NCellK, NBoundVertexI, NBoundVertexJ, NBoundVertexK]`).
+!! Note that for unstructured grids, the number of cells is the number of highest order elements. Thus, in three dimensions it's the number of 3-D cells, and in two dimensions it's the number of 2-D cells.
+!! Also for unstructured grids, if the nodes are sorted between internal nodes and boundary nodes, the optional parameter `NBoundVertex` must be set equal to the number of boundary nodes. By default, `NBoundVertex` equals zero, meaning that the nodes are unsorted.
+!! Note that a non-zero value for `NBoundVertex` only applies to unstructured grids. For structured grids, the `NBoundVertex` parameter always equals 0 in all directions.
+!!|Mesh Type      | Size|
+!!|---------------|-----|
+!!| 3D structured | `NVertexI`, `NVertexJ`, `NVertexK`
+!!| ^             | `NCellI`, `NCellJ`, `NCellK`
+!!| ^             | `NBoundVertexI = 0`, `NBoundVertexJ = 0`, `NBoundVertexK = 0`
+!!| 2D structured | `NVertexI`, `NVertexJ`
+!!| ^             | `NCellI`, `NCellJ`
+!!| ^             | `NBoundVertexI = 0`, `NBoundVertexJ = 0`
+!!|3D unstructured| `NVertex`, `NCell3D`, `NBoundVertex`
+!!|2D unstructured| `NVertex`, `NCell2D`, `NBoundVertex`
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_zone_read()
 !!
      SUBROUTINE cg_zone_read_f(fn, B, Z, zonename, size, ier) !BIND(C, NAME="cg_zone_read_f")
        IMPORT :: CGSIZE_T, c_char
@@ -1473,11 +1504,17 @@ MODULE cgns
      END SUBROUTINE cg_zone_read_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get the index dimension of the CGNS zone
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] Z \Z_Zone_F
+!! \param[out] zone_id \b REAL(C_DOUBLE); CGIO node identifier for the zone
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_zone_id()
 !!
      SUBROUTINE cg_zone_id_f(fn, B, Z, zone_id, ier) BIND(C, NAME="cg_zone_id_f")
        IMPORT :: c_double
@@ -1490,30 +1527,57 @@ MODULE cgns
      END SUBROUTINE cg_zone_id_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Create and/or write to a CGNS zone
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] zonename   \b CHARACTER; Name of the zone.
+!! \param[in] size 	\b INTEGER(CGSIZE_T); Number of vertices, cells, and boundary vertices in each (index)-dimension. For structured grids, the dimensions have unit stride in the array (e.g., [NVertexI, NVertexJ, NVertexK, NCellI, NCellJ, NCellK, NBoundVertexI, NBoundVertexJ, NBoundVertexK]).
+!! Note that for unstructured grids, the number of cells is the number of highest order elements. Thus, in three dimensions it's the number of 3-D cells, and in two dimensions it's the number of 2-D cells.
+!! Also for unstructured grids, if the nodes are sorted between internal nodes and boundary nodes, the optional parameter NBoundVertex must be set equal to the number of boundary nodes. By default, NBoundVertex equals zero, meaning that the nodes are unsorted.
+!! Note that a non-zero value for NBoundVertex only applies to unstructured grids. For structured grids, the NBoundVertex parameter always equals 0 in all directions.
+!! |Mesh Type      | Size|
+!! |---------------|-----|
+!! | 3D structured | NVertexI, NVertexJ, NVertexK
+!! |               | NCellI, NCellJ, NCellK
+!! |               | NBoundVertexI = 0, NBoundVertexJ = 0, NBoundVertexK = 0
+!! |2D structured  | NVertexI, NVertexJ
+!! |               | NCellI, NCellJ
+!! |               | NBoundVertexI = 0, NBoundVertexJ = 0
+!! |3D unstructured| NVertex, NCell3D, NBoundVertex
+!! |2D unstructured| NVertex, NCell2D, NBoundVertex
+!! \param[in] zonetype   \b INTEGER(cgenum_t); Type of the zone. The admissible types are `Structured` and `Unstructured`.
+!! \param[out] Z         \Z_Zone_F
+!! \param[out] ier       \ier_F
 !!
-     SUBROUTINE cg_zone_write_f(fn, B, zonename, size, TYPE, Z, ier) !BIND(C, NAME="cg_zone_write_f")
+!! For details, see C API: @ref cg_zone_write()
+!!
+     SUBROUTINE cg_zone_write_f(fn, B, zonename, size, zonetype, Z, ier) !BIND(C, NAME="cg_zone_write_f")
        IMPORT :: cgenum_t, c_char, cgsize_t
        IMPLICIT NONE
        INTEGER, INTENT(IN) :: fn
        INTEGER, INTENT(IN) :: B
        CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: zonename
        INTEGER(CGSIZE_T), DIMENSION(*), INTENT(IN) :: size
-       INTEGER(cgenum_t), INTENT(IN) :: TYPE
+       INTEGER(cgenum_t), INTENT(IN) :: zonetype
        INTEGER, INTENT(OUT) :: Z
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zone_write_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSZoneInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get the index dimension of the CGNS zone
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn  \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] Z \Z_Zone_F
+!! \param[out] index_dim Index dimension for the zone. For Structured zones, this will be the base cell dimension and for Unstructured zones it will be 1
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_index_dim()
 !!
      SUBROUTINE cg_index_dim_f(fn, B, Z, dim, ier) BIND(C, NAME="cg_index_dim_f")
        IMPLICIT NONE
@@ -1529,11 +1593,16 @@ MODULE cgns
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 !>
-!! \ingroup
+!! \ingroup CGNSFamilyDefinition_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get number of Family_t node at CGNSBase_t level
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F;
+!! \param[out] \b INTEGER; nfamilies Number of families in base B
+!! \param[out] ier       \ier_F
+!!
+!! For details, see C API: @ref cg_nfamilies()
 !!
      SUBROUTINE cg_nfamilies_f(fn, B, nfamilies, ier) BIND(C, NAME="cg_nfamilies_f")
        IMPLICIT NONE
@@ -1544,11 +1613,19 @@ MODULE cgns
      END SUBROUTINE cg_nfamilies_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSFamilyDefinition_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Read family information (CGNSBase_t level)
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn   \FILE_fn_F
+!! \param[in] B    \B_Base_F
+!! \param[in] Fam  Family index number, where 1 ≤ Fam ≤ nfamilies.
+!! \param[out] family_name Name of the family
+!! \param[out] nboco  Number of boundary conditions for this family. This should be either 0 or 1.
+!! \param[out] ngeos  Number of geometry references for this family.
+!! \param[out] ier    \ier_F
+!!
+!! For details, see C API: @ref cg_family_read()
 !!
      SUBROUTINE cg_family_read_f(fn, B, F, family_name, nboco, ngeos, ier) !BIND(C, NAME="cg_family_read_f")
        IMPORT :: c_char
@@ -1565,7 +1642,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1582,7 +1659,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1598,7 +1675,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1617,7 +1694,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1635,7 +1712,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1650,7 +1727,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1663,7 +1740,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1680,7 +1757,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1695,7 +1772,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1708,7 +1785,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1728,7 +1805,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1747,7 +1824,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1766,7 +1843,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1782,7 +1859,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1803,7 +1880,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1824,7 +1901,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1844,7 +1921,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1862,7 +1939,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1883,7 +1960,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1902,7 +1979,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1921,7 +1998,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1937,7 +2014,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1957,7 +2034,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1973,7 +2050,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -1991,7 +2068,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2009,7 +2086,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2028,7 +2105,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2047,7 +2124,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2065,7 +2142,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2092,7 +2169,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2108,7 +2185,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2176,7 +2253,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2226,7 +2303,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2242,7 +2319,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2266,7 +2343,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2285,7 +2362,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2303,7 +2380,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2323,7 +2400,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2346,7 +2423,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2364,7 +2441,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2387,7 +2464,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2408,7 +2485,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2430,7 +2507,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2457,7 +2534,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2473,7 +2550,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2492,7 +2569,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2510,7 +2587,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2529,7 +2606,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2548,7 +2625,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2567,7 +2644,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2585,7 +2662,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2611,7 +2688,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2628,7 +2705,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2661,7 +2738,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2709,7 +2786,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2725,7 +2802,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2750,7 +2827,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2768,7 +2845,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2786,7 +2863,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2804,7 +2881,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2828,7 +2905,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2848,7 +2925,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2872,7 +2949,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2888,7 +2965,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2906,7 +2983,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2924,7 +3001,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2940,7 +3017,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2960,7 +3037,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2976,7 +3053,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -2998,7 +3075,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3016,7 +3093,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3034,7 +3111,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3062,7 +3139,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3078,7 +3155,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3107,7 +3184,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3127,7 +3204,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3145,7 +3222,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3163,7 +3240,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3194,7 +3271,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3223,7 +3300,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3239,7 +3316,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3262,7 +3339,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3280,7 +3357,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3307,7 +3384,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3322,7 +3399,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3348,7 +3425,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3364,7 +3441,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3405,7 +3482,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3423,7 +3500,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3459,7 +3536,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3477,7 +3554,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3499,7 +3576,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3517,7 +3594,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3539,7 +3616,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3559,7 +3636,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3583,7 +3660,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3604,7 +3681,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3625,7 +3702,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3646,7 +3723,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3671,7 +3748,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3690,7 +3767,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3709,7 +3786,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3728,7 +3805,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3750,7 +3827,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3773,7 +3850,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3793,7 +3870,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3809,7 +3886,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3822,7 +3899,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3845,7 +3922,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3868,7 +3945,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3884,7 +3961,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3903,7 +3980,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3927,18 +4004,18 @@ MODULE cgns
 !!
 !! \brief  Get number of ArbitraryGridMotion_t nodes
 !!
-!! \param[in] fn \b INTEGER; \FILE_fn
-!! \param[in] B  \b INTEGER; \B_Base
-!! \param[in] Z  \b INTEGER; \Z_Zone
+!! \param[in] fn \FILE_fn_F
+!! \param[in] B \B_Base_F
+!! \param[in] Z  \Z_Zone_F
 !! \param[out] n_arbitrary_motions \b INTEGER; Number of ArbitraryGridMotion_t nodes under zone Z.
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_n_arbitrary_motions()
 !!
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3954,7 +4031,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3973,7 +4050,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -3996,7 +4073,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4012,7 +4089,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4030,7 +4107,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4060,7 +4137,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4083,7 +4160,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4099,7 +4176,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4119,7 +4196,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4136,7 +4213,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4157,7 +4234,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4175,7 +4252,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4196,7 +4273,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4212,7 +4289,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4232,7 +4309,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4249,7 +4326,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4271,7 +4348,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4286,7 +4363,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4305,7 +4382,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4320,7 +4397,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4334,7 +4411,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4354,7 +4431,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4371,7 +4448,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4398,7 +4475,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4417,7 +4494,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4431,7 +4508,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4444,7 +4521,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4460,7 +4537,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4475,7 +4552,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4488,7 +4565,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4502,7 +4579,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4523,7 +4600,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4538,7 +4615,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4554,7 +4631,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4568,7 +4645,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4581,7 +4658,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4596,7 +4673,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4609,7 +4686,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4642,7 +4719,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4655,7 +4732,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4670,7 +4747,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4683,7 +4760,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4696,7 +4773,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4710,7 +4787,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4726,7 +4803,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4739,7 +4816,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4757,7 +4834,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4779,7 +4856,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4793,7 +4870,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4816,7 +4893,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4835,7 +4912,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4849,7 +4926,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4863,7 +4940,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4877,7 +4954,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4892,7 +4969,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4905,7 +4982,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4920,7 +4997,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4933,7 +5010,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4952,7 +5029,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4966,7 +5043,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4981,7 +5058,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -4996,7 +5073,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5010,7 +5087,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5023,7 +5100,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5037,7 +5114,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5050,7 +5127,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5086,7 +5163,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5099,7 +5176,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5112,7 +5189,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5126,7 +5203,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5144,7 +5221,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5184,7 +5261,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5198,7 +5275,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5212,7 +5289,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5225,7 +5302,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5241,7 +5318,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5259,7 +5336,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5277,7 +5354,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5290,7 +5367,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5301,7 +5378,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5312,7 +5389,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5330,7 +5407,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5343,7 +5420,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5357,7 +5434,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5373,7 +5450,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5386,7 +5463,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5416,7 +5493,7 @@ MODULE cgns
 !!$   !!$      !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5435,7 +5512,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5458,7 +5535,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5481,7 +5558,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5502,7 +5579,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5522,7 +5599,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5533,7 +5610,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5547,7 +5624,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5569,7 +5646,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5591,7 +5668,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5614,7 +5691,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5637,7 +5714,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5657,7 +5734,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5677,7 +5754,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5694,7 +5771,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -5711,7 +5788,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6033,15 +6110,15 @@ MODULE cgns
 !!
 !! \param[in]  filename  \b CHARACTER; \FILE_filename
 !! \param[in]  mode      \b INTEGER(C_INT); \FILE_mode
-!! \param[out] fn        \b INTEGER; \FILE_fn
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] fn        \FILE_fn_F
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_open()
 !!
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6060,14 +6137,14 @@ MODULE cgns
 !!
 !! \param[in]  filename  \b CHARACTER; \FILE_filename
 !! \param[out] file_type \b INTEGER; \FILE_file_type
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref cg_is_cgns()
 !!
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6103,7 +6180,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6118,7 +6195,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6135,7 +6212,7 @@ MODULE cgns
     !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6150,7 +6227,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6168,7 +6245,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6186,7 +6263,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6200,7 +6277,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6216,7 +6293,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6232,7 +6309,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6250,7 +6327,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6266,7 +6343,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6283,7 +6360,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6297,7 +6374,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6312,7 +6389,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6326,7 +6403,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6341,7 +6418,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6359,7 +6436,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6382,7 +6459,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6399,7 +6476,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6417,7 +6494,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6435,7 +6512,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6452,7 +6529,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6470,7 +6547,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6490,7 +6567,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6510,7 +6587,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6528,7 +6605,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6549,7 +6626,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6573,7 +6650,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6591,7 +6668,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6608,7 +6685,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6625,7 +6702,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6642,7 +6719,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6661,7 +6738,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6679,7 +6756,7 @@ MODULE cgns
 !>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6697,7 +6774,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6708,7 +6785,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!
@@ -6721,7 +6798,7 @@ MODULE cgns
 !!$!!$!>
 !! \ingroup
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \param[out] ier       \ier_F
 !!
 !! For details, see C API: @ref ()
 !!

@@ -1549,7 +1549,17 @@ int cg_zone_read(int fn, int B, int Z, char *zonename, cgsize_t *size)
     return CG_OK;
 }
 
-
+/**
+ * \ingroup CGNSZoneInformation
+ *
+ * \brief Get the index dimension of the CGNS zone 
+ *
+ * \param[in] fn \FILE_fn
+ * \param[in] B \B_Base
+ * \param[in] Z \Z_Zone
+ * \param[out] zone_id CGIO node identifier for the zone
+ * \return \ier
+ */
 int cg_zone_id(int fn, int B, int Z, double *zone_id)
 {
     cgns_zone *zone;
@@ -1612,7 +1622,7 @@ int cg_index_dim(int fn, int B, int Z, int *index_dim)
  *|               | NBoundVertexI = 0, NBoundVertexJ = 0
  *|3D unstructured| NVertex, NCell3D, NBoundVertex
  *|2D unstructured| NVertex, NCell2D, NBoundVertex
- * \param[in] zonetype   Type of the zone. The admissible types are Structured and Unstructured.
+ * \param[in] zonetype   Type of the zone. The admissible types are `Structured` and `Unstructured`.
  * \param[out] Z         \Z_Zone
  * \return \ier
  */
