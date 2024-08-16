@@ -10,7 +10,7 @@ These are all the types and functions available in the CGNS Fortran API.
 File Operations
 ***************
 
-.. _CGNSFile-ref:
+.. _CGNSFile_F-ref:
 
 CGNS File Operations
 ____________________________________________

@@ -1254,25 +1254,30 @@ MODULE cgns
 !! \ingroup CGNSInternals_F
 !!
 !! \brief Configure CGNS library internal options.
-!!
+!! \param[in] option \b INTEGER; The option to configure. See cg_configure() description for a full list.
+!! \param[in] value \b TYPE(C_PTR); The value to set, type cast as `void *`. In Fortran the type is `TYPE(C_PTR)`.
 !! \param[out] ier \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_configure()
 !!
-     SUBROUTINE cg_configure_c_ptr(what, value, ier) BIND(C,NAME="cg_configure_c_ptr")
+     SUBROUTINE cg_configure_c_ptr(option, value, ier) BIND(C,NAME="cg_configure_c_ptr")
        IMPORT :: C_PTR
        IMPLICIT NONE
-       INTEGER, INTENT(IN) :: what
+       INTEGER, INTENT(IN) :: option
        TYPE(C_PTR), VALUE :: value
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_configure_c_ptr
 
 !>
-!! \ingroup
+!! \ingroup CGNSInterfaceCGIO_F
 !!
+!! \brief Get the CGIO database identifier for the specified CGNS file.
+!!
+!! \param[in]  fn        \b INTEGER; \FILE_fn
+!! \param[out] cgio_num  \b INTEGER; CGIO identifier for the CGNS file
 !! \param[out] ier       \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_get_cgio()
 !!
      SUBROUTINE cg_get_cgio_f(fn, cgio_num, ier) BIND(C, NAME="cg_get_cgio_f")
        IMPLICIT NONE
@@ -1282,11 +1287,15 @@ MODULE cgns
      END SUBROUTINE cg_get_cgio_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSInterfaceCGIO_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get the CGIO root node identifier for the CGNS file.
 !!
-!! For details, see C API: @ref ()
+!! \param[in]  fn     \b INTEGER; \FILE_fn
+!! \param[out] rootid \b REAL(C_DOUBLE); Root node identifier for the CGNS file
+!! \param[out] ier    \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_root_id()
 !!
      SUBROUTINE cg_root_id_f(fn, rootid, ier) BIND(C, NAME="cg_root_id_f")
        USE ISO_C_BINDING
@@ -1301,11 +1310,15 @@ MODULE cgns
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 !>
-!! \ingroup
+!! \ingroup CGNSBaseInformation_F
 !!
-!! \param[out] ier       \b INTEGER; \ier
+!! \brief Get number of CGNS base nodes in file
 !!
-!! For details, see C API: @ref ()
+!! \param[in] fn       \b INTEGER; \FILE_fn
+!! \param[out] nbases  \b INTEGER; Number of bases present in the CGNS file fn.
+!! \param[out] ier     \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_nbases()
 !!
      SUBROUTINE cg_nbases_f(fn, nbases, ier) BIND(C, NAME="cg_nbases_f")
        IMPLICIT NONE
@@ -1315,11 +1328,18 @@ MODULE cgns
      END SUBROUTINE cg_nbases_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSBaseInformation_F
 !!
+!! \brief Read CGNS base information
+!!
+!! \param[in] fn         \b INTEGER; \FILE_fn
+!! \param[in] B 	 \b INTEGER; \B_Base
+!! \param[out] basename  \b CHARACTER; Name of the base
+!! \param[out] cell_dim  \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
+!! \param[out] phys_dim  \b INTEGER; Number of coordinates required to define a vector in the field.
 !! \param[out] ier       \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_base_read()
 !!
      SUBROUTINE cg_base_read_f(fn, B, basename, cell_dim, phys_dim, ier) !BIND(C, NAME="cg_base_read_f")
        USE ISO_C_BINDING
@@ -1333,11 +1353,16 @@ MODULE cgns
      END SUBROUTINE cg_base_read_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSBaseInformation_F
 !!
+!! \brief Get the CGIO identifier of the CGNS base
+!!
+!! \param[in] fn \b INTEGER; \FILE_fn
+!! \param[in] B  \b INTEGER; \B_Base
+!! \param[out] base_id REAL(C_DOUBLE); \b CGIO node identifier for the base
 !! \param[out] ier       \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_base_id()
 !!
      SUBROUTINE cg_base_id_f(fn, B, base_id, ier) BIND(C, NAME="cg_base_id_f")
        USE ISO_C_BINDING
@@ -1349,11 +1374,18 @@ MODULE cgns
      END SUBROUTINE cg_base_id_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSBaseInformation_F
 !!
+!! \brief Create and/or write to a CGNS base node
+!!
+!! \param[in] fn \b INTEGER;\ FILE_fn
+!! \param[in] basename \b CHARACTER; Name of the base.
+!! \param[in] cell_dim \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
+!! \param[in] phys_dim \b INTEGER; Number of coordinates required to define a vector in the field.
+!! \param[out] B   \b INTEGER; \B_Base
 !! \param[out] ier       \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_base_write()
 !!
      SUBROUTINE cg_base_write_f(fn, basename, cell_dim, phys_dim, B, ier) !BIND(C, NAME="cg_base_write_f")
        USE ISO_C_BINDING
@@ -1367,11 +1399,16 @@ MODULE cgns
      END SUBROUTINE cg_base_write_f
 
 !>
-!! \ingroup
+!! \ingroup CGNSBaseInformation_F
 !!
+!! \brief Get the cell dimension for the CGNS base
+!!
+!! \param[in] fn \b INTEGER; \FILE_fn
+!! \param[in] B  \b INTEGER; \B_Base
+!! \param[out] cell_dim \b INTEGER; Dimension of the cells; 3 for volume cells, 2 for surface cells and 1 for line cells.
 !! \param[out] ier       \b INTEGER; \ier
 !!
-!! For details, see C API: @ref ()
+!! For details, see C API: @ref cg_cell_dim()
 !!
      SUBROUTINE cg_cell_dim_f(fn, B, dim, ier) BIND(C, NAME="cg_cell_dim_f")
        IMPLICIT NONE
