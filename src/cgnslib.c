@@ -866,8 +866,11 @@ int cg_save_as(int fn, const char *filename, int file_type,
  * at compile time. If the CGNS library was built with HDF5 version 1.8 or later support, the file type will be \p CG_FILE_HDF5,
  * otherwise \p CG_FILE_ADF is used. This may be changed either by setting an environment variable, \p CGNS_FILETYPE, to one
  * of \e adf, \e hdf5, or \e adf2, or by calling the routine cg_set_file_type() prior to the cg_open() call. Calling
- * cg_set_file_type() with the argument \p CG_FILE_NONE will reset the library to use the default file type. 
- * \b Note: If the environment variable \p CGNS_FILETYPE is set, it takes precedence. 
+ * cg_set_file_type() with the argument \p CG_FILE_NONE will reset the library to use the default file type.
+ *
+ * \note If the environment variable \p CGNS_FILETYPE is set, it takes precedence.
+ *
+ * \note The routine cg_set_file_type() is a convenience function built on top of cg_configure().
  *
  */
 
@@ -1049,6 +1052,8 @@ int cg_configure(int option, void *value)
  *
  * \param[in] func error handler function
  *
+ * \note The routine cg_error_handler() is a convenience function built on top of cg_configure().
+ *
  * \note There is no Fortran counterpart for function cg_error_handler(). The Fortran function cg_exit_on_error_f()
  *       routine can be used in place of cg_error_handler(). If `flag` is non-zero, then when an error is encountered,
  *       the library will print the error message and exit with a code of 1. Setting `flag` to zero (the default)
@@ -1069,6 +1074,8 @@ int cg_error_handler(void (*func)(int, char *))
  *
  * \param[in] compress  CGNS compress (rewrite) setting
  * \return \ier
+ *
+ * \note The routine cg_set_compress() is a convenience function built on top of cg_configure().
  */
 int cg_set_compress(int compress)
 {
@@ -1097,6 +1104,8 @@ int cg_get_compress(int *compress)
  *
  * \param[in] path path to search for linked to files when opening a file with external links.
  * \return \ier
+ *
+ * \note The routine cg_set_path() is a convenience function built on top of cg_configure().
  */
 int cg_set_path(const char *path)
 {
@@ -1117,6 +1126,8 @@ int cg_set_path(const char *path)
  *
  * \param[in] path path to search for linked to files when opening a file with external links.
  * \return \ier
+ *
+ * \note The routine cg_add_path() is a convenience function built on top of cg_configure().
  */
 int cg_add_path(const char *path)
 {
