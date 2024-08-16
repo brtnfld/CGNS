@@ -1048,6 +1048,12 @@ int cg_configure(int option, void *value)
  * \brief Set CGNS error handler 
  *
  * \param[in] func error handler function
+ *
+ * \note There is no Fortran counterpart for function cg_error_handler(). The Fortran function cg_exit_on_error_f()
+ *       routine can be used in place of cg_error_handler(). If `flag` is non-zero, then when an error is encountered,
+ *       the library will print the error message and exit with a code of 1. Setting `flag` to zero (the default)
+ *       prevents this, and the error is returned to the user code.
+ *
  * \return \ier
  */
 int cg_error_handler(void (*func)(int, char *))
