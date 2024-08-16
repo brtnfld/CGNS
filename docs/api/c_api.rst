@@ -28,6 +28,17 @@ ________________________________________________
 
 ------
 
+.. _CGNSInternals_CG_CONFIG-ref:
+
+Configuring Parameters for CGNS Internals
+________________________________________________
+
+.. doxygengroup:: CGNSInternals_CG_CONFIG
+    :content-only:
+
+------
+
+
 .. _CGNSInterfaceCGIO-ref:
 
 Interfacing with CGIO

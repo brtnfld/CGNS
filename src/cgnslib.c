@@ -984,31 +984,17 @@ int cg_get_cgio(int fn, int *cgio_num)
  *
  * \brief Configure CGNS library internal options. 
  *
- * \param[in] option The option to configure, currently one of \p CG_CONFIG_ERROR, \p CG_CONFIG_COMPRESS, \p CG_CONFIG_SET_PATH, \p CG_CONFIG_ADD_PATH, \p CG_CONFIG_FILE_TYPE, \p CG_CONFIG_RIND_INDEX, \p CG_CONFIG_HDF5_DISKLESS, \p CG_CONFIG_HDF5_DISKLESS_INCR, \p CG_CONFIG_HDF5_DISKLESS_WRITE, \p CG_CONFIG_HDF5_COMPRESS, or \p CG_CONFIG_HDF5_MPI_COMM as defined in cgnslib.h. 
- * \param[in] value The value to set, type cast as \e void * . In Fortran the type is \e TYPE(C_PTR).
+ * \param[in] option The option to configure, as defined in \p cgnslib.h. See cg_configure() description for a full list.
+ * \param[in] value The value to set, type cast as `void *`. In Fortran the type is `TYPE(C_PTR)`.
  * \return \ier
  *
- *
- * \details The function \p cg_configure allows particular CGNS library internal options to be configured. The currently supported options and expected values are:
- * 
- *|   |   |
- *|---|---|
- *|__CG_CONFIG_ERROR__| This allows an error call-back function to be defined by the user. The value should be a pointer to a function to receive the error. The function is defined as `void err_callback(int is_error, char *errmsg)`, and will be called for errors and warnings. The first argument, is_error, will be 0 for warning messages, 1 for error messages, and −1 if the program is going to terminate (i.e., a call to `cg_error_exit()`). The second argument is the error or warning message. If this is defined, warning and error messages will go to the function, rather than the terminal. A value of `NULL` will remove the call-back function.
- *|__CG_CONFIG_COMPRESS__| This is the rewrite-upon-close setting. Note: Prior versions of the library would automatically rewrite the CGNS file when it was closed after being opened in modify mode if there was unused space. This is no longer done, due to possible conflicts when using parallel I/O. The previous behavior may be recovered by setting value to a positive integer. In this case the file will be rewritten if the number of node deletions or modifications are equal to or exceed this number. Setting value to a negative number will force the rewrite when the file is closed. The default value is 0 (no rewrite).
- *|__CG_CONFIG_SET_PATH__| Sets the search path for locating linked-to files. The argument value should be a character string containing one or more directories, formatted the same as for the `PATH` environment variable. This will replace any current settings. Setting value to `NULL` will remove all paths.
- *|__CG_CONFIG_ADD_PATH__| Adds a directory, or list of directories, to the linked-to file search path. This is the same as `CG_CONFIG_SET_PATH`, but adds to the path instead of replacing it.
- *|__CG_CONFIG_FILE_TYPE__| Sets the default file type for newly created CGNS files. The argument, value should be set to one of `CG_FILE_NONE`, `CG_FILE_ADF`, `CG_FILE_HDF5`, or `CG_FILE_ADF2`. See the discussion above for `cg_set_file_type`.
- *|__CG_CONFIG_RIND_INDEX__| This option affects index bounds on structured arrays with rind planes. By default (`CG_CONFIG_RIND_CORE`), the core array locations always begin at index 1. Lower rind planes, if present, would have an index less than 1. For backward compatibility, `CG_CONFIG_RIND_ZERO` is provided and the index 1 will then locate the start of the array and not necessarily the start the core array. Note: Use of this option does not change the cgns file in any way; it only modifies the API to the library. The API changed for versions of the Mid-Level Library greater than 3.4. Before, it did not produce this behavior. Index 1 always represented the start of an array: in an array with no rind planes, the core location would have index 1; in an array with 1 rind plane, the core location would have index 2. In version 3.4 of the Mid-Level Library, the behavior of the API was fixed to match that specified in the SIDS: core array locations always begin at index 1. This option allows for configuring the library to pre-3.4 indexing behavior (set value to `CG_CONFIG_RIND_ZERO`) or the new default behavior (set value to `CG_CONFIG_RIND_CORE`). Note that using `CG_CONFIG_RIND_ZERO` is considered obsolete, but is provided for backwards compatibility. Most users should not set this option and use the default. Values used for this option do not need to be explicitly cast as `void*`.
- *|__CG_CONFIG_HDF5_COMPRESS__| Sets the compression level for data written from HDF5. The default is no compression. Setting value to -1, will use the default compression level of 6. The acceptable values are 0 to 9, corresponding to gzip compression levels.
- *|__CG_CONFIG_HDF5_MPI_COMM__| Sets the MPI communicator for parallel I/O. The default is `MPI_COMM_WORLD`. The new communicator is given by typecasting it to a `void *`. This is generally used internally - see `cgp_mpi_comm` instead.
- *|__CG_CONFIG_HDF5_DISKLESS_INCR__| Value specifies the increment by which allocated memory is to be increased each time more memory is required, in bytes. The default is 10MiB. Ideally, value should be set large enough to minimize repeated increases. The type of value is size_t in C and C_SIZE_T in Fortran. Due to a bug with gfortran, it is advisable to use C_LOC or C_FUNLOC in-line of the call instead of using a variable.
- *|__CG_CONFIG_HDF5_DISKLESS_WRITE__| Value indicates whether to write (value=1) the memory contents to disk when the file is closed. Otherwise, value=0 does not persist the memory to disk.
- *|__CG_CONFIG_HDF5_ALIGNMENT__| Configures HDF5's H5Pset_alignment and sets the alignment, value[1], properties of a file access property list so that any file object greater than or equal in size to a threshold, value[0], bytes will be aligned on an address which is a multiple of alignment.
- *|__CG_CONFIG_HDF5_MD_BLOCK_SIZE__| Configures HDF5's H5Pset_meta_block_size and sets the minimum size, value (in bytes), of metadata block allocations.
- *|__CG_CONFIG_HDF5_BUFFER__| Configures HDF5's H5Pset_buffer and sets the maximum size, value (in bytes), for the type conversion buffer and background buffer.
- *|__CG_CONFIG_HDF5_SIEVE_BUF_SIZE__| Configures HDF5's H5Pset_sieve_buf_size and sets the maximum size, value (in bytes), of the data sieve buffer.
- *|__CG_CONFIG_RESET__| Value indicates the configuration values to reset to their default values. Currently, only CG_CONFIG_RESET_HDF5 is a valid value and will reset all the CG_CONFIG_HDF5_* parameters, excluding CG_CONFIG_HDF5_MPI_COMM and CG_CONFIG_HDF5_DISKLESS, to their default values.
- *
+ * \details The function cg_configure() allows particular CGNS library internal options to be configured.
+ *          The argument `option` should be set to one of:
+ *          \ref CG_CONFIG_ERROR, \ref CG_CONFIG_COMPRESS, \ref CG_CONFIG_SET_PATH, \ref CG_CONFIG_FILE_TYPE,
+ *          \ref CG_CONFIG_RIND_INDEX, \ref CG_CONFIG_HDF5_COMPRESS, \ref CG_CONFIG_HDF5_DISKLESS,
+ *          \ref CG_CONFIG_HDF5_DISKLESS_INCR, \ref CG_CONFIG_HDF5_DISKLESS_WRITE, \ref CG_CONFIG_HDF5_ALIGNMENT,
+ *          \ref CG_CONFIG_HDF5_MD_BLOCK_SIZE, \ref CG_CONFIG_HDF5_BUFFER, \ref CG_CONFIG_HDF5_SIEVE_BUF_SIZE,
+ *          \ref CG_CONFIG_HDF5_ELINK_CACHE_SIZE
  *
  */
 int cg_configure(int option, void *value)
@@ -1103,7 +1089,7 @@ int cg_get_compress(int *compress)
  *
  * \brief Set the CGNS link search path
  *
- * \param[in] path to search for linked to files when opening a file with external links.
+ * \param[in] path path to search for linked to files when opening a file with external links.
  * \return \ier
  */
 int cg_set_path(const char *path)
@@ -1123,7 +1109,7 @@ int cg_set_path(const char *path)
  *
  * \brief Add to the CGNS link search path
  *
- * \param[in] path to search for linked to files when opening a file with external links.
+ * \param[in] path path to search for linked to files when opening a file with external links.
  * \return \ier
  */
 int cg_add_path(const char *path)

@@ -2556,3 +2556,10 @@ ALIASES += PARR_data="The data array."
 
 ALIASES += G_Grid="Grid index number, where 1 ≤ \e G ≤ \e ngrids."
 ALIASES += C_Coordinate="Coordinate array index number, where 1 ≤ \e C ≤ \e ncoords."
+
+#############################################################################
+# WEBSITE
+#############################################################################
+
+ALIASES += CGNS_ORG="https://cgns.github.io/cgns-modern.github.io"
+ALIASES += SIDS="/CGNS_ORG/standard/SIDS"

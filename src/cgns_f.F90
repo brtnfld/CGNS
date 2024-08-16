@@ -35,7 +35,6 @@
 !    are commented out.
 !
 
-!> \defgroup CGNSFile_F File Operations
 !> \defgroup AccessingANode_F  Accessing a node
 !> \defgroup ArbitraryGridMotion_F Arbitrary Grid Motion
 !> \defgroup AuxiliaryModel_F Auxiliary Model
@@ -1156,42 +1155,110 @@ MODULE cgns
        INTEGER :: file_type
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_get_file_type_f
-
-     SUBROUTINE cg_set_compress_f(cmpr, ier) BIND(C, NAME="cg_set_compress_f")
+!>
+!! \ingroupC GNSInternals_F
+!!
+!! \brief Set CGNS compression mode
+!!
+!! \param[in]  compress  \b INTEGER;CGNS compress (rewrite) setting
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_set_compress()
+!!
+     SUBROUTINE cg_set_compress_f(compress, ier) BIND(C, NAME="cg_set_compress_f")
        IMPLICIT NONE
-       INTEGER :: cmpr
+       INTEGER :: compress
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_set_compress_f
 
-     SUBROUTINE cg_get_compress_f(cmpr, ier) BIND(C, NAME="cg_get_compress_f")
-       INTEGER :: cmpr
+!>
+!! \ingroup CGNSInternals
+!!
+!! \brief Get CGNS compression mode
+!!
+!! \param[out] compress  \b INTEGER; CGNS compress (rewrite) setting
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_get_compress()
+!!
+     SUBROUTINE cg_get_compress_f(compress, ier) BIND(C, NAME="cg_get_compress_f")
+       INTEGER :: commpress
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_get_compress_f
 
-     SUBROUTINE cg_set_path_f(pathname, ier) !BIND(C, NAME="cg_set_path_f")
+!>
+!! \ingroup CGNSInternals
+!!
+!! \brief Set the CGNS link search path
+!!
+!! \param[in] path \b CHARACTER; path to search for linked to files when opening a file with external links.
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_set_path()
+!!
+     SUBROUTINE cg_set_path_f(path, ier) !BIND(C, NAME="cg_set_path_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
-       CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: pathname
+       CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: path
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_set_path_f
 
-     SUBROUTINE cg_add_path_f(pathname, ier) !BIND(C, NAME="cg_add_path_f")
+!>
+!! \ingroup CGNSInternals
+!!
+!! \brief Add to the CGNS link search path
+!!
+!! \param[in] path \b INTEGER; path to search for linked to files when opening a file with external links.
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_add_path()
+!!
+     SUBROUTINE cg_add_path_f(path, ier) !BIND(C, NAME="cg_add_path_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
-       CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: pathname
+       CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: path
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_add_path_f
 
+!>
+!! \ingroup CGNSInternals
+!!
+!! \brief For index bounds on structured arrays with rind planes, configures the library to pre-3.4 indexing behavior
+!!
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! \warning cg_set_rind_zero_f() is considered obsolete, but is provided for backward compatibility.
+!!          Most users should not use this API, and instead rely on the default indexing behavior.
+!!
+!! For details, see discussion of CG_CONFIG_RIND_INDEX in C API: @ref cg_configure()
+!!
      SUBROUTINE cg_set_rind_zero_f(ier) BIND(C, NAME="cg_set_rind_zero_f")
        IMPLICIT NONE
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_set_rind_zero_f
 
+!>
+!! \ingroup CGNSInternals_F
+!!
+!! \brief  For index bounds on structured arrays with rind planes, configures the library to new default indexing behavior
+!!
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! For details, see discussion of CG_CONFIG_RIND_INDEX in C API: @ref cg_configure()
+!!
      SUBROUTINE cg_set_rind_core_f(ier) BIND(C, NAME="cg_set_rind_core_f")
        IMPLICIT NONE
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_set_rind_core_f
-
+!>
+!! \ingroup CGNSInternals_F
+!!
+!! \brief Configure CGNS library internal options.
+!!
+!! \param[out] ier \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_configure_c_ptr(what, value, ier) BIND(C,NAME="cg_configure_c_ptr")
        IMPORT :: C_PTR
        IMPLICIT NONE
@@ -1200,6 +1267,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_configure_c_ptr
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_get_cgio_f(fn, cgio_num, ier) BIND(C, NAME="cg_get_cgio_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1207,6 +1281,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_get_cgio_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_root_id_f(fn, rootid, ier) BIND(C, NAME="cg_root_id_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
@@ -1219,6 +1300,13 @@ MODULE cgns
   !      Read and write CGNSBase_t Nodes
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nbases_f(fn, nbases, ier) BIND(C, NAME="cg_nbases_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1226,6 +1314,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nbases_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_base_read_f(fn, B, basename, cell_dim, phys_dim, ier) !BIND(C, NAME="cg_base_read_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
@@ -1237,6 +1332,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_base_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_base_id_f(fn, B, base_id, ier) BIND(C, NAME="cg_base_id_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
@@ -1246,6 +1348,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_base_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_base_write_f(fn, basename, cell_dim, phys_dim, B, ier) !BIND(C, NAME="cg_base_write_f")
        USE ISO_C_BINDING
        IMPLICIT NONE
@@ -1257,6 +1366,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_base_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_cell_dim_f(fn, B, dim, ier) BIND(C, NAME="cg_cell_dim_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1269,6 +1385,13 @@ MODULE cgns
   !       Read and write Zone_t Nodes
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nzones_f(fn, B, nzones, ier) BIND(C, NAME="cg_nzones_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1277,6 +1400,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nzones_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zone_type_f(fn, B, Z, type, ier) BIND(C, NAME="cg_zone_type_f")
        IMPORT :: cgenum_t, c_char
        IMPLICIT NONE
@@ -1287,6 +1417,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zone_type_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zone_read_f(fn, B, Z, zonename, size, ier) !BIND(C, NAME="cg_zone_read_f")
        IMPORT :: CGSIZE_T, c_char
        IMPLICIT NONE
@@ -1298,6 +1435,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zone_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zone_id_f(fn, B, Z, zone_id, ier) BIND(C, NAME="cg_zone_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -1308,6 +1452,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zone_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zone_write_f(fn, B, zonename, size, TYPE, Z, ier) !BIND(C, NAME="cg_zone_write_f")
        IMPORT :: cgenum_t, c_char, cgsize_t
        IMPLICIT NONE
@@ -1320,6 +1471,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zone_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_index_dim_f(fn, B, Z, dim, ier) BIND(C, NAME="cg_index_dim_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1333,6 +1491,13 @@ MODULE cgns
   !      Read and write Family_t Nodes                                    *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nfamilies_f(fn, B, nfamilies, ier) BIND(C, NAME="cg_nfamilies_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1341,6 +1506,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nfamilies_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_family_read_f(fn, B, F, family_name, nboco, ngeos, ier) !BIND(C, NAME="cg_family_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1353,6 +1525,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_family_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_family_write_f(fn, B, family_name, F, ier) !BIND(C, NAME="cg_family_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1363,6 +1542,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_family_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nfamily_names_f(fn, B, F, nnames, ier) BIND(C, NAME="cg_nfamily_names_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1372,6 +1558,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nfamily_names_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_family_name_read_f(fn, B, F, N, name, family, ier) !BIND(C, NAME="cg_family_name_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1384,6 +1577,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_family_name_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_family_name_write_f(fn, B, F, name, family, ier) !BIND(C, NAME="cg_family_name_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1395,6 +1595,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_family_name_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_family_write_f(family_name, F, ier) !BIND(C, NAME="cg_node_family_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1403,12 +1610,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_family_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_nfamilies_f(nfamilies, ier) BIND(C, NAME="cg_node_nfamilies_f")
        IMPLICIT NONE
        INTEGER :: nfamilies
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_nfamilies_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_family_read_f(F,family_name, nboco, ngeos, ier) !BIND(C, NAME="cg_node_family_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1419,6 +1640,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_family_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_family_name_write_f(name, family, ier) !BIND(C, NAME="cg_node_family_name_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1427,12 +1655,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_family_name_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_nfamily_names_f(nnames, ier) BIND(C, NAME="cg_node_nfamily_names_f")
        IMPLICIT NONE
        INTEGER :: nnames
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_nfamily_names_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_family_name_read_f(N, name, family, ier) !BIND(C, NAME="cg_node_family_name_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1446,6 +1688,13 @@ MODULE cgns
   !      Read and write FamBC_t Nodes                                     *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_fambc_read_f(fn, B, F, BC, fambc_name, bocotype, ier) !BIND(C, NAME="cg_fambc_read_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1458,6 +1707,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_fambc_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_fambc_write_f(fn, B, F, fambc_name, bocotype, BC, ier) !BIND(C, NAME="cg_fambc_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1470,6 +1726,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_fambc_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_fambc_read_f(BC, fambc_name, bocotype, ier) !BIND(C, NAME="cg_node_fambc_read_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1479,6 +1742,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_fambc_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_fambc_write_f(fambc_name, bocotype, BC, ier) !BIND(C, NAME="cg_node_fambc_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1493,6 +1763,13 @@ MODULE cgns
   !      Read and write GeometryReference_t Nodes                         *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_geo_read_f(fn, B, F, G, geo_name, geo_file, CAD_name, npart, ier) !BIND(C, NAME="cg_geo_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1507,6 +1784,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_geo_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_geo_write_f(fn, B, F, geo_name, geo_file, CAD_name, G, ier) !BIND(C, NAME="cg_geo_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1520,6 +1804,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_geo_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_geo_read_f(G, geo_name, geo_file, CAD_name, npart, ier) !BIND(C, NAME="cg_node_geo_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1531,6 +1822,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_geo_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_geo_write_f(geo_name, geo_file, CAD_name, G, ier) !BIND(C, NAME="cg_node_geo_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1545,6 +1843,13 @@ MODULE cgns
   !      Read and write GeometryEntity_t Nodes                            *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_part_read_f(fn, B, F,G, P, part_name, ier) !BIND(C, NAME="cg_part_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1557,6 +1862,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_part_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_part_write_f(fn, B, F, G, part_name, P, ier) !BIND(C, NAME="cg_part_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1569,6 +1881,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_part_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_part_read_f(G, P, part_name, ier) !BIND(C, NAME="cg_node_part_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1578,6 +1897,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_node_part_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_node_part_write_f(G, part_name, P, ier) !BIND(C, NAME="cg_node_part_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1591,6 +1917,13 @@ MODULE cgns
   !      Read and write DiscreteData_t Nodes                              *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ndiscrete_f(fn, B, Z, ndiscrete, ier) BIND(C, NAME="cg_ndiscrete_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1600,6 +1933,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ndiscrete_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_read_f(fn, B, Z, D, discrete_name, ier) !BIND(C, NAME="cg_discrete_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1611,6 +1951,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_discrete_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_write_f(fn, B, Z, discrete_name, D, ier) !BIND(C, NAME="cg_discrete_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -1622,6 +1969,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_discrete_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_size_f(fn, B, Z, D, ndim, dims, ier) BIND(C, NAME="cg_discrete_size_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -1634,6 +1988,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_discrete_size_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_ptset_info_f(fn, B, Z, S, ptype, npnts, ier) BIND(C, NAME="cg_discrete_ptset_info_f")
        IMPORT :: cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -1646,6 +2007,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_discrete_ptset_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_ptset_read_f( fn, B, Z, S, pnts, ier) BIND(C, NAME="cg_discrete_ptset_read_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -1657,6 +2025,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_discrete_ptset_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_discrete_ptset_write_f( fn, B, Z, name, location, ptype, &
           npnts, pnts, D, ier) !BIND(C, NAME="cg_discrete_ptset_write_f")
        IMPORT :: CGSIZE_T, cgenum_t, c_char
@@ -1677,6 +2052,13 @@ MODULE cgns
   !      Read and write GridCoordinates_t/DataArray_t Nodes               *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ncoords_f(fn, B, Z, ncoords, ier) BIND(C, NAME="cg_ncoords_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1686,6 +2068,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ncoords_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_coord_info_f(fn, B, Z, C, TYPE, coordname, ier) !BIND(C, NAME="cg_coord_info_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1747,6 +2136,13 @@ MODULE cgns
 #endif
 
  INTERFACE
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_coord_id_f(fn, B, Z, C, coord_id, ier) BIND(C, NAME="cg_coord_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -1790,6 +2186,13 @@ MODULE cgns
   !      Read and write Elements_t Nodes                                  *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nsections_f(fn, B, Z, nsections, ier) BIND(C, NAME="cg_nsections_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1799,6 +2202,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nsections_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_section_read_f(fn, B, Z, E, section_name, TYPE, start, END, nbndry, &
           parent_flag, ier) !BIND(C, NAME="cg_section_read_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
@@ -1816,7 +2226,14 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_section_read_f
 
-!!$!!$     SUBROUTINE cg_elements_read_f(fn, B, Z, E, elements, parent_data, ier) BIND(C, NAME="cg_elements_read_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_elements_read_f(fn, B, Z, E, elements, parent_data, ier) BIND(C, NAME="cg_elements_read_f")
 !!$       IMPORT :: CGSIZE_T
 !!$       IMPLICIT NONE
 !!$       INTEGER :: fn
@@ -1828,6 +2245,13 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_elements_read_f
 !!$
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_elementdatasize_f(fn, B, Z, E, ElementDataSize, ier) BIND(C, NAME="cg_elementdatasize_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -1839,6 +2263,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_elementdatasize_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_elementpartialsize_f(fn, B, Z, E, start, END, ElementDataSize, ier) BIND(C, NAME="cg_elementpartialsize_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -1852,7 +2283,14 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_elementpartialsize_f
 
-!!$!!$     SUBROUTINE cg_section_write_f(fn, B, Z, section_name, TYPE, start, END, nbndry, elements, S, ier) !BIND(C, NAME="cg_section_write_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_section_write_f(fn, B, Z, section_name, TYPE, start, END, nbndry, elements, S, ier) !BIND(C, NAME="cg_section_write_f")
 !!$       IMPORT :: c_char, cgenum_t, CGSIZE_T
 !!$       IMPLICIT NONE
 !!$       INTEGER :: fn
@@ -1868,7 +2306,14 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_section_write_f
 !!$
-!!$!!$     SUBROUTINE cg_parent_data_write_f(fn, B, Z, S, parent_data, ier) BIND(C, NAME="cg_parent_data_write_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_parent_data_write_f(fn, B, Z, S, parent_data, ier) BIND(C, NAME="cg_parent_data_write_f")
 !!$       IMPORT :: CGSIZE_T
 !!$       IMPLICIT NONE
 !!$       INTEGER :: fn
@@ -1879,6 +2324,13 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_parent_data_write_f
 !!$
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_section_partial_write_f( fn, B, Z, section_name, TYPE, start, END, &
           nbndry, S, ier) !BIND(C, NAME="cg_section_partial_write_f")
        IMPORT :: c_char, CGSIZE_T, cgenum_t
@@ -1895,7 +2347,14 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_section_partial_write_f
 
-!!$!!$     SUBROUTINE cg_elements_partial_write_f(fn, B, Z, S, rmin, rmax, elements, ier) &
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_elements_partial_write_f(fn, B, Z, S, rmin, rmax, elements, ier) &
 !!$          BIND(C, NAME="cg_elements_partial_write_f")
 !!$       IMPORT :: CGSIZE_T
 !!$       IMPLICIT NONE
@@ -1909,7 +2368,14 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_elements_partial_write_f
 !!$
-!!$!!$     SUBROUTINE cg_parent_data_partial_write_f(fn, B, Z, S, rmin, rmax, parent_data, ier) &
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_parent_data_partial_write_f(fn, B, Z, S, rmin, rmax, parent_data, ier) &
 !!$          BIND(C, NAME="cg_parent_data_partial_write_f")
 !!$       IMPORT :: CGSIZE_T
 !!$       IMPLICIT NONE
@@ -1924,7 +2390,14 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_parent_data_partial_write_f
 !!$!!$
-!!$!!$     SUBROUTINE cg_elements_partial_read_f(fn, B, Z, S, rmin, rmax, elements, parent, ier) &
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_elements_partial_read_f(fn, B, Z, S, rmin, rmax, elements, parent, ier) &
 !!$          BIND(C, NAME="cg_elements_partial_read_f")
 !!$       IMPORT :: CGSIZE_T
 !!$       IMPLICIT NONE
@@ -1944,6 +2417,13 @@ MODULE cgns
   !      Read and write FlowSolution_t Nodes                              *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nsols_f(fn, B, Z, nsols, ier) BIND(C, NAME="cg_nsols_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -1953,6 +2433,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nsols_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_info_f(fn, B, Z, S, solname, location, ier) !BIND(C, NAME="cg_sol_info_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1965,6 +2452,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_id_f(fn, B, Z, S, sol_id, ier) BIND(C, NAME="cg_sol_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -1976,6 +2470,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_write_f(fn, B, Z, solname, location, S, ier) !BIND(C, NAME="cg_sol_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -1988,6 +2489,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_size_f(fn, B, Z, S, ndim, dims, ier) BIND(C, NAME="cg_sol_size_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -2000,6 +2508,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_size_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_ptset_info_f( fn, B, Z, S, ptype, npnts, ier) BIND(C, NAME="cg_sol_ptset_info_f")
        IMPORT :: cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -2012,6 +2527,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_ptset_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_ptset_read_f(fn, B, Z, S, pnts, ier) BIND(C, NAME="cg_sol_ptset_read_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -2023,6 +2545,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_sol_ptset_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_sol_ptset_write_f(fn, B, Z, name, location, ptype, npnts, pnts, S, ier) !BIND(C, NAME="cg_sol_ptset_write_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -2042,6 +2571,13 @@ MODULE cgns
   !      Read and write solution DataArray_t Nodes                        *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nfields_f(fn, B, Z, S, nfields, ier) BIND(C, NAME="cg_nfields_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2052,6 +2588,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nfields_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_field_info_f(fn, B, Z, S, F, TYPE, fieldname, ier) !BIND(C, NAME="cg_field_info_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2078,6 +2621,13 @@ MODULE cgns
 !!$   END SUBROUTINE cg_field_read_f
 !!$END INTERFACE
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_field_id_f(fn, B, Z, S, F, field_id, ier) !BIND(C, NAME="cg_field_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -2119,6 +2669,13 @@ MODULE cgns
   !      Read and write ZoneSubRegion_t Nodes                              *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nsubregs_f(fn, B, Z, nsubreg, ier) BIND(C, NAME="cg_nsubregs_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2128,6 +2685,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nsubregs_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_info_f(fn, B, Z, S, regname, DIMENSION, &
           location, ptset_type, npnts, bcname_len, gcname_len, ier) !BIND(C, NAME="cg_subreg_info_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
@@ -2146,6 +2710,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_ptset_read_f( fn, B, Z, S, pnts, ier) BIND(C, NAME="cg_subreg_ptset_read_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -2157,6 +2728,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_ptset_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_bcname_read_f( fn, B, Z, S, bcname, ier) !BIND(C, NAME="cg_subreg_bcname_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2168,6 +2746,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_bcname_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_gcname_read_f(fn, B, Z, S, gcname, ier) !BIND(C, NAME="cg_subreg_gcname_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2179,6 +2764,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_gcname_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_ptset_write_f(fn, B, Z, regname, DIMENSION, location, ptset_type, npnts, &
           pnts, S, ier) !BIND(C, NAME="cg_subreg_ptset_write_f")
        IMPORT :: cgenum_t, c_char, CGSIZE_T
@@ -2196,6 +2788,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_ptset_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_bcname_write_f( fn, B, Z, regname, DIMENSION, bcname, S, ier) !BIND(C, NAME="cg_subreg_bcname_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2209,6 +2808,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_subreg_bcname_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_subreg_gcname_write_f( fn, B, Z, regname, DIMENSION, gcname, S, ier) !BIND(C, NAME="cg_subreg_gcname_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2226,6 +2832,13 @@ MODULE cgns
   !      Read and write ZoneGridConnectivity_t Nodes                       *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nzconns_f(fn, B, Z, nzconns, ier) BIND(C, NAME="cg_nzconns_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2235,6 +2848,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nzconns_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zconn_read_f(fn, B, Z, C, name, ier) !BIND(C, NAME="cg_zconn_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2246,6 +2866,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zconn_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zconn_write_f(fn, B, Z, name, C, ier) !BIND(C, NAME="cg_zconn_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2257,6 +2884,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zconn_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zconn_get_f(fn, B, Z, C, ier) BIND(C, NAME="cg_zconn_get_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2266,6 +2900,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_zconn_get_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_zconn_set_f(fn, B, Z, C, ier) BIND(C, NAME="cg_zconn_set_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2279,6 +2920,13 @@ MODULE cgns
   !      Read and write OversetHoles_t Nodes                              *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nholes_f(fn, B, Z, nholes, ier) BIND(C, NAME="cg_nholes_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2288,6 +2936,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nholes_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_hole_info_f(fn, B, Z, I, holename, location, ptset_type, nptsets, npnts, ier) !BIND(C, NAME="cg_hole_info_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -2303,6 +2958,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_hole_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_hole_read_f(fn, B, Z, I, pnts, ier) BIND(C, NAME="cg_hole_read_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -2314,6 +2976,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_hole_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_hole_id_f(fn, B, Z, I, hole_id, ier) BIND(C, NAME="cg_hole_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -2325,6 +2994,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_hole_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_hole_write_f(fn, B, Z, holename, location, ptset_type, nptsets, npnts, &
           pnts, I, ier) !BIND(C, NAME="cg_hole_write_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
@@ -2346,6 +3022,13 @@ MODULE cgns
   !      Read and write GridConnectivity_t Nodes                          *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nconns_f(fn, B, Z, nconns, ier) BIND(C, NAME="cg_nconns_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2355,6 +3038,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nconns_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_info_f(fn, B, Z, I, connectname, location, &
           TYPE, ptset_type, npnts, donorname, donor_zonetype, donor_ptset_type, &
           donor_datatype, ndata_donor, ier) !BIND(C, NAME="cg_conn_info_f")
@@ -2377,6 +3067,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_read_f(fn, B, Z, I, pnts, donor_datatype, donor_data, ier) BIND(C, NAME="cg_conn_read_f")
        IMPORT :: cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -2390,6 +3087,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_read_short_f(fn, B, Z, I, pnts, ier) BIND(C, NAME="cg_conn_read_short_f")
        IMPORT :: CGSIZE_T
        IMPLICIT NONE
@@ -2401,6 +3105,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_read_short_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_id_f(fn, B, Z, I, conn_id, ier) BIND(C, NAME="cg_conn_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -2412,6 +3123,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_write_f(fn, B, Z, connectname, location, TYPE, ptset_type, &
           npnts, pnts, donorname, donor_zonetype, donor_ptset_type, &
           donor_datatype, ndata_donor, donor_data, I, ier) !BIND(C, NAME="cg_conn_write_f")
@@ -2436,6 +3154,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_write_short_f(fn, B, Z, connectname, location, &
           TYPE, ptset_type, npnts, pnts, donorname, I, ier) !BIND(C, NAME="cg_conn_write_short_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
@@ -2458,6 +3183,13 @@ MODULE cgns
   !      Read and write GridConnectivity1to1_t Nodes in a zone            *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_n1to1_f(fn, B, Z, n1to1, ier) BIND(C, NAME="cg_n1to1_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2467,6 +3199,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_n1to1_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_read_f(fn, B, Z, I, connectname, donorname, &
           range, donor_range, transform, ier) !BIND(C, NAME="cg_1to1_read_f")
        IMPORT :: c_char, CGSIZE_T
@@ -2483,6 +3222,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_1to1_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_id_f(fn, B, Z, I, one21_id, ier) !BIND(C, NAME="cg_1to1_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -2494,6 +3240,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_1to1_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_write_f(fn, B, Z, connectname, donorname, range, &
           donor_range, transform, I, ier) !BIND(C, NAME="cg_1to1_write_f")
        IMPORT :: c_char, CGSIZE_T
@@ -2514,6 +3267,13 @@ MODULE cgns
   !      Read all GridConnectivity1to1_t Nodes of a base                  *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_n1to1_global_f(fn, B, n1to1_global, ier) BIND(C, NAME="cg_n1to1_global_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2522,6 +3282,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_n1to1_global_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_read_global_f(fn, B, connectname, zonename, donorname, &
           range, donor_range, transform, ier) !BIND(C, NAME="cg_1to1_read_global_f")
        IMPORT :: c_char, CGSIZE_T
@@ -2541,6 +3308,13 @@ MODULE cgns
   !      Read and write BC_t Nodes                                        *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nbocos_f(fn, B, Z, nbocos, ier) BIND(C, NAME="cg_nbocos_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2550,6 +3324,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nbocos_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_boco_info_f(fn, B, Z, BC, boconame, bocotype, &
           ptset_type, npnts, NormalIndex, &
           NormalListSize, NormalDataType, ndataset, ier) !BIND(C, NAME="cg_boco_info_f")
@@ -2584,6 +3365,13 @@ MODULE cgns
 !!$    END SUBROUTINE cg_boco_read_f
 !!$ END INTERFACE
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_boco_id_f(fn, B, Z, BC, boco_id, ier) BIND(C, NAME="cg_boco_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -2595,6 +3383,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_boco_id_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_boco_write_f(fn, B, Z, boconame, bocotype, ptset_type, npnts, pnts, BC, ier) !BIND(C, NAME="cg_boco_write_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -2624,6 +3419,13 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_boco_normal_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_boco_gridlocation_read_f(fn, B, Z, BC, location, ier) BIND(C, NAME="cg_boco_gridlocation_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2635,6 +3437,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_boco_gridlocation_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_boco_gridlocation_write_f( fn, B, Z, BC, location, ier) BIND(C, NAME="cg_boco_gridlocation_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2650,6 +3459,13 @@ MODULE cgns
   !      Read and write BCProperty_t/WallFunction_t Nodes                 *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bc_wallfunction_read_f(fn, B, Z, BC, WallFunctionType, ier) BIND(C, NAME="cg_bc_wallfunction_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2661,6 +3477,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_bc_wallfunction_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bc_wallfunction_write_f(fn, B, Z, BC, WallFunctionType, ier) BIND(C, NAME="cg_bc_wallfunction_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2676,6 +3499,13 @@ MODULE cgns
   !      Read and write BCProperty_t/Area_t Nodes                         *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bc_area_read_f(fn, B, Z, BC, AreaType, SurfaceArea, RegionName, ier) !BIND(C, NAME="cg_bc_area_read_f")
        IMPORT :: c_char, cgenum_t, c_float
        IMPLICIT NONE
@@ -2689,6 +3519,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_bc_area_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bc_area_write_f(fn, B, Z, BC, AreaType, SurfaceArea, RegionName, ier) !BIND(C, NAME="cg_bc_area_write_f")
        IMPORT :: c_char, cgenum_t, c_float
        IMPLICIT NONE
@@ -2706,6 +3543,13 @@ MODULE cgns
   !      Read and write GridConnectivityProperty_t/Periodic_t Nodes       *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_periodic_read_f(fn, B, Z, I, RotationCenter, RotationAngle, Translation, ier) &
           BIND(C, NAME="cg_conn_periodic_read_f")
        IMPORT :: c_float
@@ -2720,6 +3564,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_periodic_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_periodic_write_f( fn, B, Z, I, RotationCenter, RotationAngle, Translation, ier) &
           BIND(C, NAME="cg_conn_periodic_write_f")
        IMPORT :: c_float
@@ -2734,6 +3585,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_periodic_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_periodic_read_f(fn, B, Z, I, RotationCenter, RotationAngle, Translation, ier) &
           BIND(C, NAME="cg_1to1_periodic_read_f")
        IMPORT :: c_float
@@ -2748,6 +3606,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_1to1_periodic_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_periodic_write_f(fn, B, Z, I, RotationCenter, RotationAngle, Translation, ier) &
           BIND(C, NAME="cg_1to1_periodic_write_f")
        IMPORT :: c_float
@@ -2766,6 +3631,13 @@ MODULE cgns
   !   Read and write GridConnectivityProperty_t/AverageInterface_t Nodes  *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_average_read_f(fn, B, Z, I, AverageInterfaceType, ier) &
           BIND(C, NAME="cg_conn_average_read_f")
        IMPORT :: cgenum_t
@@ -2778,6 +3650,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_average_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conn_average_write_f(fn, B, Z, I, AverageInterfaceType, ier) &
           BIND(C, NAME="cg_conn_average_write_f")
        IMPORT :: cgenum_t
@@ -2790,6 +3669,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_conn_average_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_average_read_f(fn, B, Z, I, AverageInterfaceType, ier) &
           BIND(C, NAME="cg_1to1_average_read_f")
        IMPORT :: cgenum_t
@@ -2802,6 +3688,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_1to1_average_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_1to1_average_write_f(fn, B, Z, I,AverageInterfaceType, ier) BIND(C, NAME="cg_1to1_average_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2817,6 +3710,13 @@ MODULE cgns
   !      Read and write BCDataSet_t Nodes                                 *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_dataset_read_f(fn, B, Z, BC, DSet, Dataset_name, BCType, DirichletFlag, &
           NeumannFlag, ier) !BIND(C, NAME="cg_dataset_read_f")
        IMPORT :: c_char, cgenum_t
@@ -2833,6 +3733,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_dataset_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_dataset_write_f(fn, B, Z, BC, Dataset_name,BCType, Dset, ier) !BIND(C, NAME="cg_dataset_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2846,6 +3753,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_dataset_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bcdataset_write_f(Dataset_name, BCType, BCDataType, ier) !BIND(C, NAME="cg_bcdataset_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2855,12 +3769,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_bcdataset_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bcdataset_info_f(ndataset, ier) BIND(C, NAME="cg_bcdataset_info_f")
        IMPLICIT NONE
        INTEGER :: ndataset
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_bcdataset_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bcdataset_read_f(index, Dataset_name, BCType, &
           DirichletFlag, NeumannFlag,ier) !BIND(C, NAME="cg_bcdataset_read_f")
        IMPORT :: c_char, cgenum_t, CGSIZE_T
@@ -2877,6 +3805,13 @@ MODULE cgns
   !      Read and write BCData_t Nodes                                    *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_bcdata_write_f(fn, B, Z, BC, Dset, BCDataType, ier) BIND(C, NAME="cg_bcdata_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -2893,6 +3828,13 @@ MODULE cgns
   !      Read and write RigidGridMotion_t Nodes                           *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_n_rigid_motions_f(fn, B, Z, n_rigid_motions, ier) BIND(C, NAME="cg_n_rigid_motions_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2902,6 +3844,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_n_rigid_motions_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rigid_motion_read_f(fn, B, Z, R, rmotion_name, TYPE, ier) !BIND(C, NAME="cg_rigid_motion_read_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2914,6 +3863,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_rigid_motion_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rigid_motion_write_f(fn, B, Z, rmotion_name, TYPE, R, ier) !BIND(C, NAME="cg_rigid_motion_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2929,7 +3885,26 @@ MODULE cgns
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
   !      Read and write ArbitraryGridMotion_t Nodes                       *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+!<
+!! \ingroup ArbitraryGridMotion_F
+!!
+!! \brief  Get number of ArbitraryGridMotion_t nodes
+!!
+!! \param[in] fn \b INTEGER; \FILE_fn
+!! \param[in] B  \b INTEGER; \B_Base
+!! \param[in] Z  \b INTEGER; \Z_Zone
+!! \param[out] n_arbitrary_motions \b INTEGER; Number of ArbitraryGridMotion_t nodes under zone Z.
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref cg_n_arbitrary_motions()
+!!
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_n_arbitrary_motions_f( fn, B, Z, n_arbitrary_motions, ier) BIND(C, NAME="cg_n_arbitrary_motions_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2939,6 +3914,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_n_arbitrary_motions_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_arbitrary_motion_read_f(fn, B, Z, A, amotion_name, TYPE, ier) !BIND(C, NAME="cg_arbitrary_motion_read_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2951,6 +3933,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_arbitrary_motion_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_arbitrary_motion_write_f(fn, B, Z, amotion_name, TYPE, A, ier) !BIND(C, NAME="cg_arbitrary_motion_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -2967,6 +3956,13 @@ MODULE cgns
   !      Read and write GridCoordinates_t Nodes                           *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ngrids_f(fn, B, Z, ngrids, ier) BIND(C, NAME="cg_ngrids_f")
        IMPLICIT NONE
        INTEGER :: fn
@@ -2976,6 +3972,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ngrids_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_grid_read_f(fn, B, Z, G, gridname, ier) ! BIND(C, NAME="cg_grid_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -2987,6 +3990,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_grid_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_grid_write_f(fn, B, Z, gridname, G, ier) !BIND(C, NAME="cg_grid_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3010,7 +4020,14 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_grid_bounding_box_read_f
 
-!!$!!$     SUBROUTINE cg_grid_bounding_box_write_f(fn, B, Z, G, datatype, array, ier) !BIND(C, NAME="cg_grid_bounding_box_write_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_grid_bounding_box_write_f(fn, B, Z, G, datatype, array, ier) !BIND(C, NAME="cg_grid_bounding_box_write_f")
 !!$       IMPORT :: cgenum_t, c_ptr
 !!$       IMPLICIT NONE
 !!$       INTEGER :: fn
@@ -3026,6 +4043,13 @@ MODULE cgns
   !      Read and write SimulationType_t Node                             *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_simulation_type_read_f(fn, B, TYPE, ier) BIND(C, NAME="cg_simulation_type_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3035,6 +4059,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_simulation_type_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_simulation_type_write_f(fn, B, TYPE, ier) BIND(C, NAME="cg_simulation_type_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3048,6 +4079,13 @@ MODULE cgns
   !      Read and write BaseIterativeData_t Node                          *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_biter_read_f(fn, B, bitername, nsteps, ier) !BIND(C, NAME="cg_biter_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3058,6 +4096,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_biter_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_biter_write_f(fn, B, bitername, nsteps, ier) !BIND(C, NAME="cg_biter_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3072,6 +4117,13 @@ MODULE cgns
   !      Read and write ZoneIterativeData_t Nodes                         *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ziter_read_f(fn, B, Z, zitername, ier) !BIND(C, NAME="cg_ziter_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3083,6 +4135,13 @@ MODULE cgns
      END SUBROUTINE cg_ziter_read_f
 
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ziter_write_f(fn, B, Z, zitername, ier) !BIND(C, NAME="cg_ziter_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3097,6 +4156,13 @@ MODULE cgns
   !      Read and write Gravity_t Node                                    *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gravity_read_f(fn, B, gravity_vector, ier) BIND(C, NAME="cg_gravity_read_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3106,6 +4172,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_gravity_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gravity_write_f(fn, B, gravity_vector, ier) BIND(C, NAME="cg_gravity_write_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3119,6 +4192,13 @@ MODULE cgns
   !      Read and write Axisymmetry_t Node                                *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_axisym_read_f(fn, B, ref_point, axis, ier) BIND(C, NAME="cg_axisym_read_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3129,6 +4209,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_axisym_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_axisym_write_f(fn, B, ref_point, axis, ier) BIND(C, NAME="cg_axisym_write_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3144,6 +4231,13 @@ MODULE cgns
   !      Read and write RotatingCoordinates_t Node                        *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rotating_read_f(rot_rate, rot_center, ier) BIND(C, NAME="cg_rotating_read_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3152,6 +4246,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_rotating_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rotating_write_f(rot_rate, rot_center, ier) BIND(C, NAME="cg_rotating_write_f")
        IMPORT :: c_float
        IMPLICIT NONE
@@ -3164,6 +4265,13 @@ MODULE cgns
   !      Read and write  IndexArray/Range_t Nodes                         *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ptset_info_f(ptset_type, npnts, ier) BIND(C, NAME="cg_ptset_info_f")
        IMPORT :: cgenum_t, CGSIZE_T
        IMPLICIT NONE
@@ -3172,14 +4280,28 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ptset_info_f
 
-!!$!!$     SUBROUTINE cg_ptset_read_f(pnts, ier) BIND(C, NAME="cg_ptset_read_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_ptset_read_f(pnts, ier) BIND(C, NAME="cg_ptset_read_f")
 !!$       IMPORT :: cgenum_t, CGSIZE_T
 !!$       IMPLICIT NONE
 !!$       INTEGER(CGSIZE_T), DIMENSION(*) :: pnts
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cg_ptset_read_f
 !!$
-!!$!!$     SUBROUTINE cg_ptset_write_f(ptset_type, npnts, pnts, ier) BIND(C, NAME="cg_ptset_write_f")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cg_ptset_write_f(ptset_type, npnts, pnts, ier) BIND(C, NAME="cg_ptset_write_f")
 !!$       IMPORT :: cgenum_t, CGSIZE_T
 !!$       IMPLICIT NONE
 !!$       INTEGER(cgenum_t) :: ptset_type
@@ -3192,6 +4314,13 @@ MODULE cgns
   !      Go - To Function                                                 *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_goto_f1(fn, B, ier, name1, index1)
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3202,6 +4331,13 @@ MODULE cgns
        INTEGER :: index1
      END SUBROUTINE
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gorel_f1(fn, ier, name1, index1)
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3222,6 +4358,13 @@ MODULE cgns
 !!$    INTEGER, INTENT(OUT) :: ier
 !!$  END SUBROUTINE
 !!$
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gopath_f(fn,path, ier) !BIND(C, NAME="cg_gopath_f")
        IMPORT :: C_CHAR
        IMPLICIT NONE
@@ -3234,6 +4377,13 @@ MODULE cgns
   !              Read Multiple path nodes                                 *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_famname_read_f(famname, ier) !BIND(C, NAME="cg_famname_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3241,12 +4391,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_famname_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nmultifam_f(nfam, ier) BIND(C, NAME="cg_nmultifam_f")
        IMPLICIT NONE
        INTEGER :: nfam
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nmultifam_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_multifam_read_f(N,name, family, ier) !BIND(C, NAME="cg_multifam_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3256,6 +4420,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_multifam_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_convergence_read_f(iterations, NormDefinitions, ier) !BIND(C, NAME="cg_convergence_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3264,12 +4435,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_convergence_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_state_size_f(size, ier) !BIND(C, NAME="cg_state_size_f")
        IMPLICIT NONE
        INTEGER :: size
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_state_size_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_state_read_f(StateDescription, ier) !BIND(C, NAME="cg_state_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3277,6 +4462,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_state_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_equationset_read_f(EquationDimension, GoverningEquationsFlag, &
           GasModelFlag, ViscosityModelFlag, ThermalConductivityModelFlag, &
           TurbulenceClosureFlag, TurbulenceModelFlag, ier) BIND(C, NAME="cg_equationset_read_f")
@@ -3291,6 +4483,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_equationset_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_equationset_chemistry_read_f(ThermalRelaxationFlag, ChemicalKineticsFlag, ier) &
           BIND(C, NAME="cg_equationset_chemistry_read_f")
        IMPLICIT NONE
@@ -3299,6 +4498,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_equationset_chemistry_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_equationset_elecmagn_read_f(ElecFldModelFlag, MagnFldModelFlag, &
           ConductivityModelFlag, ier) BIND(C, NAME="cg_equationset_elecmagn_read_f")
        IMPLICIT NONE
@@ -3308,6 +4514,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_equationset_elecmagn_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_governing_read_f(EquationsType, ier) BIND(C, NAME="cg_governing_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3315,12 +4528,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_governing_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_diffusion_read_f(diffusion_model, ier) BIND(C, NAME="cg_diffusion_read_f")
        IMPLICIT NONE
        INTEGER, DIMENSION(*) :: diffusion_model
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_diffusion_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_model_read_f(ModelLabel, ModelType, ier) !BIND(C, NAME="cg_model_read_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -3329,12 +4556,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_model_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_narrays_f(narrays, ier) BIND(C, NAME="cg_narrays_f")
        IMPLICIT NONE
        INTEGER :: narrays
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_narrays_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_array_info_f(A, ArrayName, DataType, DataDimension, DimensionVector, ier) !BIND(C, NAME="cg_array_info_f")
        IMPORT :: c_char, CGSIZE_T, cgenum_t
        IMPLICIT NONE
@@ -3361,12 +4602,26 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_array_read_as_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nintegrals_f(nintegrals, ier) BIND(C, NAME="cg_nintegrals_f")
        IMPLICIT NONE
        INTEGER :: nintegrals
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nintegrals_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_integral_read_f(IntegralDataIndex, IntegralDataName,ier) !BIND(C, NAME="cg_integral_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3375,18 +4630,39 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_integral_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rind_read_f(RindData, ier) BIND(C, NAME="cg_rind_read_f")
        IMPLICIT NONE
        INTEGER, DIMENSION(*) :: RindData
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_rind_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ndescriptors_f(ndescriptors, ier) BIND(C, NAME="cg_ndescriptors_f")
        IMPLICIT NONE
        INTEGER :: ndescriptors
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ndescriptors_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_descriptor_size_f(descr_no, descr_size, ier) BIND(C, NAME="cg_descriptor_size_f")
        IMPLICIT NONE
        INTEGER :: descr_no
@@ -3394,6 +4670,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_descriptor_size_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_descriptor_read_f(descr_no, descr_name, descr_text, ier) !BIND(C, NAME="cg_descriptor_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3403,12 +4686,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_descriptor_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nunits_f(nunits, ier) BIND(C, NAME="cg_nunits_f")
        IMPLICIT NONE
        INTEGER :: nunits
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nunits_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_units_read_f(mass, length,  time, temperature, angle, ier) BIND(C, NAME="cg_units_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3420,6 +4717,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_units_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_unitsfull_read_f(mass, length, time, temperature, angle, current, &
           amount, intensity, ier) BIND(C, NAME="cg_unitsfull_read_f")
        IMPORT :: cgenum_t
@@ -3435,6 +4739,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_unitsfull_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_exponents_info_f(DataType, ier) BIND(C, NAME="cg_exponents_info_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3442,6 +4753,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_exponents_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nexponents_f(nexps, ier) BIND(C, NAME="cg_nexponents_f")
        IMPLICIT NONE
        INTEGER :: nexps
@@ -3458,6 +4776,13 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_expfull_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_conversion_info_f(DataType, ier) BIND(C, NAME="cg_conversion_info_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3470,6 +4795,13 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_conversion_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_dataclass_read_f(dataclass, ier) BIND(C, NAME="cg_dataclass_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3477,6 +4809,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_dataclass_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gridlocation_read_f(GridLocation, ier) BIND(C, NAME="cg_gridlocation_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3484,6 +4823,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_gridlocation_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ordinal_read_f(Ordinal, ier) BIND(C, NAME="cg_ordinal_read_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3491,6 +4837,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ordinal_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_npe_f(TYPE,npe, ier) BIND(C, NAME="cg_npe_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3499,12 +4852,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_npe_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_is_link_f(path_length, ier) BIND(C, NAME="cg_is_link_f")
        IMPLICIT NONE
        INTEGER :: path_length
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_is_link_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_link_read_f(filename, link_path, ier) !BIND(C, NAME="cg_link_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3513,12 +4880,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_link_read_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_nuser_data_f(nuser_data, ier) BIND(C, NAME="cg_nuser_data_f")
        IMPLICIT NONE
        INTEGER :: nuser_data
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_nuser_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_user_data_read_f(index,dataname, ier) !BIND(C, NAME="cg_user_data_read_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3531,6 +4912,13 @@ MODULE cgns
   !                   Write Multiple path nodes                           *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_famname_write_f(family_name, ier) !BIND(C, NAME="cg_famname_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3538,6 +4926,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_famname_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_multifam_write_f(name, family, ier) !BIND(C, NAME="cg_multifam_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3546,6 +4941,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_multifam_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_convergence_write_f(iterations, NormDefinitions, ier) !BIND(C, NAME="cg_convergence_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3554,6 +4956,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_convergence_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_state_write_f(StateDescription, ier) !BIND(C, NAME="cg_state_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3561,12 +4970,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_state_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_equationset_write_f(EquationDimension, ier) BIND(C, NAME="cg_equationset_write_f")
        IMPLICIT NONE
        INTEGER :: EquationDimension
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_equationset_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_governing_write_f(Equationstype, ier) BIND(C, NAME="cg_governing_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3574,12 +4997,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_governing_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_diffusion_write_f(diffusion_model, ier) BIND(C, NAME="cg_diffusion_write_f")
        IMPLICIT NONE
        INTEGER, DIMENSION(*) :: diffusion_model
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_diffusion_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_model_write_f(ModelLabel, ModelType, ier) !BIND(C, NAME="cg_model_write_f")
        IMPORT :: c_char, cgenum_t
        IMPLICIT NONE
@@ -3609,18 +5046,39 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_array_write_f03
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_integral_write_f(IntegralDataName, ier) !BIND(C, NAME="cg_integral_write_f")
        IMPORT :: c_char
        CHARACTER(KIND=C_CHAR), DIMENSION(*) :: IntegralDataName
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_integral_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_rind_write_f(RindData, ier) BIND(C, NAME="cg_rind_write_f")
        IMPLICIT NONE
        INTEGER, DIMENSION(*) :: RindData
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_rind_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_descriptor_write_f(descr_name, descr_text, ier) !BIND(C, NAME="cg_descriptor_write_f")
        IMPORT :: c_char
        CHARACTER(KIND=C_CHAR), DIMENSION(*) :: descr_name
@@ -3628,6 +5086,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_descriptor_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_units_write_f(mass, length, time, temperature, angle, ier) BIND(C, NAME="cg_units_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3639,6 +5104,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_units_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_unitsfull_write_f(mass, length, time, temperature, angle, current, &
           amount, intensity, ier) BIND(C, NAME="cg_unitsfull_write_f")
        IMPORT :: cgenum_t
@@ -3672,6 +5144,13 @@ MODULE cgns
 !!$      INTEGER, INTENT(OUT) :: ier
 !!$    END SUBROUTINE cg_conversion_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_dataclass_write_f(dataclass, ier) BIND(C, NAME="cg_dataclass_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3679,6 +5158,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_dataclass_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_gridlocation_write_f(GridLocation, ier) BIND(C, NAME="cg_gridlocation_write_f")
        IMPORT :: cgenum_t
        IMPLICIT NONE
@@ -3686,12 +5172,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_gridlocation_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_ordinal_write_f(Ordinal, ier) BIND(C, NAME="cg_ordinal_write_f")
        IMPLICIT NONE
        INTEGER :: Ordinal
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_ordinal_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_link_write_f(nodename, filename, name_in_file, ier) !BIND(C, NAME="cg_link_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3701,6 +5201,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_link_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_user_data_write_f(dataname, ier) ! BIND(C, NAME="cg_user_data_write_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3712,6 +5219,13 @@ MODULE cgns
   !      General Delete Function                                          *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_delete_node_f(node_name, ier) !BIND(C, NAME="cg_delete_node_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -3723,20 +5237,48 @@ MODULE cgns
   !      Error Handling Functions                                         *
   ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_get_error_f(errmsg) !BIND(C, NAME="cg_get_error_f")
        IMPORT :: c_char
        IMPLICIT NONE
        CHARACTER(KIND=C_CHAR), DIMENSION(*) :: errmsg
      END SUBROUTINE cg_get_error_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_error_exit_f() BIND(C, NAME="cg_error_exit_f")
        IMPLICIT NONE
      END SUBROUTINE cg_error_exit_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_error_print_f() BIND(C, NAME="cg_error_print_f")
        IMPLICIT NONE
      END SUBROUTINE cg_error_print_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_exit_on_error_f(flag) BIND(C, NAME="cg_exit_on_error_f")
        IMPLICIT NONE
        INTEGER :: flag
@@ -3748,12 +5290,26 @@ MODULE cgns
   ! parallel IO interface
   !======================================================================
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_mpi_comm_f( mpi_comm_f, ier) BIND(C, NAME="cgp_mpi_comm_f")
        IMPLICIT NONE
        INTEGER :: mpi_comm_f
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_mpi_comm_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_pio_mode_f( mode, ier) BIND(C, NAME="cgp_pio_mode_f")
        IMPORT :: C_INT
        IMPLICIT NONE
@@ -3761,6 +5317,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_pio_mode_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_open_f(filename, mode, fn, ier) !BIND(C, NAME="cgp_open_f")
        IMPORT :: C_CHAR, C_INT
        IMPLICIT NONE
@@ -3770,12 +5333,26 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_open_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_close_f(fn, ier) BIND(C, NAME="cgp_close_f")
        IMPLICIT NONE
        INTEGER, INTENT(IN)  :: fn
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_close_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_coord_write_f(fn, B, Z, type, coordname, C, ier) !BIND(C, NAME="cgp_coord_write_f")
        IMPORT :: cgenum_t, c_char
        IMPLICIT NONE
@@ -3799,7 +5376,14 @@ MODULE cgns
 !!$ INTEGER, INTENT(OUT) :: ier
 !!$END SUBROUTINE cgp_coord_write_data_f
 
-!!$   !!$           SUBROUTINE cgp_coord_read_data_f(
+!!$   !!$      !>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgp_coord_read_data_f(
 !!$     fn, B, Z, C,
 !!$     CGSIZE_T *rmin, CGSIZE_T *rmax, void *data, ier) BIND(C, NAME="")
 !!$
@@ -3811,6 +5395,13 @@ MODULE cgns
 !!$          INTEGER, INTENT(OUT) :: ier
 !!$           END SUBROUTINE
 !!$
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_section_write_f( fn, B, Z, section_name, &
           TYPE,start,END, nbndry, S, ier) !BIND(C, NAME="cgp_section_write_f")
        IMPORT :: cgenum_t, cgsize_t, c_char
@@ -3827,7 +5418,14 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_section_write_f
 
-!!$!!$     SUBROUTINE cgp_elements_write_data_f( fn, B, Z, S, CGSIZE_T *start, &
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgp_elements_write_data_f( fn, B, Z, S, CGSIZE_T *start, &
 !!$          CGSIZE_T *END, CGSIZE_T *elements, ier) BIND(C, NAME="cgp_elements_write_data_f")
 !!$       IMPORT :: cgsize_t
 !!$       IMPLICIT NONE
@@ -3843,7 +5441,14 @@ MODULE cgns
 !!$     END SUBROUTINE cgp_elements_write_data_f
 !!$
 !!$
-!!$!!$     SUBROUTINE cgp_elements_read_data_f(fn, B, Z, S, start, &
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgp_elements_read_data_f(fn, B, Z, S, start, &
 !!$          end, elements, ier) BIND(C, NAME="cgp_elements_read_data_f")
 !!$       IMPORT :: cgsize_t
 !!$       IMPLICIT NONE
@@ -3857,6 +5462,13 @@ MODULE cgns
 !!$       INTEGER, INTENT(OUT) :: ier
 !!$     END SUBROUTINE cgp_elements_read_data_f
 !!$
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_field_write_f(fn, B, Z, S, TYPE, fieldname, F, ier)! BIND(C, NAME="cgp_field_write_f")
        IMPORT :: cgenum_t, c_char
        IMPLICIT NONE
@@ -3870,10 +5482,24 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_field_write_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_error_exit_f() BIND(C, NAME="cgp_error_exit_f")
        IMPLICIT NONE
      END SUBROUTINE cgp_error_exit_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_mpi_info_f(pcg_mpi_info_f, ier) BIND(C,NAME="cgp_mpi_info_f")
        IMPORT :: C_INT
        IMPLICIT NONE
@@ -3881,6 +5507,13 @@ MODULE cgns
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cgp_mpi_info_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_coord_multi_read_data_f(fn, B, Z, C, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_coord_multi_read_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3896,6 +5529,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_coord_multi_read_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_coord_multi_write_data_f(fn, B, Z, C, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_coord_multi_write_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3911,6 +5551,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_coord_multi_write_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_field_multi_read_data_f(fn, B, Z, S, F, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_field_multi_read_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3927,6 +5574,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_field_multi_read_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_field_multi_write_data_f(fn, B, Z, S, F, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_field_multi_write_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3943,6 +5597,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_field_multi_write_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_array_multi_read_data_f(fn, A, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_array_multi_read_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3956,6 +5617,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_array_multi_read_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_array_multi_write_data_f(fn, A, rmin, rmax, nsets, &
           buf, ier) BIND(C, NAME="cgp_array_multi_write_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
@@ -3969,6 +5637,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_array_multi_write_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_ptlist_write_data_f(file_number, rmin, rmax, points, ier) BIND(C, NAME="cgp_ptlist_write_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
        IMPLICIT NONE
@@ -3979,6 +5654,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_ptlist_write_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_ptlist_read_data_f(file_number, rmin, rmax, points, ier) BIND(C, NAME="cgp_ptlist_read_data_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
        IMPLICIT NONE
@@ -3989,6 +5671,13 @@ MODULE cgns
        INTEGER :: ier
      END SUBROUTINE cgp_ptlist_read_data_f
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgp_parent_data_write_f(file_number, B, Z, S, rmin, rmax, parents, ier) BIND(C, NAME="cgp_parent_data_write_f")
        IMPORT :: C_INT, C_PTR, CGSIZE_T
        IMPLICIT NONE
@@ -4312,6 +6001,13 @@ MODULE cgns
 !!
 !! For details, see C API: @ref cg_open()
 !!
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cg_open_f(filename, mode, fn, ier)
        IMPORT :: C_CHAR, C_INT
        IMPLICIT NONE
@@ -4330,6 +6026,13 @@ MODULE cgns
 !! \param[out] ier       \b INTEGER; \ier
 !!
 !! For details, see C API: @ref cg_is_cgns()
+!!
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
 !!
      SUBROUTINE cg_is_cgns_f(filename, file_type, ier)
         IMPORT :: C_CHAR
@@ -4360,6 +6063,13 @@ MODULE cgns
 !* paths for searching for linked-to files
 !*=========================================================
 
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_path_add_f(path, ier) ! BIND(C,NAME="cgio_path_add_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4368,6 +6078,13 @@ MODULE cgns
      END SUBROUTINE cgio_path_add_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_path_delete_f(path, ier) ! BIND(C,NAME="cgio_path_delete_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4378,7 +6095,14 @@ MODULE cgns
 !*=========================================================
 !* utility routines independent of open files
 !*=========================================================
-         SUBROUTINE cgio_is_supported_f(file_type, ier) BIND(C,NAME="cgio_is_supported_f")
+    !>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgio_is_supported_f(file_type, ier) BIND(C,NAME="cgio_is_supported_f")
          IMPORT :: CGSIZE_T
          IMPLICIT NONE
          INTEGER(CGSIZE_T) :: file_type
@@ -4386,6 +6110,13 @@ MODULE cgns
        END SUBROUTINE cgio_is_supported_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_check_file_f(filename, file_type, ier) !BIND(C,NAME="cgio_check_file_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4397,6 +6128,13 @@ MODULE cgns
 !*=========================================================
 !* file operations
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_open_file_f(filename, file_mode, file_type, cgio_num, ier) ! BIND(C,NAME="cgio_open_file_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4408,6 +6146,13 @@ MODULE cgns
      END SUBROUTINE cgio_open_file_f
 
   !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_close_file_f(cgio_num, ier) BIND(C,NAME="cgio_close_file_f")
        IMPLICIT NONE
        INTEGER :: cgio_num
@@ -4415,6 +6160,13 @@ MODULE cgns
      END SUBROUTINE cgio_close_file_f
 
   !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_flush_to_disk_f(cgio_num, ier) BIND(C,NAME="cgio_flush_to_disk_f")
        IMPLICIT NONE
        INTEGER :: cgio_num
@@ -4424,6 +6176,13 @@ MODULE cgns
 !*=========================================================
 !* file information
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_library_version_f(cgio_num, version, ier) ! BIND(C,NAME="cgio_library_version_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4433,6 +6192,13 @@ MODULE cgns
      END SUBROUTINE cgio_library_version_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_file_version_f(cgio_num, file_version, creation_date, modified_date, ier) ! BIND(C,NAME="cgio_file_version_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4444,6 +6210,13 @@ MODULE cgns
      END SUBROUTINE
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_root_id_f(cgio_num, rootid, ier) BIND(C,NAME="cgio_get_root_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4453,6 +6226,13 @@ MODULE cgns
      END SUBROUTINE cgio_get_root_id_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_file_type_f(cgio_num, file_type, ier) BIND(C,NAME="cgio_get_file_type_f")
        IMPLICIT NONE
        INTEGER :: cgio_num
@@ -4463,6 +6243,13 @@ MODULE cgns
 !*=========================================================
 !* error handling
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_error_code_f(errcode, file_type) BIND(C,NAME="cgio_error_code_f")
        IMPLICIT NONE
        INTEGER :: errcode
@@ -4470,6 +6257,13 @@ MODULE cgns
      END SUBROUTINE cgio_error_code_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_error_message_f(errmsg, ier) ! BIND(C,NAME="cgio_error_message_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4478,6 +6272,13 @@ MODULE cgns
      END SUBROUTINE cgio_error_message_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_error_exit_f(errmsg) ! BIND(C,NAME="cgio_error_exit_f")
        IMPORT :: c_char
        IMPLICIT NONE
@@ -4485,6 +6286,13 @@ MODULE cgns
      END SUBROUTINE cgio_error_exit_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_error_abort_f(abort_flag) BIND(C,NAME="cgio_error_abort_f")
        IMPLICIT NONE
        INTEGER :: abort_flag
@@ -4493,6 +6301,13 @@ MODULE cgns
 !*=========================================================
 !* basic node operations
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_create_node_f(cgio_num, pid, name, id, ier) ! BIND(C,NAME="cgio_create_node_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4504,7 +6319,14 @@ MODULE cgns
      END SUBROUTINE cgio_create_node_f
 
 !*---------------------------------------------------------
-!!$!!$     SUBROUTINE cgio_new_node_f(cgio_num, pid, name, label, data_type, ndims, dims, DATA, id, ier) BIND(C,NAME="")
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgio_new_node_f(cgio_num, pid, name, label, data_type, ndims, dims, DATA, id, ier) BIND(C,NAME="")
 !!$       IMPORT :: c_char, c_double
 !!$       IMPLICIT NONE
 !!$       INTEGER :: cgio_num
@@ -4520,6 +6342,13 @@ MODULE cgns
 !!$     END SUBROUTINE cgio_new_node_f
 !!$
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_delete_node_f(cgio_num, pid, id, ier) BIND(C,NAME="cgio_delete_node_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4530,6 +6359,13 @@ MODULE cgns
      END SUBROUTINE cgio_delete_node_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_move_node_f(cgio_num, pid, id, npid, ier) BIND(C,NAME="cgio_move_node_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4541,6 +6377,13 @@ MODULE cgns
      END SUBROUTINE cgio_move_node_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_release_id_f(cgio_num, id, ier) BIND(C,NAME="cgio_release_id_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4552,6 +6395,13 @@ MODULE cgns
 !*=========================================================
 !* links
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_is_link_f(cgio_num, id, link_len, ier) BIND(C,NAME="cgio_is_link_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4562,6 +6412,13 @@ MODULE cgns
      END SUBROUTINE cgio_is_link_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_link_size_f(cgio_num, id, file_len, name_len, ier) BIND(C,NAME="cgio_link_size_f")
        IMPORT :: c_double
        IMPLICIT NONE
@@ -4573,6 +6430,13 @@ MODULE cgns
      END SUBROUTINE cgio_link_size_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_create_link_f(cgio_num, pid, name, filename, name_in_file, id, ier) ! BIND(C,NAME="cgio_create_link_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4586,6 +6450,13 @@ MODULE cgns
      END SUBROUTINE cgio_create_link_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_link_f(cgio_num, id, filename, name_in_file, ier) ! BIND(C,NAME="cgio_get_link_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4599,6 +6470,13 @@ MODULE cgns
 !*=========================================================
 !* node children
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_number_children_f(cgio_num, pid, num_children, ier) &
                 BIND(C,NAME="cgio_number_children_f")
        IMPORT :: c_double
@@ -4610,6 +6488,13 @@ MODULE cgns
      END SUBROUTINE cgio_number_children_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_children_ids_f(cgio_num, pid, start, max_ret, num_ret, ids, ier) &
                 BIND(C,NAME="cgio_children_ids_f")
        IMPORT :: c_double
@@ -4624,6 +6509,13 @@ MODULE cgns
      END SUBROUTINE cgio_children_ids_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_children_names_f(cgio_num, pid, start, max_ret, name_len, &
           num_ret, names, ier) !BIND(C,NAME="cgio_children_names_f")
        IMPORT :: c_char, c_double
@@ -4641,6 +6533,13 @@ MODULE cgns
 !*=========================================================
 !* read nodes
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_node_id_f(cgio_num, pid, name, id, ier) !BIND(C,NAME="cgio_get_node_id_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4652,6 +6551,13 @@ MODULE cgns
      END SUBROUTINE cgio_get_node_id_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_name_f(cgio_num, id, name, ier) !BIND(C,NAME="cgio_get_name_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4662,6 +6568,13 @@ MODULE cgns
      END SUBROUTINE cgio_get_name_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_label_f(cgio_num, id, label, ier) !BIND(C,NAME="cgio_get_label_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4672,6 +6585,13 @@ MODULE cgns
      END SUBROUTINE cgio_get_label_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_data_type_f(cgio_num, id, data_type, ier) !BIND(C,NAME="cgio_get_data_type_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4682,6 +6602,13 @@ MODULE cgns
      END SUBROUTINE cgio_get_data_type_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_get_data_size_f(cgio_num, id, size, ier) BIND(C,NAME="cgio_get_data_size_f")
        IMPORT :: c_double, cgsize_t
        IMPLICIT NONE
@@ -4694,6 +6621,13 @@ MODULE cgns
 !*=========================================================
 !* write nodes
 !*=========================================================
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_set_name_f(cgio_num, pid, id, name, ier) !BIND(C,NAME="cgio_set_name_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4705,6 +6639,13 @@ MODULE cgns
      END SUBROUTINE cgio_set_name_f
 
 !*---------------------------------------------------------
+!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
      SUBROUTINE cgio_set_label_f(cgio_num, id, label, ier) !BIND(C,NAME="cgio_set_label_f")
        IMPORT :: c_char, c_double
        IMPLICIT NONE
@@ -4716,17 +6657,38 @@ MODULE cgns
 
 
 !*---------------------------------------------------------
-!!$!!$     SUBROUTINE cgio_write_all_data_f(
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgio_write_all_data_f(
 !!$    cgint_f *cgio_num, double *id, void *data, cgint_f *ier) BIND(C,NAME="")
 !!$
 !*---------------------------------------------------------
-!!$!!$     SUBROUTINE cgio_write_block_data_f(
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgio_write_block_data_f(
 !!$    cgint_f *cgio_num, double *id, cgsize_t *b_start, cgsize_t *b_end,
 !!$    void *data, cgint_f *ier) BIND(C,NAME="")
 !!$
 !!$
 !*---------------------------------------------------------
-!!$!!$     SUBROUTINE cgio_write_data_f(
+!!$!!$!>
+!! \ingroup
+!!
+!! \param[out] ier       \b INTEGER; \ier
+!!
+!! For details, see C API: @ref ()
+!!
+     SUBROUTINE cgio_write_data_f(
 !!$    cgint_f *cgio_num, double *id, cgsize_t *s_start, cgsize_t *s_end,
 !!$    cgsize_t *s_stride, cgsize_t *m_ndims, cgsize_t *m_dims, cgsize_t *m_start,
 !!$    cgsize_t *m_end, cgsize_t *m_stride, void *data, cgint_f *ier) BIND(C,NAME="")

@@ -806,7 +806,8 @@ INPUT_ENCODING         = UTF-8
 # *.f, *.for, *.tcl, *.vhd, *.vhdl, *.ucf and *.qsf.
 
 #FILE_PATTERNS          = *.h *.c *.F90
-FILE_PATTERNS          = cgnslib.c cgns_error.c cgnslib.h pcgnslib.c cgns_f.F90
+FILE_PATTERNS          = cgnslib.c cgns_error.c cgnslib.h pcgnslib.c
+# cgns_f.F90
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -2557,3 +2558,10 @@ ALIASES += PARR_data="The data array."
 
 ALIASES += G_Grid="Grid index number, where 1 ≤ \e G ≤ \e ngrids."
 ALIASES += C_Coordinate="Coordinate array index number, where 1 ≤ \e C ≤ \e ncoords."
+
+#############################################################################
+# CGNS WEBSITE
+#############################################################################
+
+ALIASES += CGNS_ORG="https://cgns.github.io/cgns-modern.github.io"
+ALIASES += SIDS_REF="standard/SIDS"
