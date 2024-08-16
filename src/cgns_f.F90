@@ -1182,7 +1182,7 @@ MODULE cgns
 !! For details, see C API: @ref cg_get_compress()
 !!
      SUBROUTINE cg_get_compress_f(compress, ier) BIND(C, NAME="cg_get_compress_f")
-       INTEGER :: commpress
+       INTEGER :: compress
        INTEGER, INTENT(OUT) :: ier
      END SUBROUTINE cg_get_compress_f
 
