@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
   char baseName[] = "Unstructured3D";
 
   if (comm_size != 2 && comm_rank == 0) {
-    printf("WARNING: you are supposed to run this test with two "
-           "processes\n");
+    printf("ERROR: This test should be run with two processes.\n");
+    MPI_Abort(MPI_COMM_WORLD, 1);
   }
 
   if (comm_rank == 0) {
@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
     // create element node
     cgsize_t start = 1;
     cgsize_t end = nbCellTotal;
-
+    printf("%ld %ld %ld \n", start, end, offsetsTotalSize);
     callCGNS(cgp_poly_section_write(cgfile, cgbase, cgzone, "Elements 3D",
                                     eType, start, end, offsetsTotalSize, 0,
                                     &cgelem));
