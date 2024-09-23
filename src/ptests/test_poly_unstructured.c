@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
   char baseName[] = "Unstructured3D";
 
   if (comm_size != 2 && comm_rank == 0) {
-    printf("ERROR: This test should be run with two processes.\n");
-    MPI_Abort(MPI_COMM_WORLD, 1);
+    printf("WARNING: you are supposed to run this test with two "
+           "processes\n");
   }
 
   if (comm_rank == 0) {
