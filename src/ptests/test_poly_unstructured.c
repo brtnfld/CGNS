@@ -247,7 +247,6 @@ int main(int argc, char **argv) {
     // create element node
     cgsize_t start = 1;
     cgsize_t end = nbCellTotal;
-    printf("%ld %ld %ld \n", start, end, offsetsTotalSize);
     callCGNS(cgp_poly_section_write(cgfile, cgbase, cgzone, "Elements 3D",
                                     eType, start, end, offsetsTotalSize, 0,
                                     &cgelem));
