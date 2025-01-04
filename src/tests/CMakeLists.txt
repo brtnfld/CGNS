@@ -9,6 +9,23 @@ else()
   set(TESTS_LK_LIBS cgns_static)
 endif()
 
+if(WIN32 AND CGNS_BUILD_SHARED)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  
+  foreach(TARGETNAME ${C_TESTS_LIST})
+    add_custom_command(TARGET ${TARGETNAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy 
+      $<TARGET_FILE:cgns_shared>
+      ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/)
+  endforeach()
+  
+  set_target_properties(cgns_shared PROPERTIES 
+    OUTPUT_NAME cgns
+    RUNTIME_OUTPUT_NAME cgns)
+  
+endif()
+
 if (CGNS_ENABLE_HDF5 AND HDF5_LIBRARY)
   list(APPEND TESTS_LK_LIBS ${HDF5_LIBRARY})
   if(HDF5_NEED_ZLIB AND ZLIB_LIBRARY)
@@ -180,8 +197,12 @@ if (CGNS_ENABLE_TESTS)
     set_property (TEST ${TARGETNAME} PROPERTY SKIP_RETURN_CODE 125)
     # On windows help ctest to find the required dlls
     if(CGNS_BUILD_SHARED)
-      set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
-        "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
+	  set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+         "PATH=path_list_prepend:$<TARGET_FILE_DIR:${TARGETNAME}>")
+	  # set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+      #   "PATH=path_list_prepend:$<TARGET_FILE_DIR:cgns_shared>")
+      # set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+      #   "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
     endif()
 
   endforeach()
@@ -192,8 +213,10 @@ if (CGNS_ENABLE_TESTS)
       add_test(NAME ${TARGETNAME} COMMAND ${TARGETNAME})
       # On windows help ctest to find the required dlls
       if(CGNS_BUILD_SHARED)
-        set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
-          "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
+	    set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+           "PATH=path_list_prepend:$<TARGET_FILE_DIR:${TARGETNAME}>")
+        #set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+        #  "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
       endif()
     endforeach()
   endif (CGNS_ENABLE_FORTRAN)

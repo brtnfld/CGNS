@@ -4,9 +4,9 @@ name: cgns
 #Triggers the workflow on push or pull requests.
 on: 
   push:
-    branches: [ develop, master ]
+    branches: [ cgns263, cgns263_v2, develop, master ]
   pull_request:
-    branches: [ develop, master ]
+    branches: [ cgns263, cgns263_v2, developl, master ]
 #on: 
 #  push:
 #  pull_request:

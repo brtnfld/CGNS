@@ -451,6 +451,19 @@ if (CGNS_BUILD_SHARED)
   if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(CMAKE_MACOSX_RPATH TRUE)
   endif()
+  
+#  if(WIN32)
+#    # Set output directories to match where the DLL is built
+#    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+#  
+    # Copy DLL to test directory
+ #   add_custom_command(TARGET cgns_shared POST_BUILD
+#      COMMAND ${CMAKE_COMMAND} -E copy 
+#      $<TARGET_FILE:cgns_shared>
+#      ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/)
+#  endif()
+  
 else()
   set(CMAKE_SKIP_RPATH TRUE)
 endif()

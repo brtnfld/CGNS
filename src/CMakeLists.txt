@@ -63,6 +63,7 @@ else ()
   set(LIBS -lm)
 endif ()
 
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 include(CheckCCompilerFlag)
@@ -413,6 +414,15 @@ macro (CHECK_HDF5_FEATURE FUNCTION CODE VARIABLE)
     endif()
   endif()
 endmacro ()
+
+
+#if(WIN32 AND CGNS_BUILD_SHARED)
+#  add_definitions(-DUSE_DLL)
+#  set_target_properties(cgns_shared PROPERTIES 
+#    OUTPUT_NAME cgns
+#    RUNTIME_OUTPUT_NAME cgns
+##    DEFINE_SYMBOL CGNSDLL_EXPORTS)
+#endif()
 
 if (CGNS_ENABLE_HDF5)
   set(BUILDHDF5 1)
