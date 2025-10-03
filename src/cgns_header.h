@@ -1415,6 +1415,11 @@ void cgi_array_print(char *routine, cgns_array *array);
 cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
 			       cgsize_t nelems, const cgsize_t *connect, const cgsize_t *connect_offset);
 
+int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
+                                     cgsize_t nelems,
+                                     const cgsize_t *connect,
+                                     cgsize_t *offsets);
+
 /* free memory */
 void cgi_free_file(cgns_file *cg);
 void cgi_free_base(cgns_base *base);

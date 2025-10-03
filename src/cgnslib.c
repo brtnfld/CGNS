@@ -4730,13 +4730,12 @@ int cg_section_write(int fn, int B, int Z, const char * SectionName,
 /**
  * \ingroup ElementConnectivity
  *
- * \brief Write element data
+ * \brief Write element data for polygon/polyhedral elements
  *
  * \param[in]  fn             \FILE_fn
  * \param[in]  B              \B_Base
  * \param[in]  Z              \Z_Zone
- * \param[in]  type           Type of element. See the eligible types for ElementType_t in the Typedefs
- *                            section.
+ * \param[in]  type           Type of element. Must be variable-size: MIXED, NGON_n, NFACE_n, etc.
  * \param[in]  SectionName    Name of the Elements_t node.
  * \param[in]  start          Index of the first element in the section.
  * \param[in]  end            Index of the last element in the section.
@@ -4744,10 +4743,27 @@ int cg_section_write(int fn, int B, int Z, const char * SectionName,
  *                            are unsorted.
  * \param[in]  elements       Element connectivity data. The element connectivity order is given in
  *                            Element Numbering Conventions.
- * \param[in]  connect_offset Element connectivity offset data. This is required for NGON_n, NFACE_n and
- *                            MIXED according to Elements_t Structure Definition.
+ * \param[in]  connect_offset Element connectivity offset data. REQUIRED (cannot be NULL) for CGNS v4.0+.
+ *                            Array of size (end-start+2) containing the starting position of each element
+ *                            in the elements array. For MIXED sections, points to the element type field.
  * \param[out] S              \CONN_S
  * \return \ier
+ *
+ * \details
+ * IMPORTANT: For CGNS version 4.0 and later, the connect_offset parameter is REQUIRED
+ * for all variable-size element types (MIXED, NGON_n, NFACE_n). Passing NULL will
+ * result in CG_ERROR.
+ *
+ * The connect_offset array must contain the starting position of each element in the
+ * elements array:
+ * - For MIXED sections: connect_offset[i] points to the type field of element i
+ *   (elements format: [type1, node1, node2, ..., type2, node1, ...])
+ * - For NGON_n/NFACE_n: connect_offset[i] points to the count field of element i
+ *   (elements format: [count1, node1, node2, ..., count2, node1, ...])
+ *
+ * Files created with CGNS library versions 4.0-4.4 may have been written with
+ * NULL connect_offset due to a bug. When reading such files, the library will
+ * automatically reconstruct the offsets from connectivity data and issue a warning.
  *
  */
 int cg_poly_section_write(int fn, int B, int Z, const char * SectionName,
@@ -4771,6 +4787,13 @@ int cg_poly_section_write(int fn, int B, int Z, const char * SectionName,
 
     if (cg->filetype == CG_FILE_ADF2 &&
         adf2_check_elems(type, num, elements)) return CG_ERROR;
+
+    /* Validate ConnectOffset for variable-size elements */
+    if (!IS_FIXED_SIZE(type) && connect_offset == 0) {
+        cgi_error("ConnectOffset is required for element type %s\n",
+                  cg_ElementTypeName(type));
+        return CG_ERROR;
+    }
 
      /* Compute ElementDataSize */
     ElementDataSize = cgi_element_data_size(type, num, elements, connect_offset);
@@ -5560,6 +5583,15 @@ int cg_poly_elements_read(int fn, int B, int Z, int S, cgsize_t *elements,
     section = cgi_get_section(cg, B, Z, S);
     if (section == 0) return CG_ERROR;
 
+    /* Validate ElementStartOffset for variable-size elements */
+    if (!IS_FIXED_SIZE(section->el_type)) {
+        if (section->connect_offset == 0) {
+            cgi_error("ElementStartOffset missing for variable-size element type %s in section '%s'",
+                      cg_ElementTypeName(section->el_type), section->name);
+            return CG_ERROR;
+        }
+    }
+
      /* cgns_internals takes care of adjusting for version */
     ElementDataSize = section->connect->dim_vals[0];
 
@@ -5587,14 +5619,38 @@ int cg_poly_elements_read(int fn, int B, int Z, int S, cgsize_t *elements,
                               ElementDataSize, elements)) return CG_ERROR;
     }
 
-    if (connect_offset && section->connect_offset) {
+    if (connect_offset) {
+        if (section->connect_offset == 0) {
+            cgi_error("ConnectOffset requested but not available for section '%s'",
+                      section->name);
+            return CG_ERROR;
+        }
         ConnectOffsetSize  = section->connect_offset->dim_vals[0];
         if (section->connect_offset->data &&
                 0 == strcmp(CG_SIZE_DATATYPE, section->connect_offset->data_type)) {
             memcpy(connect_offset, section->connect_offset->data, (size_t)(ConnectOffsetSize*sizeof(cgsize_t)));
         } else {
+            /* Try to read offset data */
             if (cgi_read_int_data(section->connect_offset->id, section->connect_offset->data_type,
-                                  ConnectOffsetSize, connect_offset)) return CG_ERROR;
+                                  ConnectOffsetSize, connect_offset)) {
+                /* Reading failed - attempt auto-repair for files with missing data */
+                if (section->el_type == CGNS_ENUMV(MIXED) ||
+                    section->el_type == CGNS_ENUMV(NGON_n) ||
+                    section->el_type == CGNS_ENUMV(NFACE_n)) {
+                    cgi_warning("ElementStartOffset data read failed for section '%s', attempting reconstruction",
+                                section->name);
+
+                    /* Reconstruct from connectivity */
+                    if (cgi_reconstruct_element_offsets(section->el_type, num, elements, connect_offset) != CG_OK) {
+                        cgi_error("Cannot reconstruct missing ElementStartOffset for section '%s'",
+                                  section->name);
+                        return CG_ERROR;
+                    }
+                    cgi_warning("ElementStartOffset reconstructed from connectivity (file may have been created with buggy CGNS library v4.0-4.4)");
+                } else {
+                    return CG_ERROR;
+                }
+            }
         }
     }
 

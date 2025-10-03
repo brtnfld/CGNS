@@ -1126,6 +1126,12 @@ int cgi_read_zcoor(int in_link, double parent_id, int *nzcoor, cgns_zcoor **zcoo
     return CG_OK;
 }
 
+/* Forward declaration for helper function */
+int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
+                                     cgsize_t nelems,
+                                     const cgsize_t *connect,
+                                     cgsize_t *offsets);
+
 int cgi_read_section(int in_link, double parent_id, int *nsections,
                      cgns_section **section)
 {
@@ -11009,6 +11015,46 @@ int cgi_add_czone(char_33 zonename, cgsize6_t range, cgsize6_t donor_range,
     return CG_ERROR;
 }
 
+/* this function reconstructs ElementStartOffset from connectivity data
+   for MIXED, NGON_n, and NFACE_n element types */
+
+int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
+                                     cgsize_t nelems,
+                                     const cgsize_t *connect,
+                                     cgsize_t *offsets)
+{
+    cgsize_t ne, size = 0;
+    int npe;
+    CGNS_ENUMT(ElementType_t) etype;
+
+    if (type == CGNS_ENUMV(MIXED)) {
+        offsets[0] = 0;
+        for (ne = 0; ne < nelems; ne++) {
+            etype = (CGNS_ENUMT(ElementType_t))connect[size++];
+            if (cg_npe(etype, &npe) || npe <= 0) {
+                cgi_error("unhandled element type in MIXED list - %d\n", etype);
+                return CG_ERROR;
+            }
+            size += npe;
+            offsets[ne + 1] = size;
+        }
+        return CG_OK;
+    }
+    else if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
+        offsets[0] = 0;
+        for (ne = 0; ne < nelems; ne++) {
+            npe = (int)connect[size++];
+            size += npe;
+            offsets[ne + 1] = size;
+        }
+        return CG_OK;
+    }
+
+    cgi_error("element type %s does not support offset reconstruction\n",
+              cg_ElementTypeName(type));
+    return CG_ERROR;
+}
+
 /* this function takes the element type, count and connectivity list
    and returns the total size required for the connectivity */
 
@@ -11021,17 +11067,30 @@ cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
 
     if (type == CGNS_ENUMV(MIXED)) {
         if (connect == 0) return CG_OK;
-        for (ne = 0; ne < nelems; ne++) {
-            type = (CGNS_ENUMT(ElementType_t))connect[size++];
-            if (cg->version < 3200 && type >= CGNS_ENUMV(NGON_n))
-                npe = (int)(type - CGNS_ENUMV(NGON_n));
-            else
-                cg_npe(type, &npe);
-            if (npe <= 0) {
-                cgi_error("unhandled element type in MIXED list - %d\n", type);
+        /* Need to handle old version when opening old files */
+        if (connect_offset == 0) {
+            if (cg->version < 4000) {
+                /* V3 format: offsets embedded in connectivity */
+                for (ne = 0; ne < nelems; ne++) {
+                    type = (CGNS_ENUMT(ElementType_t))connect[size++];
+                    if (cg->version < 3200 && type >= CGNS_ENUMV(NGON_n))
+                        npe = (int)(type - CGNS_ENUMV(NGON_n));
+                    else
+                        cg_npe(type, &npe);
+                    if (npe <= 0) {
+                        cgi_error("unhandled element type in MIXED list - %d\n", type);
+                        return -1;
+                    }
+                    size += npe;
+                }
+            } else {
+                /* V4+ format: requires explicit ElementStartOffset */
+                cgi_error("missing ElementStartOffset for MIXED element section in CGNS v4+ file\n");
                 return -1;
             }
-            size += npe;
+        } else {
+            /* Use provided connect_offset */
+            size = (connect_offset[nelems] - connect_offset[0]);
         }
     }
     else if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
