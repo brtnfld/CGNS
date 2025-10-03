@@ -1126,11 +1126,18 @@ int cgi_read_zcoor(int in_link, double parent_id, int *nzcoor, cgns_zcoor **zcoo
     return CG_OK;
 }
 
-/* Forward declaration for helper function */
+/* Forward declarations for helper functions */
 int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
                                      cgsize_t nelems,
                                      const cgsize_t *connect,
                                      cgsize_t *offsets);
+
+/* Helper function to check if element type requires ConnectOffset */
+static int cgi_requires_offset(CGNS_ENUMT(ElementType_t) type) {
+    return (type == CGNS_ENUMV(MIXED) ||
+            type == CGNS_ENUMV(NGON_n) ||
+            type == CGNS_ENUMV(NFACE_n));
+}
 
 int cgi_read_section(int in_link, double parent_id, int *nsections,
                      cgns_section **section)
@@ -11030,9 +11037,19 @@ int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
     if (type == CGNS_ENUMV(MIXED)) {
         offsets[0] = 0;
         for (ne = 0; ne < nelems; ne++) {
+            /* Bounds check to prevent buffer overflow */
+            if (size >= ((cgsize_t)1 << 40)) {
+                cgi_error("Connectivity size exceeds reasonable limit during reconstruction (possible corruption)");
+                return CG_ERROR;
+            }
             etype = (CGNS_ENUMT(ElementType_t))connect[size++];
             if (cg_npe(etype, &npe) || npe <= 0) {
                 cgi_error("unhandled element type in MIXED list - %d\n", etype);
+                return CG_ERROR;
+            }
+            /* Check for integer overflow before adding */
+            if (size > ((cgsize_t)1 << 40) - npe) {
+                cgi_error("Connectivity size overflow during reconstruction (possible corruption)");
                 return CG_ERROR;
             }
             size += npe;
@@ -11043,7 +11060,17 @@ int cgi_reconstruct_element_offsets(CGNS_ENUMT(ElementType_t) type,
     else if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
         offsets[0] = 0;
         for (ne = 0; ne < nelems; ne++) {
+            /* Bounds check to prevent buffer overflow */
+            if (size >= ((cgsize_t)1 << 40)) {
+                cgi_error("Connectivity size exceeds reasonable limit during reconstruction (possible corruption)");
+                return CG_ERROR;
+            }
             npe = (int)connect[size++];
+            /* Check for integer overflow before adding */
+            if (size > ((cgsize_t)1 << 40) - npe) {
+                cgi_error("Connectivity size overflow during reconstruction (possible corruption)");
+                return CG_ERROR;
+            }
             size += npe;
             offsets[ne + 1] = size;
         }
@@ -11072,6 +11099,11 @@ cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
             if (cg->version < 4000) {
                 /* V3 format: offsets embedded in connectivity */
                 for (ne = 0; ne < nelems; ne++) {
+                    /* Bounds check to prevent buffer overflow */
+                    if (size >= ((cgsize_t)1 << 40)) {  /* 1 TB limit */
+                        cgi_error("Connectivity size exceeds reasonable limit (possible corruption)");
+                        return -1;
+                    }
                     type = (CGNS_ENUMT(ElementType_t))connect[size++];
                     if (cg->version < 3200 && type >= CGNS_ENUMV(NGON_n))
                         npe = (int)(type - CGNS_ENUMV(NGON_n));
@@ -11079,6 +11111,11 @@ cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
                         cg_npe(type, &npe);
                     if (npe <= 0) {
                         cgi_error("unhandled element type in MIXED list - %d\n", type);
+                        return -1;
+                    }
+                    /* Check for integer overflow before adding */
+                    if (size > ((cgsize_t)1 << 40) - npe) {
+                        cgi_error("Connectivity size overflow (possible corruption)");
                         return -1;
                     }
                     size += npe;
@@ -11099,7 +11136,17 @@ cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
         if (connect_offset == 0) {
             if (cg->version < 4000) {
                 for (ne = 0; ne < nelems; ne++) {
+                    /* Bounds check to prevent buffer overflow */
+                    if (size >= ((cgsize_t)1 << 40)) {
+                        cgi_error("Connectivity size exceeds reasonable limit (possible corruption)");
+                        return -1;
+                    }
                     npe = (int)connect[size++];
+                    /* Check for integer overflow before adding */
+                    if (size > ((cgsize_t)1 << 40) - npe) {
+                        cgi_error("Connectivity size overflow (possible corruption)");
+                        return -1;
+                    }
                     size += npe;
                 }
             } else {

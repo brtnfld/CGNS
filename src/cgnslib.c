@@ -165,6 +165,9 @@ long _ftol2(double dValue) {return _ftol(dValue);}
                              (type >= CGNS_ENUMV(BAR_4) && \
                               type <= CGNS_ENUMV(HEXA_125)))
 
+/* Maximum reasonable connectivity size to prevent overflow attacks */
+#define MAX_CONNECTIVITY_SIZE ((cgsize_t)1 << 40)  /* 1 TB worth of indices */
+
 #define CHECK_FILE_OPEN if (cg == NULL) {\
     cgi_error("no current CGNS file open");\
     return CG_ERROR;\
@@ -5640,13 +5643,62 @@ int cg_poly_elements_read(int fn, int B, int Z, int S, cgsize_t *elements,
                     cgi_warning("ElementStartOffset data read failed for section '%s', attempting reconstruction",
                                 section->name);
 
+                    /* Need connectivity data for reconstruction */
+                    cgsize_t *temp_elements = NULL;
+                    int need_free = 0;
+
+                    /* Verify section->connect exists */
+                    if (!section->connect) {
+                        cgi_error("ElementConnectivity missing - cannot auto-repair section '%s'",
+                                  section->name);
+                        return CG_ERROR;
+                    }
+
+                    /* Check if connectivity is already loaded in memory */
+                    if (section->connect->data &&
+                        0 == strcmp(CG_SIZE_DATATYPE, section->connect->data_type)) {
+                        /* Use already-loaded connectivity */
+                        temp_elements = (cgsize_t *)section->connect->data;
+                    } else {
+                        /* Need to read connectivity for reconstruction */
+                        temp_elements = CGNS_NEW(cgsize_t, ElementDataSize);
+                        if (!temp_elements) {
+                            cgi_error("Memory allocation failed for auto-repair of section '%s'",
+                                      section->name);
+                            return CG_ERROR;
+                        }
+                        need_free = 1;
+
+                        if (cgi_read_int_data(section->connect->id, section->connect->data_type,
+                                              ElementDataSize, temp_elements)) {
+                            CGNS_FREE(temp_elements);
+                            cgi_error("Failed to read connectivity for auto-repair of section '%s'",
+                                      section->name);
+                            return CG_ERROR;
+                        }
+                    }
+
                     /* Reconstruct from connectivity */
-                    if (cgi_reconstruct_element_offsets(section->el_type, num, elements, connect_offset) != CG_OK) {
+                    if (cgi_reconstruct_element_offsets(section->el_type, num,
+                                                        temp_elements, connect_offset) != CG_OK) {
+                        if (need_free) CGNS_FREE(temp_elements);
                         cgi_error("Cannot reconstruct missing ElementStartOffset for section '%s'",
                                   section->name);
                         return CG_ERROR;
                     }
+
+                    if (need_free) CGNS_FREE(temp_elements);
+
                     cgi_warning("ElementStartOffset reconstructed from connectivity (file may have been created with buggy CGNS library v4.0-4.4)");
+
+                    /* Cache reconstructed offsets for future reads (performance optimization) */
+                    if (!section->connect_offset->data) {
+                        section->connect_offset->data = CGNS_NEW(cgsize_t, ConnectOffsetSize);
+                        if (section->connect_offset->data) {
+                            memcpy(section->connect_offset->data, connect_offset,
+                                   (size_t)(ConnectOffsetSize * sizeof(cgsize_t)));
+                        }
+                    }
                 } else {
                     return CG_ERROR;
                 }
