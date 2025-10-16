@@ -1,0 +1,158 @@
+# Render Backend Library CMake Configuration
+#
+# This creates the cgns_render_backend library that provides abstraction
+# over OpenGL (legacy) and bgfx (modern) rendering APIs.
+#
+# Options:
+#   CGNS_RENDER_BACKEND - Select default backend (OPENGL or BGFX)
+#   CGNS_ENABLE_BGFX    - Enable bgfx backend support
+
+# ========================================================================
+# Configuration Options
+# ========================================================================
+
+# Default to OpenGL backend (maximum compatibility)
+set(CGNS_RENDER_BACKEND "OPENGL" CACHE STRING
+    "Default rendering backend (OPENGL or BGFX)")
+set_property(CACHE CGNS_RENDER_BACKEND PROPERTY STRINGS OPENGL BGFX)
+
+# Option to enable bgfx support (disabled by default for Phase 1)
+option(CGNS_ENABLE_BGFX "Enable bgfx rendering backend" OFF)
+
+# ========================================================================
+# Source Files
+# ========================================================================
+
+set(RENDER_BACKEND_SOURCES
+    render_backend_opengl.c
+)
+
+set(RENDER_BACKEND_HEADERS
+    render_backend.h
+)
+
+# Add bgfx backend if enabled
+if(CGNS_ENABLE_BGFX)
+    list(APPEND RENDER_BACKEND_SOURCES render_backend_bgfx.c)
+    message(STATUS "bgfx rendering backend: ENABLED")
+else()
+    message(STATUS "bgfx rendering backend: DISABLED (Phase 1)")
+endif()
+
+# ========================================================================
+# Library Target
+# ========================================================================
+
+add_library(cgns_render_backend STATIC
+    ${RENDER_BACKEND_SOURCES}
+    ${RENDER_BACKEND_HEADERS}
+)
+
+# ========================================================================
+# Include Directories
+# ========================================================================
+
+target_include_directories(cgns_render_backend PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# OpenGL is always needed (even bgfx can use it as backend)
+if(NOT APPLE)
+    find_package(OpenGL REQUIRED)
+    target_include_directories(cgns_render_backend PUBLIC
+        ${OPENGL_INCLUDE_DIR}
+    )
+    target_link_libraries(cgns_render_backend PUBLIC
+        OpenGL::GL
+        OpenGL::GLU
+    )
+else()
+    # macOS OpenGL paths
+    target_include_directories(cgns_render_backend PUBLIC
+        ${X11_GL_INCLUDE_PATH}
+    )
+    target_link_libraries(cgns_render_backend PUBLIC
+        ${X11_GL_LIB}
+        ${X11_GLU_LIB}
+    )
+endif()
+
+# ========================================================================
+# bgfx Integration (Phase 2)
+# ========================================================================
+
+if(CGNS_ENABLE_BGFX)
+    # Check if bgfx is in external directory
+    get_filename_component(CGNS_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+    set(BGFX_EXTERNAL_DIR "${CGNS_SOURCE_ROOT}/external")
+
+    if(EXISTS "${BGFX_EXTERNAL_DIR}/bgfx/include/bgfx/bgfx.h")
+        message(STATUS "Found bgfx in external directory: ${BGFX_EXTERNAL_DIR}")
+
+        # Include our simplified bgfx CMake build
+        include("${BGFX_EXTERNAL_DIR}/bgfx.cmake")
+
+        # Link bgfx libraries
+        target_link_libraries(cgns_render_backend PUBLIC bgfx bx bimg)
+
+        # Enable bgfx backend
+        target_compile_definitions(cgns_render_backend PUBLIC CGNS_ENABLE_BGFX)
+
+        message(STATUS "bgfx backend enabled successfully")
+
+    else()
+        message(WARNING "bgfx not found in ${BGFX_EXTERNAL_DIR}")
+        message(WARNING "To enable bgfx:")
+        message(WARNING "  1. cd ${CGNS_SOURCE_ROOT}/external")
+        message(WARNING "  2. git clone --depth 1 https://github.com/bkaradzic/bx.git")
+        message(WARNING "  3. git clone --depth 1 https://github.com/bkaradzic/bimg.git")
+        message(WARNING "  4. git clone --depth 1 https://github.com/bkaradzic/bgfx.git")
+        message(WARNING "  5. Re-run cmake")
+        set(CGNS_ENABLE_BGFX OFF CACHE BOOL "Enable bgfx backend" FORCE)
+    endif()
+endif()
+
+# ========================================================================
+# Compiler Definitions
+# ========================================================================
+
+# Set default backend
+if(CGNS_RENDER_BACKEND STREQUAL "BGFX")
+    if(NOT CGNS_ENABLE_BGFX)
+        message(WARNING "BGFX backend selected but not enabled, falling back to OpenGL")
+        set(CGNS_RENDER_BACKEND "OPENGL" CACHE STRING "Default rendering backend" FORCE)
+    else()
+        target_compile_definitions(cgns_render_backend PUBLIC
+            CGNS_DEFAULT_BACKEND_BGFX
+        )
+    endif()
+else()
+    target_compile_definitions(cgns_render_backend PUBLIC
+        CGNS_DEFAULT_BACKEND_OPENGL
+    )
+endif()
+
+message(STATUS "Default rendering backend: ${CGNS_RENDER_BACKEND}")
+
+# ========================================================================
+# Installation
+# ========================================================================
+
+install(TARGETS cgns_render_backend
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(FILES ${RENDER_BACKEND_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/cgnstools
+)
+
+# ========================================================================
+# Summary
+# ========================================================================
+
+message(STATUS "===== Render Backend Configuration =====")
+message(STATUS "  OpenGL support: ENABLED (always)")
+message(STATUS "  bgfx support:   ${CGNS_ENABLE_BGFX}")
+message(STATUS "  Default backend: ${CGNS_RENDER_BACKEND}")
+message(STATUS "========================================")

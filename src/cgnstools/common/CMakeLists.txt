@@ -2,6 +2,10 @@
 # common #
 ##########
 
+# Render Backend Library (Phase 1: Graphics API Abstraction)
+# Provides unified interface for OpenGL and bgfx backends
+include(CMakeLists.txt.render_backend)
+
 install(FILES
   balloon.tcl
   color.tcl
