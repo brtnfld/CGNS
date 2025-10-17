@@ -20,9 +20,14 @@
 #include <stdio.h>
 
 #ifdef CGNS_ENABLE_BGFX
-/* Phase 2: Include bgfx headers when available */
-/* #include <bgfx/c99/bgfx.h> */
-/* #include <bgfx/platform.h> */
+/* bgfx C99 API */
+#include <bgfx/c99/bgfx.h>
+
+/* Include compiled shaders */
+#include "shaders/vs_basic_glsl.h"
+#include "shaders/fs_smooth_glsl.h"
+#include "shaders/fs_flat_glsl.h"
+#include "shaders/fs_unlit_glsl.h"
 #endif
 
 /* ========================================================================
@@ -42,19 +47,19 @@
 static const char* BGFX_NOT_AVAILABLE =
     "bgfx backend not available - rebuild with CGNS_ENABLE_BGFX=ON";
 
-cgns_render_context_t* cgns_render_bgfx_initialize(void* platform_data)
+cgns_render_context_t* cgns_render_initialize(void* platform_data)
 {
     (void)platform_data;
     fprintf(stderr, "%s\n", BGFX_NOT_AVAILABLE);
     return NULL;
 }
 
-void cgns_render_bgfx_shutdown(cgns_render_context_t* ctx)
+void cgns_render_shutdown(cgns_render_context_t* ctx)
 {
     (void)ctx;
 }
 
-int cgns_render_bgfx_make_current(cgns_render_context_t* ctx)
+int cgns_render_make_current(cgns_render_context_t* ctx)
 {
     (void)ctx;
     return -1;
@@ -63,6 +68,48 @@ int cgns_render_bgfx_make_current(cgns_render_context_t* ctx)
 /* Additional stub functions would go here... */
 
 #else /* CGNS_ENABLE_BGFX */
+
+/* ========================================================================
+ * Backend Selection (for bgfx build)
+ * ======================================================================== */
+
+static cgns_render_backend_t g_active_backend = CGNS_RENDER_BACKEND_BGFX;
+
+cgns_render_backend_t cgns_render_get_backend(void)
+{
+    return g_active_backend;
+}
+
+int cgns_render_set_backend(cgns_render_backend_t backend)
+{
+    if (backend != CGNS_RENDER_BACKEND_BGFX) {
+        /* For bgfx build, only bgfx is available */
+        return -1;
+    }
+    g_active_backend = backend;
+    return 0;
+}
+
+const char* cgns_render_backend_name(cgns_render_backend_t backend)
+{
+    switch (backend) {
+        case CGNS_RENDER_BACKEND_OPENGL: return "OpenGL";
+        case CGNS_RENDER_BACKEND_BGFX:   return "bgfx";
+        default:                         return "Unknown";
+    }
+}
+
+int cgns_render_backend_available(cgns_render_backend_t backend)
+{
+    switch (backend) {
+        case CGNS_RENDER_BACKEND_OPENGL:
+            return 0; /* Not available in bgfx build */
+        case CGNS_RENDER_BACKEND_BGFX:
+            return 1; /* bgfx is available */
+        default:
+            return 0;
+    }
+}
 
 /* ========================================================================
  * PHASE 2 IMPLEMENTATION NOTES
@@ -98,6 +145,19 @@ int cgns_render_bgfx_make_current(cgns_render_context_t* ctx)
  * ======================================================================== */
 
 /**
+ * Display list structure for recorded rendering commands
+ */
+typedef struct {
+    unsigned int id;
+    cgns_vertex_t* vertices;
+    size_t vertex_count;
+    cgns_primitive_type_t primitive_type;
+    cgns_material_t material;
+    int lighting_enabled;
+    cgns_shade_model_t shade_model;
+} display_list_t;
+
+/**
  * bgfx-specific context state
  */
 typedef struct {
@@ -105,9 +165,25 @@ typedef struct {
     void* platform_data;
 
     /* bgfx state */
-    /* bgfx_vertex_buffer_handle_t vertex_buffer; */
-    /* bgfx_index_buffer_handle_t index_buffer; */
-    /* bgfx_program_handle_t shader_program; */
+    bgfx_vertex_layout_t vertex_layout;
+    bgfx_program_handle_t program_smooth;  /* Smooth shading program */
+    bgfx_program_handle_t program_flat;    /* Flat shading program */
+    bgfx_program_handle_t program_unlit;   /* Unlit program */
+    bgfx_program_handle_t current_program; /* Currently active program */
+
+    /* Uniform handles */
+    bgfx_uniform_handle_t u_modelViewProj;
+    bgfx_uniform_handle_t u_model;
+    bgfx_uniform_handle_t u_lightDir;
+    bgfx_uniform_handle_t u_ambientLight;
+    bgfx_uniform_handle_t u_diffuseLight;
+    bgfx_uniform_handle_t u_specularLight;
+    bgfx_uniform_handle_t u_materialAmbient;
+    bgfx_uniform_handle_t u_materialDiffuse;
+    bgfx_uniform_handle_t u_materialSpecular;
+    bgfx_uniform_handle_t u_materialShininess;
+    bgfx_uniform_handle_t u_enableLighting;
+    bgfx_uniform_handle_t u_cameraPos;
 
     /* Immediate mode emulation */
     cgns_vertex_t* vertex_buffer;
@@ -133,7 +209,11 @@ typedef struct {
     cgns_polygon_mode_t polygon_mode;
 
     /* Display list emulation */
-    /* TODO: Implement display list recording/playback */
+    display_list_t* display_lists;
+    size_t display_list_count;
+    size_t display_list_capacity;
+    unsigned int recording_list_id;
+    int recording;
 
     /* Error handling */
     char error_msg[256];
@@ -142,6 +222,119 @@ typedef struct {
 /* ========================================================================
  * Helper Functions (Phase 2)
  * ======================================================================== */
+
+/**
+ * Create shader from embedded bytecode
+ */
+static bgfx_shader_handle_t create_shader(const uint8_t* data, uint32_t size)
+{
+    const bgfx_memory_t* mem = bgfx_copy(data, size);
+    return bgfx_create_shader(mem);
+}
+
+/**
+ * Create shader program from vertex and fragment shaders
+ */
+static bgfx_program_handle_t create_program(bgfx_shader_handle_t vsh,
+                                             bgfx_shader_handle_t fsh)
+{
+    return bgfx_create_program(vsh, fsh, true); /* true = destroy shaders when program is destroyed */
+}
+
+/**
+ * Initialize vertex layout for our vertex format
+ */
+static void init_vertex_layout(bgfx_vertex_layout_t* layout)
+{
+    bgfx_vertex_layout_begin(layout, BGFX_RENDERER_TYPE_NOOP);
+
+    /* Position: 3 floats */
+    bgfx_vertex_layout_add(layout,
+                          BGFX_ATTRIB_POSITION,
+                          3,
+                          BGFX_ATTRIB_TYPE_FLOAT,
+                          false,
+                          false);
+
+    /* Normal: 3 floats */
+    bgfx_vertex_layout_add(layout,
+                          BGFX_ATTRIB_NORMAL,
+                          3,
+                          BGFX_ATTRIB_TYPE_FLOAT,
+                          false,
+                          false);
+
+    /* Color: 4 floats */
+    bgfx_vertex_layout_add(layout,
+                          BGFX_ATTRIB_COLOR0,
+                          4,
+                          BGFX_ATTRIB_TYPE_FLOAT,
+                          false,
+                          false);
+
+    bgfx_vertex_layout_end(layout);
+}
+
+/**
+ * Triangulate quads to triangles
+ * Converts 4 vertices (quad) into 6 vertices (2 triangles)
+ * Returns new vertex count
+ */
+static size_t triangulate_quads(cgns_vertex_t* buffer, size_t vertex_count)
+{
+    if (vertex_count % 4 != 0) {
+        fprintf(stderr, "Warning: Quad count is not divisible by 4\n");
+        return vertex_count;
+    }
+
+    size_t quad_count = vertex_count / 4;
+    size_t new_count = quad_count * 6; /* 2 triangles per quad */
+
+    /* Process quads from back to front to avoid overwriting */
+    for (int q = (int)quad_count - 1; q >= 0; q--) {
+        cgns_vertex_t* quad = &buffer[q * 4];
+        cgns_vertex_t* tri = &buffer[q * 6];
+
+        /* First triangle: v0, v1, v2 */
+        tri[0] = quad[0];
+        tri[1] = quad[1];
+        tri[2] = quad[2];
+
+        /* Second triangle: v0, v2, v3 */
+        tri[3] = quad[0];
+        tri[4] = quad[2];
+        tri[5] = quad[3];
+    }
+
+    return new_count;
+}
+
+/**
+ * Triangulate polygon (n-sided) to triangles using fan triangulation
+ * Returns new vertex count
+ */
+static size_t triangulate_polygon(cgns_vertex_t* buffer, size_t vertex_count)
+{
+    if (vertex_count < 3) {
+        return vertex_count; /* Can't triangulate */
+    }
+
+    /* Fan triangulation: creates (n-2) triangles from n vertices */
+    size_t triangle_count = vertex_count - 2;
+    size_t new_count = triangle_count * 3;
+
+    /* Store first vertex */
+    cgns_vertex_t v0 = buffer[0];
+
+    /* Create triangles: (v0, vi, vi+1) for i=1..n-2 */
+    for (size_t i = 0; i < triangle_count; i++) {
+        buffer[i * 3 + 0] = v0;
+        buffer[i * 3 + 1] = buffer[i + 1];
+        buffer[i * 3 + 2] = buffer[i + 2];
+    }
+
+    return new_count;
+}
 
 /**
  * Allocate and initialize bgfx context
@@ -173,6 +366,45 @@ static bgfx_context_t* alloc_bgfx_context(void)
     ctx->current_normal[1] = 0.0f;
     ctx->current_normal[2] = 1.0f;
 
+    /* Initialize matrices to identity */
+    for (int i = 0; i < 16; i++) {
+        ctx->projection_matrix[i] = (i % 5 == 0) ? 1.0f : 0.0f;
+        ctx->view_matrix[i] = (i % 5 == 0) ? 1.0f : 0.0f;
+        ctx->model_matrix[i] = (i % 5 == 0) ? 1.0f : 0.0f;
+    }
+
+    /* Initialize default material */
+    ctx->current_material.ambient[0] = 0.2f;
+    ctx->current_material.ambient[1] = 0.2f;
+    ctx->current_material.ambient[2] = 0.2f;
+    ctx->current_material.ambient[3] = 1.0f;
+
+    ctx->current_material.diffuse[0] = 0.8f;
+    ctx->current_material.diffuse[1] = 0.8f;
+    ctx->current_material.diffuse[2] = 0.8f;
+    ctx->current_material.diffuse[3] = 1.0f;
+
+    ctx->current_material.specular[0] = 0.0f;
+    ctx->current_material.specular[1] = 0.0f;
+    ctx->current_material.specular[2] = 0.0f;
+    ctx->current_material.specular[3] = 1.0f;
+
+    ctx->current_material.shininess = 0.0f;
+
+    /* Enable depth test by default */
+    ctx->depth_test_enabled = 1;
+    ctx->lighting_enabled = 0;
+    ctx->blend_enabled = 0;
+    ctx->shade_model = CGNS_SHADE_SMOOTH;
+    ctx->polygon_mode = CGNS_POLY_FILL;
+
+    /* Initialize display list storage */
+    ctx->display_list_capacity = 16;
+    ctx->display_lists = (display_list_t*)calloc(ctx->display_list_capacity, sizeof(display_list_t));
+    ctx->display_list_count = 0;
+    ctx->recording = 0;
+    ctx->recording_list_id = 0;
+
     return ctx;
 }
 
@@ -180,9 +412,10 @@ static bgfx_context_t* alloc_bgfx_context(void)
  * Public API Implementation (Phase 2 Template)
  * ======================================================================== */
 
-cgns_render_context_t* cgns_render_bgfx_initialize(void* platform_data)
+cgns_render_context_t* cgns_render_initialize(void* platform_data)
 {
     bgfx_context_t* ctx;
+    bgfx_shader_handle_t vsh, fsh_smooth, fsh_flat, fsh_unlit;
 
     ctx = alloc_bgfx_context();
     if (!ctx) {
@@ -192,12 +425,21 @@ cgns_render_context_t* cgns_render_bgfx_initialize(void* platform_data)
 
     ctx->platform_data = platform_data;
 
-    /* Phase 2: Initialize bgfx library */
-    /*
+    /* Initialize bgfx library */
     bgfx_init_t init;
     bgfx_init_ctor(&init);
-    init.type = BGFX_RENDERER_TYPE_COUNT; // Auto-select
-    init.platformData = platform_data;
+
+    /* For headless/test mode (NULL platform_data), use NOOP renderer */
+    if (platform_data == NULL) {
+        init.type = BGFX_RENDERER_TYPE_NOOP;
+        printf("bgfx headless mode: using NOOP renderer\n");
+    } else {
+        init.type = BGFX_RENDERER_TYPE_COUNT; /* Auto-select best renderer */
+    }
+
+    init.resolution.width = 1280;
+    init.resolution.height = 720;
+    init.resolution.reset = BGFX_RESET_VSYNC;
 
     if (!bgfx_init(&init)) {
         free(ctx->vertex_buffer);
@@ -205,52 +447,113 @@ cgns_render_context_t* cgns_render_bgfx_initialize(void* platform_data)
         fprintf(stderr, "Failed to initialize bgfx\n");
         return NULL;
     }
-    */
 
-    /* Phase 2: Create shaders and programs */
-    /* ctx->shader_program = create_basic_shader_program(); */
+    printf("bgfx initialized - Renderer: %s\n",
+           bgfx_get_renderer_name(bgfx_get_renderer_type()));
 
-    printf("bgfx backend initialized (Phase 2 - Full implementation)\n");
+    /* Initialize vertex layout */
+    init_vertex_layout(&ctx->vertex_layout);
+
+    /* Create shaders */
+    vsh = create_shader(vs_basic_glsl, sizeof(vs_basic_glsl));
+
+    fsh_smooth = create_shader(fs_smooth_glsl, sizeof(fs_smooth_glsl));
+    fsh_flat = create_shader(fs_flat_glsl, sizeof(fs_flat_glsl));
+    fsh_unlit = create_shader(fs_unlit_glsl, sizeof(fs_unlit_glsl));
+
+    /* Create shader programs */
+    ctx->program_smooth = create_program(vsh, fsh_smooth);
+    ctx->program_flat = create_program(vsh, fsh_flat);
+    ctx->program_unlit = create_program(vsh, fsh_unlit);
+    ctx->current_program = ctx->program_smooth; /* Default to smooth shading */
+
+    /* Create uniform handles */
+    ctx->u_lightDir = bgfx_create_uniform("u_lightDir", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_ambientLight = bgfx_create_uniform("u_ambientLight", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_diffuseLight = bgfx_create_uniform("u_diffuseLight", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_specularLight = bgfx_create_uniform("u_specularLight", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_materialAmbient = bgfx_create_uniform("u_materialAmbient", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_materialDiffuse = bgfx_create_uniform("u_materialDiffuse", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_materialSpecular = bgfx_create_uniform("u_materialSpecular", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_materialShininess = bgfx_create_uniform("u_materialShininess", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_enableLighting = bgfx_create_uniform("u_enableLighting", BGFX_UNIFORM_TYPE_VEC4, 1);
+    ctx->u_cameraPos = bgfx_create_uniform("u_cameraPos", BGFX_UNIFORM_TYPE_VEC4, 1);
+
+    /* Set default render state */
+    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
+    bgfx_set_view_rect(0, 0, 0, 1280, 720);
+
+    printf("bgfx backend fully initialized\n");
 
     return (cgns_render_context_t*)ctx;
 }
 
-void cgns_render_bgfx_shutdown(cgns_render_context_t* ctx)
+void cgns_render_shutdown(cgns_render_context_t* ctx)
 {
     bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
 
     if (!bgfx_ctx) return;
 
-    /* Phase 2: Cleanup bgfx resources */
-    /* bgfx_destroy_vertex_buffer(bgfx_ctx->vertex_buffer); */
-    /* bgfx_destroy_index_buffer(bgfx_ctx->index_buffer); */
-    /* bgfx_destroy_program(bgfx_ctx->shader_program); */
-    /* bgfx_shutdown(); */
+    /* Destroy uniforms */
+    bgfx_destroy_uniform(bgfx_ctx->u_lightDir);
+    bgfx_destroy_uniform(bgfx_ctx->u_ambientLight);
+    bgfx_destroy_uniform(bgfx_ctx->u_diffuseLight);
+    bgfx_destroy_uniform(bgfx_ctx->u_specularLight);
+    bgfx_destroy_uniform(bgfx_ctx->u_materialAmbient);
+    bgfx_destroy_uniform(bgfx_ctx->u_materialDiffuse);
+    bgfx_destroy_uniform(bgfx_ctx->u_materialSpecular);
+    bgfx_destroy_uniform(bgfx_ctx->u_materialShininess);
+    bgfx_destroy_uniform(bgfx_ctx->u_enableLighting);
+    bgfx_destroy_uniform(bgfx_ctx->u_cameraPos);
 
+    /* Destroy programs (shaders are automatically destroyed) */
+    bgfx_destroy_program(bgfx_ctx->program_smooth);
+    bgfx_destroy_program(bgfx_ctx->program_flat);
+    bgfx_destroy_program(bgfx_ctx->program_unlit);
+
+    /* Shutdown bgfx */
+    bgfx_shutdown();
+
+    /* Free CPU-side buffers */
     if (bgfx_ctx->vertex_buffer) {
         free(bgfx_ctx->vertex_buffer);
     }
 
+    /* Free display lists */
+    if (bgfx_ctx->display_lists) {
+        for (size_t i = 0; i < bgfx_ctx->display_list_count; i++) {
+            if (bgfx_ctx->display_lists[i].vertices) {
+                free(bgfx_ctx->display_lists[i].vertices);
+            }
+        }
+        free(bgfx_ctx->display_lists);
+    }
+
     free(bgfx_ctx);
+
+    printf("bgfx backend shutdown complete\n");
 }
 
-void cgns_render_bgfx_begin_frame(cgns_render_context_t* ctx)
+void cgns_render_begin_frame(cgns_render_context_t* ctx)
 {
     (void)ctx;
-    /* Phase 2: bgfx_frame(false); // Submit frame but don't swap yet */
+    /* bgfx automatically handles frame synchronization */
+    /* Just need to ensure touch view 0 to preserve framebuffer */
+    bgfx_touch(0);
 }
 
-void cgns_render_bgfx_end_frame(cgns_render_context_t* ctx)
+void cgns_render_end_frame(cgns_render_context_t* ctx)
 {
     (void)ctx;
-    /* Phase 2: bgfx_frame(true); // Submit and swap */
+    /* Advance to next frame. Rendering thread will be kicked to process submitted rendering primitives */
+    bgfx_frame(false);
 }
 
 /* ========================================================================
  * Immediate Mode Emulation (Phase 2 Template)
  * ======================================================================== */
 
-void cgns_render_bgfx_begin(cgns_render_context_t* ctx,
+void cgns_render_begin(cgns_render_context_t* ctx,
                             cgns_primitive_type_t type)
 {
     bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
@@ -260,7 +563,7 @@ void cgns_render_bgfx_begin(cgns_render_context_t* ctx,
     bgfx_ctx->vertex_count = 0;
 }
 
-void cgns_render_bgfx_vertex3fv(cgns_render_context_t* ctx, const float* v)
+void cgns_render_vertex3fv(cgns_render_context_t* ctx, const float* v)
 {
     bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
     if (!bgfx_ctx || !v) return;
@@ -291,33 +594,654 @@ void cgns_render_bgfx_vertex3fv(cgns_render_context_t* ctx, const float* v)
     memcpy(vtx->color, bgfx_ctx->current_color, sizeof(float) * 4);
 }
 
-void cgns_render_bgfx_end(cgns_render_context_t* ctx)
+void cgns_render_end(cgns_render_context_t* ctx)
 {
     bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    bgfx_transient_vertex_buffer_t tvb;
+    uint64_t state;
+    float mvp_matrix[16];
+    float lighting_enable[4];
+    size_t actual_vertex_count;
+
     if (!bgfx_ctx || bgfx_ctx->vertex_count == 0) return;
 
-    /* Phase 2: Submit vertices to bgfx */
-    /*
-    bgfx_transient_vertex_buffer_t tvb;
-    if (bgfx_alloc_transient_vertex_buffer(&tvb,
-                                          bgfx_ctx->vertex_count,
-                                          &vertex_layout)) {
-        memcpy(tvb.data, bgfx_ctx->vertex_buffer,
-               bgfx_ctx->vertex_count * sizeof(cgns_vertex_t));
-
-        bgfx_set_transient_vertex_buffer(0, &tvb, 0, bgfx_ctx->vertex_count);
-        bgfx_set_state(get_render_state(bgfx_ctx), 0);
-        bgfx_submit(0, bgfx_ctx->shader_program, 0, false);
+    /* Triangulate quads/polygons if needed */
+    actual_vertex_count = bgfx_ctx->vertex_count;
+    switch (bgfx_ctx->current_primitive) {
+        case CGNS_PRIM_QUADS:
+            actual_vertex_count = triangulate_quads(bgfx_ctx->vertex_buffer, actual_vertex_count);
+            break;
+        case CGNS_PRIM_POLYGON:
+            actual_vertex_count = triangulate_polygon(bgfx_ctx->vertex_buffer, actual_vertex_count);
+            break;
+        default:
+            /* No triangulation needed */
+            break;
     }
-    */
+
+    /* Check if transient buffer is available */
+    uint32_t avail = bgfx_get_avail_transient_vertex_buffer(actual_vertex_count,
+                                                              &bgfx_ctx->vertex_layout);
+    if (avail < actual_vertex_count) {
+        fprintf(stderr, "Not enough transient vertex buffer space (need %zu, have %u)\n",
+                actual_vertex_count, avail);
+        bgfx_ctx->vertex_count = 0;
+        return;
+    }
+
+    /* Allocate transient vertex buffer */
+    bgfx_alloc_transient_vertex_buffer(&tvb, actual_vertex_count, &bgfx_ctx->vertex_layout);
+
+    /* Copy vertices to transient buffer */
+    memcpy(tvb.data, bgfx_ctx->vertex_buffer,
+           actual_vertex_count * sizeof(cgns_vertex_t));
+
+    /* Set vertex buffer */
+    bgfx_set_transient_vertex_buffer(0, &tvb, 0, actual_vertex_count);
+
+    /* Compute model-view-projection matrix */
+    /* TODO: For now, use identity matrix if matrices are not set */
+    /* In real usage, we'd multiply: projection * view * model */
+    /* For simplicity, pass identity for now - will be implemented properly later */
+    for (int i = 0; i < 16; i++) {
+        mvp_matrix[i] = (i % 5 == 0) ? 1.0f : 0.0f; /* Identity matrix */
+    }
+
+    /* Set matrix uniforms (bgfx built-ins u_model and u_modelViewProj are set automatically) */
+    /* We'll use bgfx's built-in matrix uniforms via bgfx_set_transform */
+    bgfx_set_transform(bgfx_ctx->model_matrix, 1);
+
+    /* Set lighting uniforms */
+    lighting_enable[0] = bgfx_ctx->lighting_enabled ? 1.0f : 0.0f;
+    lighting_enable[1] = 0.0f;
+    lighting_enable[2] = 0.0f;
+    lighting_enable[3] = 0.0f;
+    bgfx_set_uniform(bgfx_ctx->u_enableLighting, lighting_enable, 1);
+
+    /* Set material uniforms */
+    if (bgfx_ctx->lighting_enabled) {
+        bgfx_set_uniform(bgfx_ctx->u_materialAmbient, bgfx_ctx->current_material.ambient, 1);
+        bgfx_set_uniform(bgfx_ctx->u_materialDiffuse, bgfx_ctx->current_material.diffuse, 1);
+        bgfx_set_uniform(bgfx_ctx->u_materialSpecular, bgfx_ctx->current_material.specular, 1);
+
+        float shininess[4] = {bgfx_ctx->current_material.shininess, 0.0f, 0.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_materialShininess, shininess, 1);
+
+        /* Set default light direction (top-down) */
+        float light_dir[4] = {0.0f, -1.0f, 0.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_lightDir, light_dir, 1);
+
+        /* Set default ambient light */
+        float ambient[4] = {0.2f, 0.2f, 0.2f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_ambientLight, ambient, 1);
+
+        /* Set default diffuse light */
+        float diffuse[4] = {0.8f, 0.8f, 0.8f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_diffuseLight, diffuse, 1);
+
+        /* Set default specular light */
+        float specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_specularLight, specular, 1);
+
+        /* Set camera position for specular calculations */
+        float camera_pos[4] = {0.0f, 0.0f, 5.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_cameraPos, camera_pos, 1);
+    }
+
+    /* Set render state */
+    state = 0
+        | BGFX_STATE_WRITE_RGB
+        | BGFX_STATE_WRITE_A;
+
+    /* Depth test state */
+    if (bgfx_ctx->depth_test_enabled) {
+        state |= BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS;
+    }
+
+    /* Blend state */
+    if (bgfx_ctx->blend_enabled) {
+        state |= BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
+    }
+
+    /* Culling */
+    state |= BGFX_STATE_CULL_CW;
+
+    /* Handle different primitive types */
+    switch (bgfx_ctx->current_primitive) {
+        case CGNS_PRIM_LINES:
+            state |= BGFX_STATE_PT_LINES;
+            break;
+        case CGNS_PRIM_POINTS:
+            state |= BGFX_STATE_PT_POINTS;
+            break;
+        case CGNS_PRIM_TRIANGLES:
+        case CGNS_PRIM_QUADS:
+        case CGNS_PRIM_POLYGON:
+        default:
+            state |= BGFX_STATE_PT_TRISTRIP; /* Default to triangles */
+            break;
+    }
+
+    bgfx_set_state(state, 0);
+
+    /* Submit draw call */
+    bgfx_submit(0, bgfx_ctx->current_program, 0, BGFX_DISCARD_ALL);
 
     bgfx_ctx->vertex_count = 0;
 }
 
 /* ========================================================================
- * PLACEHOLDER: Additional functions follow same pattern
- * Full implementation in Phase 2
+ * State Management Functions
  * ======================================================================== */
+
+void cgns_render_clear(cgns_render_context_t* ctx,
+                            float r, float g, float b, float a)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    /* Convert RGBA float to RGBA32 hex format */
+    uint32_t rgba = 0
+        | ((uint32_t)(r * 255.0f) << 24)
+        | ((uint32_t)(g * 255.0f) << 16)
+        | ((uint32_t)(b * 255.0f) << 8)
+        | ((uint32_t)(a * 255.0f));
+
+    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, rgba, 1.0f, 0);
+}
+
+void cgns_render_set_viewport(cgns_render_context_t* ctx,
+                                   const cgns_viewport_t* viewport)
+{
+    (void)ctx;
+    if (!viewport) return;
+    bgfx_set_view_rect(0, (uint16_t)viewport->x, (uint16_t)viewport->y,
+                       (uint16_t)viewport->width, (uint16_t)viewport->height);
+}
+
+void cgns_render_set_projection(cgns_render_context_t* ctx,
+                                     const float* matrix)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx || !matrix) return;
+
+    memcpy(bgfx_ctx->projection_matrix, matrix, sizeof(float) * 16);
+}
+
+void cgns_render_set_view(cgns_render_context_t* ctx,
+                               const float* matrix)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx || !matrix) return;
+
+    memcpy(bgfx_ctx->view_matrix, matrix, sizeof(float) * 16);
+}
+
+void cgns_render_set_model(cgns_render_context_t* ctx,
+                                const float* matrix)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx || !matrix) return;
+
+    memcpy(bgfx_ctx->model_matrix, matrix, sizeof(float) * 16);
+}
+
+void cgns_render_normal3fv(cgns_render_context_t* ctx, const float* n)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx || !n) return;
+
+    memcpy(bgfx_ctx->current_normal, n, sizeof(float) * 3);
+}
+
+void cgns_render_normal3f(cgns_render_context_t* ctx,
+                               float nx, float ny, float nz)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    bgfx_ctx->current_normal[0] = nx;
+    bgfx_ctx->current_normal[1] = ny;
+    bgfx_ctx->current_normal[2] = nz;
+}
+
+void cgns_render_set_color3f(cgns_render_context_t* ctx,
+                                  float r, float g, float b)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    bgfx_ctx->current_color[0] = r;
+    bgfx_ctx->current_color[1] = g;
+    bgfx_ctx->current_color[2] = b;
+    bgfx_ctx->current_color[3] = 1.0f; /* Default alpha */
+}
+
+void cgns_render_set_color4f(cgns_render_context_t* ctx,
+                                  float r, float g, float b, float a)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    bgfx_ctx->current_color[0] = r;
+    bgfx_ctx->current_color[1] = g;
+    bgfx_ctx->current_color[2] = b;
+    bgfx_ctx->current_color[3] = a;
+}
+
+void cgns_render_set_material(cgns_render_context_t* ctx,
+                                   const cgns_material_t* material)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx || !material) return;
+
+    memcpy(&bgfx_ctx->current_material, material, sizeof(cgns_material_t));
+}
+
+void cgns_render_enable(cgns_render_context_t* ctx,
+                             cgns_render_state_t state)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    switch (state) {
+        case CGNS_STATE_LIGHTING:
+            bgfx_ctx->lighting_enabled = 1;
+            break;
+        case CGNS_STATE_DEPTH_TEST:
+            bgfx_ctx->depth_test_enabled = 1;
+            break;
+        case CGNS_STATE_BLEND:
+            bgfx_ctx->blend_enabled = 1;
+            break;
+    }
+}
+
+void cgns_render_disable(cgns_render_context_t* ctx,
+                              cgns_render_state_t state)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    switch (state) {
+        case CGNS_STATE_LIGHTING:
+            bgfx_ctx->lighting_enabled = 0;
+            break;
+        case CGNS_STATE_DEPTH_TEST:
+            bgfx_ctx->depth_test_enabled = 0;
+            break;
+        case CGNS_STATE_BLEND:
+            bgfx_ctx->blend_enabled = 0;
+            break;
+    }
+}
+
+void cgns_render_set_shade_model(cgns_render_context_t* ctx,
+                                      cgns_shade_model_t model)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    bgfx_ctx->shade_model = model;
+
+    /* Switch shader program based on shade model */
+    switch (model) {
+        case CGNS_SHADE_SMOOTH:
+            bgfx_ctx->current_program = bgfx_ctx->program_smooth;
+            break;
+        case CGNS_SHADE_FLAT:
+            bgfx_ctx->current_program = bgfx_ctx->program_flat;
+            break;
+    }
+}
+
+void cgns_render_set_polygon_mode(cgns_render_context_t* ctx,
+                                       cgns_polygon_mode_t mode)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    bgfx_ctx->polygon_mode = mode;
+
+    /* For wireframe mode, we'll use the unlit shader */
+    if (mode == CGNS_POLY_LINE) {
+        bgfx_ctx->current_program = bgfx_ctx->program_unlit;
+    } else {
+        /* Restore based on shade model */
+        cgns_render_set_shade_model(ctx, bgfx_ctx->shade_model);
+    }
+}
+
+/* ========================================================================
+ * Additional Immediate Mode Functions
+ * ======================================================================== */
+
+void cgns_render_vertex3f(cgns_render_context_t* ctx,
+                               float x, float y, float z)
+{
+    float v[3] = {x, y, z};
+    cgns_render_vertex3fv(ctx, v);
+}
+
+int cgns_render_make_current(cgns_render_context_t* ctx)
+{
+    /* bgfx doesn't require a "make current" operation */
+    (void)ctx;
+    return 0; /* Success */
+}
+
+/* ========================================================================
+ * Batch Rendering (TODO: Full implementation in later phase)
+ * ======================================================================== */
+
+void cgns_render_draw_batch(cgns_render_context_t* ctx,
+                            cgns_primitive_type_t type,
+                            const cgns_vertex_t* vertices,
+                            size_t count)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    bgfx_transient_vertex_buffer_t tvb;
+    uint64_t state;
+    size_t actual_vertex_count = count;
+    cgns_vertex_t* temp_vertices = NULL;
+
+    if (!bgfx_ctx || !vertices || count == 0) return;
+
+    /* Triangulate if needed */
+    if (type == CGNS_PRIM_QUADS || type == CGNS_PRIM_POLYGON) {
+        /* Allocate temp buffer for triangulated vertices */
+        size_t max_triangulated = (type == CGNS_PRIM_QUADS) ? (count / 4) * 6 : count * 3;
+        temp_vertices = (cgns_vertex_t*)malloc(max_triangulated * sizeof(cgns_vertex_t));
+        if (!temp_vertices) {
+            fprintf(stderr, "Failed to allocate triangulation buffer\n");
+            return;
+        }
+
+        /* Copy vertices for triangulation */
+        memcpy(temp_vertices, vertices, count * sizeof(cgns_vertex_t));
+
+        /* Triangulate */
+        if (type == CGNS_PRIM_QUADS) {
+            actual_vertex_count = triangulate_quads(temp_vertices, count);
+        } else {
+            actual_vertex_count = triangulate_polygon(temp_vertices, count);
+        }
+
+        vertices = temp_vertices;
+    }
+
+    /* Check if transient buffer is available */
+    uint32_t avail = bgfx_get_avail_transient_vertex_buffer(actual_vertex_count,
+                                                              &bgfx_ctx->vertex_layout);
+    if (avail < actual_vertex_count) {
+        fprintf(stderr, "Not enough transient vertex buffer space for batch\n");
+        free(temp_vertices);
+        return;
+    }
+
+    /* Allocate transient vertex buffer */
+    bgfx_alloc_transient_vertex_buffer(&tvb, actual_vertex_count, &bgfx_ctx->vertex_layout);
+
+    /* Copy vertices */
+    memcpy(tvb.data, vertices, actual_vertex_count * sizeof(cgns_vertex_t));
+
+    /* Set vertex buffer */
+    bgfx_set_transient_vertex_buffer(0, &tvb, 0, actual_vertex_count);
+
+    /* Set matrix transform */
+    bgfx_set_transform(bgfx_ctx->model_matrix, 1);
+
+    /* Set lighting uniforms */
+    float lighting_enable[4] = {bgfx_ctx->lighting_enabled ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f};
+    bgfx_set_uniform(bgfx_ctx->u_enableLighting, lighting_enable, 1);
+
+    if (bgfx_ctx->lighting_enabled) {
+        bgfx_set_uniform(bgfx_ctx->u_materialAmbient, bgfx_ctx->current_material.ambient, 1);
+        bgfx_set_uniform(bgfx_ctx->u_materialDiffuse, bgfx_ctx->current_material.diffuse, 1);
+        bgfx_set_uniform(bgfx_ctx->u_materialSpecular, bgfx_ctx->current_material.specular, 1);
+
+        float shininess[4] = {bgfx_ctx->current_material.shininess, 0.0f, 0.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_materialShininess, shininess, 1);
+
+        float light_dir[4] = {0.0f, -1.0f, 0.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_lightDir, light_dir, 1);
+
+        float ambient[4] = {0.2f, 0.2f, 0.2f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_ambientLight, ambient, 1);
+
+        float diffuse[4] = {0.8f, 0.8f, 0.8f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_diffuseLight, diffuse, 1);
+
+        float specular[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+        bgfx_set_uniform(bgfx_ctx->u_specularLight, specular, 1);
+
+        float camera_pos[4] = {0.0f, 0.0f, 5.0f, 0.0f};
+        bgfx_set_uniform(bgfx_ctx->u_cameraPos, camera_pos, 1);
+    }
+
+    /* Set render state */
+    state = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
+
+    if (bgfx_ctx->depth_test_enabled) {
+        state |= BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS;
+    }
+
+    if (bgfx_ctx->blend_enabled) {
+        state |= BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
+    }
+
+    state |= BGFX_STATE_CULL_CW;
+
+    /* Handle primitive types */
+    switch (type) {
+        case CGNS_PRIM_LINES:
+            state |= BGFX_STATE_PT_LINES;
+            break;
+        case CGNS_PRIM_POINTS:
+            state |= BGFX_STATE_PT_POINTS;
+            break;
+        default:
+            state |= BGFX_STATE_PT_TRISTRIP;
+            break;
+    }
+
+    bgfx_set_state(state, 0);
+
+    /* Submit draw call */
+    bgfx_submit(0, bgfx_ctx->current_program, 0, BGFX_DISCARD_ALL);
+
+    /* Cleanup */
+    free(temp_vertices);
+}
+
+/* ========================================================================
+ * Display Lists
+ * ======================================================================== */
+
+unsigned int cgns_render_gen_list(cgns_render_context_t* ctx)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    static unsigned int next_list_id = 1;
+
+    if (!bgfx_ctx) return 0;
+
+    /* Generate unique display list ID */
+    return next_list_id++;
+}
+
+void cgns_render_new_list(cgns_render_context_t* ctx, unsigned int list)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    size_t i;
+
+    if (!bgfx_ctx) return;
+
+    /* Find existing display list or create new one */
+    display_list_t* dl = NULL;
+    for (i = 0; i < bgfx_ctx->display_list_count; i++) {
+        if (bgfx_ctx->display_lists[i].id == list) {
+            dl = &bgfx_ctx->display_lists[i];
+            /* Free existing vertices if any */
+            if (dl->vertices) {
+                free(dl->vertices);
+                dl->vertices = NULL;
+            }
+            dl->vertex_count = 0;
+            break;
+        }
+    }
+
+    /* If not found, create new display list */
+    if (!dl) {
+        /* Grow array if needed */
+        if (bgfx_ctx->display_list_count >= bgfx_ctx->display_list_capacity) {
+            bgfx_ctx->display_list_capacity *= 2;
+            display_list_t* new_lists = (display_list_t*)realloc(
+                bgfx_ctx->display_lists,
+                bgfx_ctx->display_list_capacity * sizeof(display_list_t)
+            );
+            if (!new_lists) {
+                fprintf(stderr, "Failed to grow display list array\n");
+                return;
+            }
+            bgfx_ctx->display_lists = new_lists;
+        }
+
+        /* Initialize new display list */
+        dl = &bgfx_ctx->display_lists[bgfx_ctx->display_list_count];
+        memset(dl, 0, sizeof(display_list_t));
+        dl->id = list;
+        bgfx_ctx->display_list_count++;
+    }
+
+    /* Start recording */
+    bgfx_ctx->recording = 1;
+    bgfx_ctx->recording_list_id = list;
+
+    /* Clear vertex buffer to start fresh recording */
+    bgfx_ctx->vertex_count = 0;
+}
+
+void cgns_render_end_list(cgns_render_context_t* ctx)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    size_t i;
+
+    if (!bgfx_ctx || !bgfx_ctx->recording) return;
+
+    /* Find the display list we're recording to */
+    display_list_t* dl = NULL;
+    for (i = 0; i < bgfx_ctx->display_list_count; i++) {
+        if (bgfx_ctx->display_lists[i].id == bgfx_ctx->recording_list_id) {
+            dl = &bgfx_ctx->display_lists[i];
+            break;
+        }
+    }
+
+    if (!dl) {
+        fprintf(stderr, "Display list %u not found during end_list\n",
+                bgfx_ctx->recording_list_id);
+        bgfx_ctx->recording = 0;
+        return;
+    }
+
+    /* Copy recorded vertices to display list */
+    if (bgfx_ctx->vertex_count > 0) {
+        dl->vertices = (cgns_vertex_t*)malloc(bgfx_ctx->vertex_count * sizeof(cgns_vertex_t));
+        if (dl->vertices) {
+            memcpy(dl->vertices, bgfx_ctx->vertex_buffer,
+                   bgfx_ctx->vertex_count * sizeof(cgns_vertex_t));
+            dl->vertex_count = bgfx_ctx->vertex_count;
+        } else {
+            fprintf(stderr, "Failed to allocate display list vertices\n");
+            dl->vertex_count = 0;
+        }
+    }
+
+    /* Save current state */
+    dl->primitive_type = bgfx_ctx->current_primitive;
+    memcpy(&dl->material, &bgfx_ctx->current_material, sizeof(cgns_material_t));
+    dl->lighting_enabled = bgfx_ctx->lighting_enabled;
+    dl->shade_model = bgfx_ctx->shade_model;
+
+    /* Stop recording */
+    bgfx_ctx->recording = 0;
+    bgfx_ctx->recording_list_id = 0;
+    bgfx_ctx->vertex_count = 0;
+}
+
+void cgns_render_call_list(cgns_render_context_t* ctx, unsigned int list)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    size_t i;
+
+    if (!bgfx_ctx) return;
+
+    /* Find the display list */
+    display_list_t* dl = NULL;
+    for (i = 0; i < bgfx_ctx->display_list_count; i++) {
+        if (bgfx_ctx->display_lists[i].id == list) {
+            dl = &bgfx_ctx->display_lists[i];
+            break;
+        }
+    }
+
+    if (!dl || !dl->vertices || dl->vertex_count == 0) {
+        fprintf(stderr, "Display list %u not found or empty\n", list);
+        return;
+    }
+
+    /* Save current state */
+    cgns_material_t saved_material;
+    int saved_lighting = bgfx_ctx->lighting_enabled;
+    cgns_shade_model_t saved_shade = bgfx_ctx->shade_model;
+
+    memcpy(&saved_material, &bgfx_ctx->current_material, sizeof(cgns_material_t));
+
+    /* Restore display list state */
+    memcpy(&bgfx_ctx->current_material, &dl->material, sizeof(cgns_material_t));
+    bgfx_ctx->lighting_enabled = dl->lighting_enabled;
+    bgfx_ctx->shade_model = dl->shade_model;
+
+    /* Render the display list using batch rendering */
+    cgns_render_draw_batch(ctx, dl->primitive_type, dl->vertices,
+                           dl->vertex_count);
+
+    /* Restore previous state */
+    memcpy(&bgfx_ctx->current_material, &saved_material, sizeof(cgns_material_t));
+    bgfx_ctx->lighting_enabled = saved_lighting;
+    bgfx_ctx->shade_model = saved_shade;
+}
+
+void cgns_render_delete_list(cgns_render_context_t* ctx, unsigned int list)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    size_t i;
+
+    if (!bgfx_ctx) return;
+
+    /* Find and delete the display list */
+    for (i = 0; i < bgfx_ctx->display_list_count; i++) {
+        if (bgfx_ctx->display_lists[i].id == list) {
+            /* Free vertices */
+            if (bgfx_ctx->display_lists[i].vertices) {
+                free(bgfx_ctx->display_lists[i].vertices);
+            }
+
+            /* Shift remaining display lists down */
+            if (i < bgfx_ctx->display_list_count - 1) {
+                memmove(&bgfx_ctx->display_lists[i],
+                        &bgfx_ctx->display_lists[i + 1],
+                        (bgfx_ctx->display_list_count - i - 1) * sizeof(display_list_t));
+            }
+
+            bgfx_ctx->display_list_count--;
+            return;
+        }
+    }
+
+    fprintf(stderr, "Display list %u not found for deletion\n", list);
+}
 
 #endif /* CGNS_ENABLE_BGFX */
 

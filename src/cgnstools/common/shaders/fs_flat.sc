@@ -8,9 +8,9 @@ $input v_color0, v_normal, v_position
 
 #include <bgfx_shader.sh>
 
-uniform vec4 u_lightDir;       // Light direction
-uniform vec4 u_ambient Light;    // Ambient light color
-uniform vec4 u_diffuseLight;   // Diffuse light color
+uniform vec4 u_lightDir;        // Light direction
+uniform vec4 u_ambientLight;    // Ambient light color
+uniform vec4 u_diffuseLight;    // Diffuse light color
 uniform vec4 u_materialAmbient; // Material ambient
 uniform vec4 u_materialDiffuse; // Material diffuse
 uniform vec4 u_enableLighting; // x: enable lighting (0 or 1)

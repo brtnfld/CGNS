@@ -45,10 +45,11 @@ typedef enum {
  * Maps to both OpenGL and bgfx primitive types.
  */
 typedef enum {
-    CGNS_PRIM_LINES = 0,
-    CGNS_PRIM_TRIANGLES = 1,
-    CGNS_PRIM_QUADS = 2,         /* Will be triangulated for bgfx */
-    CGNS_PRIM_POLYGON = 3        /* Will be triangulated for bgfx */
+    CGNS_PRIM_POINTS = 0,
+    CGNS_PRIM_LINES = 1,
+    CGNS_PRIM_TRIANGLES = 2,
+    CGNS_PRIM_QUADS = 3,         /* Will be triangulated for bgfx */
+    CGNS_PRIM_POLYGON = 4        /* Will be triangulated for bgfx */
 } cgns_primitive_type_t;
 
 /**
