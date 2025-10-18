@@ -92,11 +92,13 @@ typedef struct cgns_render_context cgns_render_context_t;
 /**
  * Vertex format for immediate-mode style rendering.
  * Compatible with legacy glVertex3fv/glNormal3fv pattern.
+ * Phase 3: Added texture coordinates
  */
 typedef struct {
     float position[3];
     float normal[3];
     float color[4];
+    float texcoord[2];  /* Phase 3: UV texture coordinates */
 } cgns_vertex_t;
 
 /**
@@ -293,6 +295,13 @@ void cgns_render_set_color4f(cgns_render_context_t* ctx,
                              float r, float g, float b, float a);
 
 /**
+ * Set current color (vector version).
+ * @param ctx Rendering context
+ * @param rgba 4-component color (RGBA, 0.0 - 1.0)
+ */
+void cgns_render_color4fv(cgns_render_context_t* ctx, const float* rgba);
+
+/**
  * Set material properties.
  * @param ctx Rendering context
  * @param material Material properties
@@ -408,6 +417,157 @@ void cgns_render_call_list(cgns_render_context_t* ctx, unsigned int list);
 void cgns_render_delete_list(cgns_render_context_t* ctx, unsigned int list);
 
 /* ========================================================================
+ * Texture Support (Phase 3)
+ * ======================================================================== */
+
+/**
+ * Texture formats
+ */
+typedef enum {
+    CGNS_TEX_FORMAT_RGB = 0,     /* 24-bit RGB */
+    CGNS_TEX_FORMAT_RGBA = 1,    /* 32-bit RGBA */
+    CGNS_TEX_FORMAT_LUMINANCE = 2, /* 8-bit grayscale */
+    CGNS_TEX_FORMAT_ALPHA = 3    /* 8-bit alpha */
+} cgns_texture_format_t;
+
+/**
+ * Texture filtering modes
+ */
+typedef enum {
+    CGNS_TEX_FILTER_NEAREST = 0,  /* Nearest neighbor (pixelated) */
+    CGNS_TEX_FILTER_LINEAR = 1    /* Bilinear filtering (smooth) */
+} cgns_texture_filter_t;
+
+/**
+ * Texture wrap modes
+ */
+typedef enum {
+    CGNS_TEX_WRAP_REPEAT = 0,     /* Repeat texture */
+    CGNS_TEX_WRAP_CLAMP = 1,      /* Clamp to edge */
+    CGNS_TEX_WRAP_MIRROR = 2      /* Mirror repeat */
+} cgns_texture_wrap_t;
+
+/**
+ * Texture blend modes
+ */
+typedef enum {
+    CGNS_TEX_BLEND_MODULATE = 0,  /* Multiply texture with vertex color */
+    CGNS_TEX_BLEND_REPLACE = 1,   /* Replace vertex color with texture */
+    CGNS_TEX_BLEND_DECAL = 2      /* Blend based on texture alpha */
+} cgns_texture_blend_t;
+
+/**
+ * Create a 2D texture from image data.
+ *
+ * @param ctx Rendering context
+ * @param width Texture width in pixels
+ * @param height Texture height in pixels
+ * @param format Pixel format (RGB, RGBA, etc.)
+ * @param data Pixel data (row-major, bottom-to-top)
+ * @return Texture handle (ID), or 0 on error
+ *
+ * Example:
+ *   unsigned char pixels[256*256*3]; // 256x256 RGB texture
+ *   // ... fill pixels ...
+ *   unsigned int tex = cgns_render_create_texture(ctx, 256, 256,
+ *                                                  CGNS_TEX_FORMAT_RGB, pixels);
+ */
+unsigned int cgns_render_create_texture(cgns_render_context_t* ctx,
+                                         int width, int height,
+                                         cgns_texture_format_t format,
+                                         const unsigned char* data);
+
+/**
+ * Update texture data.
+ *
+ * @param ctx Rendering context
+ * @param texture Texture handle
+ * @param width Texture width
+ * @param height Texture height
+ * @param format Pixel format
+ * @param data New pixel data
+ * @return 0 on success, non-zero on error
+ */
+int cgns_render_update_texture(cgns_render_context_t* ctx,
+                                 unsigned int texture,
+                                 int width, int height,
+                                 cgns_texture_format_t format,
+                                 const unsigned char* data);
+
+/**
+ * Bind a texture for rendering.
+ * Affects subsequent render calls (immediate mode, batch, display lists).
+ *
+ * @param ctx Rendering context
+ * @param texture Texture handle (0 to unbind)
+ * @param unit Texture unit (0-7)
+ */
+void cgns_render_bind_texture(cgns_render_context_t* ctx,
+                                unsigned int texture,
+                                int unit);
+
+/**
+ * Set texture filtering mode.
+ *
+ * @param ctx Rendering context
+ * @param texture Texture handle
+ * @param min_filter Minification filter
+ * @param mag_filter Magnification filter
+ */
+void cgns_render_set_texture_filter(cgns_render_context_t* ctx,
+                                     unsigned int texture,
+                                     cgns_texture_filter_t min_filter,
+                                     cgns_texture_filter_t mag_filter);
+
+/**
+ * Set texture wrap mode.
+ *
+ * @param ctx Rendering context
+ * @param texture Texture handle
+ * @param wrap_s Wrap mode for S coordinate (U)
+ * @param wrap_t Wrap mode for T coordinate (V)
+ */
+void cgns_render_set_texture_wrap(cgns_render_context_t* ctx,
+                                   unsigned int texture,
+                                   cgns_texture_wrap_t wrap_s,
+                                   cgns_texture_wrap_t wrap_t);
+
+/**
+ * Delete a texture and free resources.
+ *
+ * @param ctx Rendering context
+ * @param texture Texture handle
+ */
+void cgns_render_delete_texture(cgns_render_context_t* ctx,
+                                 unsigned int texture);
+
+/**
+ * Set texture coordinates for next vertex (immediate mode).
+ *
+ * @param ctx Rendering context
+ * @param u Texture U coordinate (0.0 - 1.0)
+ * @param v Texture V coordinate (0.0 - 1.0)
+ */
+void cgns_render_texcoord2f(cgns_render_context_t* ctx, float u, float v);
+
+/**
+ * Set texture coordinates for next vertex (vector version).
+ *
+ * @param ctx Rendering context
+ * @param uv 2-component texture coordinate
+ */
+void cgns_render_texcoord2fv(cgns_render_context_t* ctx, const float* uv);
+
+/**
+ * Set texture blend mode.
+ *
+ * @param ctx Rendering context
+ * @param mode Blend mode (modulate, replace, decal)
+ */
+void cgns_render_set_texture_blend_mode(cgns_render_context_t* ctx,
+                                         cgns_texture_blend_t mode);
+
+/* ========================================================================
  * Utility Functions
  * ======================================================================== */
 
@@ -431,6 +591,39 @@ int cgns_render_backend_available(cgns_render_backend_t backend);
  * @return Error string, or NULL if no error
  */
 const char* cgns_render_get_error(cgns_render_context_t* ctx);
+
+/**
+ * Create an orthographic projection matrix.
+ * Helper function for setting up 2D or orthographic 3D views.
+ *
+ * @param matrix Output 4x4 matrix (column-major)
+ * @param left Left clipping plane
+ * @param right Right clipping plane
+ * @param bottom Bottom clipping plane
+ * @param top Top clipping plane
+ * @param near Near clipping plane
+ * @param far Far clipping plane
+ */
+void cgns_render_matrix_ortho(float* matrix,
+                               float left, float right,
+                               float bottom, float top,
+                               float near, float far);
+
+/**
+ * Create an identity matrix.
+ * Helper function for initializing transformation matrices.
+ *
+ * @param matrix Output 4x4 matrix (column-major)
+ */
+void cgns_render_matrix_identity(float* matrix);
+
+/**
+ * Convenience function: begin frame + clear + setup matrices.
+ * Combines cgns_render_begin_frame() and cgns_render_clear().
+ *
+ * @param ctx Rendering context
+ */
+void cgns_render_frame(cgns_render_context_t* ctx);
 
 #ifdef __cplusplus
 }
