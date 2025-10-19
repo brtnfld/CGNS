@@ -25,8 +25,15 @@ endif()
 
 target_link_libraries(tkogl PUBLIC ${TKOGL_LIBS} OpenGL::GL OpenGL::GLU)
 
-target_include_directories(tkogl PUBLIC ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH} ${OPENGL_INCLUDE_DIR}) 
+target_include_directories(tkogl PUBLIC ${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH} ${OPENGL_INCLUDE_DIR})
 target_include_directories(tkogl PUBLIC ../common)
 if (X11_FOUND)
 	target_include_directories(tkogl PUBLIC ${X11_INCLUDE_DIR})
+endif()
+
+# Add bgfx support if enabled
+if(CGNS_ENABLE_BGFX)
+	target_compile_definitions(tkogl PRIVATE CGNS_ENABLE_BGFX)
+	# tkogl needs real OpenGL headers for widget management even when using bgfx
+	target_compile_definitions(tkogl PRIVATE TKOGL_NEEDS_REAL_GL)
 endif()

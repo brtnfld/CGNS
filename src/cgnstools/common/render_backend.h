@@ -131,6 +131,30 @@ typedef struct {
     float aspect_ratio;      /* If > 0, maintain aspect ratio */
 } cgns_viewport_t;
 
+#ifdef CGNS_ENABLE_BGFX
+/**
+ * Platform-specific window handle data for bgfx initialization.
+ * This structure allows bgfx to render to a native window instead of
+ * running in headless/NOOP mode.
+ *
+ * For X11/Linux:
+ *   - display: X11 Display* (from Xlib)
+ *   - window: X11 Window handle (cast to void*)
+ *
+ * For Win32:
+ *   - display: NULL
+ *   - window: HWND window handle
+ *
+ * For macOS:
+ *   - display: NULL
+ *   - window: NSWindow* pointer
+ */
+typedef struct {
+    void* display;      /* X11: Display*, Win32/macOS: NULL */
+    void* window;       /* X11: Window (as void*), Win32: HWND, macOS: NSWindow* */
+} cgns_platform_data_t;
+#endif
+
 /* ========================================================================
  * Backend Lifecycle Management
  * ======================================================================== */

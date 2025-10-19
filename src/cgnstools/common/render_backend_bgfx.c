@@ -498,12 +498,37 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     bgfx_init_t init;
     bgfx_init_ctor(&init);
 
-    /* For headless/test mode (NULL platform_data), use NOOP renderer */
-    if (platform_data == NULL) {
+    /* Set platform data if provided (for GPU rendering to window) */
+    if (platform_data != NULL) {
+        cgns_platform_data_t* pd = (cgns_platform_data_t*)platform_data;
+
+        #if !defined(__WIN32__) && !defined(_WIN32)
+        /* X11/Linux: Set native display and window handle */
+        bgfx_platform_data_t bgfx_pd;
+        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
+        bgfx_pd.ndt = pd->display;
+        bgfx_pd.nwh = pd->window;
+        bgfx_set_platform_data(&bgfx_pd);
+        #elif defined(__WIN32__) || defined(_WIN32)
+        /* Win32: Set window handle */
+        bgfx_platform_data_t bgfx_pd;
+        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
+        bgfx_pd.nwh = pd->window;
+        bgfx_set_platform_data(&bgfx_pd);
+        #elif defined(__APPLE__)
+        /* macOS: Set native window handle */
+        bgfx_platform_data_t bgfx_pd;
+        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
+        bgfx_pd.nwh = pd->window;
+        bgfx_set_platform_data(&bgfx_pd);
+        #endif
+
+        init.type = BGFX_RENDERER_TYPE_COUNT; /* Auto-select best renderer (OpenGL/Vulkan/etc.) */
+        printf("bgfx GPU mode: rendering to window\n");
+    } else {
+        /* For headless/test mode (NULL platform_data), use NOOP renderer */
         init.type = BGFX_RENDERER_TYPE_NOOP;
         printf("bgfx headless mode: using NOOP renderer\n");
-    } else {
-        init.type = BGFX_RENDERER_TYPE_COUNT; /* Auto-select best renderer */
     }
 
     init.resolution.width = 1280;

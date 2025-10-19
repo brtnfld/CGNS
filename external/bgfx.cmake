@@ -1,6 +1,4 @@
-# BGF
-
-X CMake Integration for CGNS
+# BGFX CMake Integration for CGNS
 # Simplified CMake build for bgfx, bx, and bimg libraries
 #
 # This is a minimal build configuration tailored for CGNS needs.

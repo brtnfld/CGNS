@@ -22,6 +22,13 @@
 #include "printstr.h"
 #include "feedback.h"
 
+#ifdef CGNS_ENABLE_BGFX
+#include "../common/render_backend.h"
+
+/* External function to set render context in cgnstcl.c */
+extern void cgnstcl_set_render_context(cgns_render_context_t *ctx);
+#endif
+
 /*
  * Platform-specific handling of Tk internal structures:
  *
@@ -101,6 +108,10 @@ typedef struct {
     TkWinDCState state;
 #else
     GLXContext cx;              /* The GL X context */
+#endif
+
+#ifdef CGNS_ENABLE_BGFX
+    void* bgfx_render_ctx;      /* bgfx render context */
 #endif
 
 } OGLwin;
@@ -650,6 +661,25 @@ OGLwinCmd(clientData, interp, argc, argv)
         Tk_DestroyWindow(glxwinPtr->tkwin);
         return TCL_ERROR;
     }
+
+#ifdef CGNS_ENABLE_BGFX
+    /* Initialize bgfx with window handle for GPU rendering */
+    {
+        cgns_platform_data_t platform_data;
+        platform_data.display = (void*)Tk_Display(tkwin);
+        platform_data.window = (void*)(uintptr_t)Tk_WindowId(tkwin);
+
+        glxwinPtr->bgfx_render_ctx = (void*)cgns_render_initialize(&platform_data);
+
+        if (glxwinPtr->bgfx_render_ctx == NULL) {
+            fprintf(stderr, "Warning: bgfx initialization failed, using OpenGL fallback\n");
+        } else {
+            printf("bgfx initialized with window handle - GPU rendering enabled\n");
+            /* Set the render context for cgnstcl wrapper functions */
+            cgnstcl_set_render_context((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+        }
+    }
+#endif
 
     Tk_MapWindow (tkwin);
 
@@ -1295,6 +1325,17 @@ static void
 OGLwinDestroy(void* clientData)
 {
     OGLwin *glxwinPtr = (OGLwin *) clientData;
+
+#ifdef CGNS_ENABLE_BGFX
+    /* Shutdown bgfx context if it was initialized */
+    if (glxwinPtr->bgfx_render_ctx != NULL) {
+        /* Clear the render context in cgnstcl first */
+        cgnstcl_set_render_context(NULL);
+        /* Then shutdown bgfx */
+        cgns_render_shutdown((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+        glxwinPtr->bgfx_render_ctx = NULL;
+    }
+#endif
 
 #if defined(__WIN32__) || defined(_WIN32)
     if (glxwinPtr->hrc != 0) {

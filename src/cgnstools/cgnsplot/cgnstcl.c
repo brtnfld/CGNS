@@ -7,7 +7,20 @@
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 #endif
+
+/* Disable bgfx wrappers in cgnstcl - use native OpenGL for now */
+/* The bgfx window handle integration needs more work */
+#ifdef CGNS_ENABLE_BGFX
+#define CGNSTCL_BGFX_DISABLED
+#undef CGNS_ENABLE_BGFX
+#endif
+
 #include "gl_config.h"
+
+#ifdef CGNSTCL_BGFX_DISABLED
+/* Need to include render_backend.h for cgns_render_context_t type */
+#include "../common/render_backend.h"
+#endif
 
 #include "tk.h"
 #include "cgnslib.h"
@@ -141,6 +154,181 @@ static char BaseName[33];
 static int CellDim, PhyDim;
 
 static Tcl_Interp *global_interp;
+
+#ifdef CGNSTCL_BGFX_DISABLED
+/* Stub function when bgfx is disabled - tkogl still tries to call this */
+void cgnstcl_set_render_context(cgns_render_context_t *ctx) {
+    (void)ctx;  /* Unused - we're using native OpenGL */
+}
+#endif
+
+#ifdef CGNS_ENABLE_BGFX
+/* Global render context for bgfx backend */
+static cgns_render_context_t *render_ctx = NULL;
+
+/* Function to set the render context from tkogl widget */
+/* This is called by the tkogl widget after it creates the bgfx context with window handle */
+void cgnstcl_set_render_context(cgns_render_context_t *ctx) {
+    render_ctx = ctx;
+    if (ctx) {
+        printf("cgnstcl: render context set from tkogl widget\n");
+    } else {
+        printf("cgnstcl: render context cleared\n");
+    }
+}
+
+/* Wrapper functions to map OpenGL calls to bgfx render backend */
+/* These are defined early so they can be used throughout the file */
+
+static void glBegin(int mode) {
+    if (render_ctx) cgns_render_begin(render_ctx, mode);
+}
+
+static void glEnd(void) {
+    if (render_ctx) cgns_render_end(render_ctx);
+}
+
+static void glVertex3f(float x, float y, float z) {
+    if (render_ctx) cgns_render_vertex3f(render_ctx, x, y, z);
+}
+
+static void glVertex3fv(const float *v) {
+    if (render_ctx) cgns_render_vertex3fv(render_ctx, v);
+}
+
+static void glNormal3f(float x, float y, float z) {
+    if (render_ctx) cgns_render_normal3f(render_ctx, x, y, z);
+}
+
+static void glNormal3fv(const float *n) {
+    if (render_ctx) cgns_render_normal3fv(render_ctx, n);
+}
+
+static void glColor3f(float r, float g, float b) {
+    if (render_ctx) cgns_render_set_color4f(render_ctx, r, g, b, 1.0f);
+}
+
+static void glColor3fv(const float *c) {
+    if (render_ctx) cgns_render_set_color4f(render_ctx, c[0], c[1], c[2], 1.0f);
+}
+
+static void glColor4f(float r, float g, float b, float a) {
+    if (render_ctx) cgns_render_set_color4f(render_ctx, r, g, b, a);
+}
+
+static void glColor4fv(const float *c) {
+    if (render_ctx) cgns_render_set_color4f(render_ctx, c[0], c[1], c[2], c[3]);
+}
+
+static unsigned int glGenLists(int n) {
+    static unsigned int next_list_id = 1;
+    unsigned int id = next_list_id;
+    next_list_id += n;
+    return id;
+}
+
+static void glNewList(unsigned int id, int mode) {
+    if (render_ctx) cgns_render_new_list(render_ctx, id);
+}
+
+static void glEndList(void) {
+    if (render_ctx) cgns_render_end_list(render_ctx);
+}
+
+static void glCallList(unsigned int id) {
+    if (render_ctx) cgns_render_call_list(render_ctx, id);
+}
+
+static void glDeleteLists(unsigned int id, int n) {
+    if (render_ctx) {
+        int i;
+        for (i = 0; i < n; i++) {
+            cgns_render_delete_list(render_ctx, id + i);
+        }
+    }
+}
+
+static void glEnable(int cap) {
+    if (!render_ctx) return;
+    if (cap == GL_LIGHTING) {
+        cgns_render_enable(render_ctx, CGNS_STATE_LIGHTING);
+    } else if (cap == GL_DEPTH_TEST) {
+        cgns_render_enable(render_ctx, CGNS_STATE_DEPTH_TEST);
+    } else if (cap == GL_BLEND) {
+        cgns_render_enable(render_ctx, CGNS_STATE_BLEND);
+    }
+}
+
+static void glDisable(int cap) {
+    if (!render_ctx) return;
+    if (cap == GL_LIGHTING) {
+        cgns_render_disable(render_ctx, CGNS_STATE_LIGHTING);
+    } else if (cap == GL_DEPTH_TEST) {
+        cgns_render_disable(render_ctx, CGNS_STATE_DEPTH_TEST);
+    } else if (cap == GL_BLEND) {
+        cgns_render_disable(render_ctx, CGNS_STATE_BLEND);
+    }
+}
+
+static void glShadeModel(int mode) {
+    if (render_ctx) {
+        cgns_render_set_shade_model(render_ctx, mode);
+    }
+}
+
+static void glMaterialfv(int face, int pname, const float *params) {
+    if (!render_ctx) return;
+    if (pname == GL_AMBIENT_AND_DIFFUSE) {
+        static cgns_material_t material = {
+            {0.2f, 0.2f, 0.2f, 1.0f},
+            {0.8f, 0.8f, 0.8f, 1.0f},
+            {1.0f, 1.0f, 1.0f, 1.0f},
+            {0.0f, 0.0f, 0.0f, 1.0f},
+            32.0f
+        };
+        material.ambient[0] = params[0];
+        material.ambient[1] = params[1];
+        material.ambient[2] = params[2];
+        material.ambient[3] = 1.0f;
+        material.diffuse[0] = params[0];
+        material.diffuse[1] = params[1];
+        material.diffuse[2] = params[2];
+        material.diffuse[3] = 1.0f;
+        cgns_render_set_material(render_ctx, &material);
+    }
+}
+
+/* Unsupported functions - stub them out */
+static void glPolygonMode(int face, int mode) {
+    /* Unsupported in bgfx - would need to render edges separately */
+}
+
+static void glLineWidth(float width) {
+    /* Unsupported in bgfx - ignore */
+}
+
+static void glBitmap(int width, int height, float xorig, float yorig,
+                     float xmove, float ymove, const unsigned char *bitmap) {
+    /* Unsupported in bgfx - used for axis labels */
+}
+
+static void glPixelStorei(int pname, int param) {
+    /* Unsupported in bgfx - ignore */
+}
+
+static void glDepthMask(int flag) {
+    /* TODO: May need to add this to render backend for transparency */
+}
+
+static void glBlendFunc(int sfactor, int dfactor) {
+    /* TODO: May need to add this to render backend for transparency */
+}
+
+static void glRasterPos3f(float x, float y, float z) {
+    /* Unsupported in bgfx - used for bitmap text positioning */
+}
+
+#endif /* CGNS_ENABLE_BGFX */
 
 enum {
     REG_MESH,
@@ -5406,6 +5594,79 @@ static int OGLcutconfig (ClientData data, Tcl_Interp *interp, int argc, char **a
 
 #endif
 
+#ifdef CGNS_ENABLE_BGFX
+/*---------- OGLInitContext -----------------------------------------
+ * Initialize the bgfx render context
+ * Usage: OGLInitContext
+ * Note: This must be called after the OpenGL context is created
+ *       but before any rendering commands are issued
+ *------------------------------------------------------------------*/
+
+static int OGLInitContext(ClientData data, Tcl_Interp *interp, int argc, char **argv)
+{
+    if (render_ctx != NULL) {
+        Tcl_SetResult(interp, "render context already initialized", TCL_STATIC);
+        return TCL_OK;
+    }
+
+    /* Initialize with NULL platform data - will use headless/NOOP renderer */
+    /* TODO: In a real Tcl/Tk integration, we'd need to get the window handle */
+    /* from the Tk widget and pass appropriate platform data */
+    render_ctx = cgns_render_initialize(NULL);
+
+    if (render_ctx == NULL) {
+        Tcl_SetResult(interp, "failed to initialize render context", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    /* Set up default viewport - can be adjusted later */
+    {
+        cgns_viewport_t viewport = {0, 0, 800, 600, 0.0f};
+        cgns_render_set_viewport(render_ctx, &viewport);
+    }
+
+    Tcl_SetResult(interp, "render context initialized", TCL_STATIC);
+    return TCL_OK;
+}
+
+/*---------- OGLShutdownContext -------------------------------------
+ * Shutdown the bgfx render context
+ * Usage: OGLShutdownContext
+ *------------------------------------------------------------------*/
+
+static int OGLShutdownContext(ClientData data, Tcl_Interp *interp, int argc, char **argv)
+{
+    if (render_ctx != NULL) {
+        cgns_render_shutdown(render_ctx);
+        render_ctx = NULL;
+        Tcl_SetResult(interp, "render context shutdown", TCL_STATIC);
+    } else {
+        Tcl_SetResult(interp, "no render context to shutdown", TCL_STATIC);
+    }
+    return TCL_OK;
+}
+
+/*---------- OGLFrameEnd --------------------------------------------
+ * End the current frame and submit to bgfx
+ * Usage: OGLFrameEnd
+ * Note: This should be called at the end of each frame after all
+ *       rendering is complete
+ *------------------------------------------------------------------*/
+
+static int OGLFrameEnd(ClientData data, Tcl_Interp *interp, int argc, char **argv)
+{
+    if (render_ctx == NULL) {
+        Tcl_SetResult(interp, "render context not initialized", TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    cgns_render_frame(render_ctx);
+    Tcl_SetResult(interp, "frame submitted", TCL_STATIC);
+    return TCL_OK;
+}
+
+#endif /* CGNS_ENABLE_BGFX */
+
 /*---------- Cgnstcl_Init --------------------------------------
  * Initialize and create the commands
  *--------------------------------------------------------------*/
@@ -5448,6 +5709,15 @@ int Cgnstcl_Init(Tcl_Interp *interp)
     Tcl_CreateCommand (interp, "OGLdrawplane", (Tcl_CmdProc *)OGLdrawplane,
         (ClientData)0, (Tcl_CmdDeleteProc *)0);
     Tcl_CreateCommand (interp, "OGLcutconfig", (Tcl_CmdProc *)OGLcutconfig,
+        (ClientData)0, (Tcl_CmdDeleteProc *)0);
+#endif
+#ifdef CGNS_ENABLE_BGFX
+    /* bgfx-specific commands for context management */
+    Tcl_CreateCommand (interp, "OGLInitContext", (Tcl_CmdProc *)OGLInitContext,
+        (ClientData)0, (Tcl_CmdDeleteProc *)0);
+    Tcl_CreateCommand (interp, "OGLShutdownContext", (Tcl_CmdProc *)OGLShutdownContext,
+        (ClientData)0, (Tcl_CmdDeleteProc *)0);
+    Tcl_CreateCommand (interp, "OGLFrameEnd", (Tcl_CmdProc *)OGLFrameEnd,
         (ClientData)0, (Tcl_CmdDeleteProc *)0);
 #endif
     return TCL_OK;
