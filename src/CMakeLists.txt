@@ -82,11 +82,16 @@ elseif(CMAKE_C_COMPILER_ID MATCHES "Sun")
   check_and_add_compiler_option("-xc99")
 endif()
 
-if (NOT DEFINED CMAKE_CONFIGURATION_TYPES)
-  # Buggy section used for generating buildConfig.def
-  # A CMake generator with conditional could be used
-  # as using CMAKE_BUILD_TYPE is not good practise
-  string(COMPARE EQUAL ${CMAKE_BUILD_TYPE} Debug IS_DEBUG)
+if (DEFINED CMAKE_CONFIGURATION_TYPES)
+  # Multi-config generators (Xcode, Visual Studio, etc.)
+  # Use Release configuration as default for cgnsBuild.defs
+  set(BUILDDEBUG 0)
+  set(CFLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+  set(LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+else ()
+  # Single-config generators (Unix Makefiles, Ninja, etc.)
+  # Use the selected CMAKE_BUILD_TYPE
+  string(COMPARE EQUAL "${CMAKE_BUILD_TYPE}" "Debug" IS_DEBUG)
   if (IS_DEBUG)
     set(BUILDDEBUG 1)
     set(CFLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}")
@@ -96,11 +101,13 @@ if (NOT DEFINED CMAKE_CONFIGURATION_TYPES)
     set(CFLAGS "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
     set(LDFLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
   endif ()
-else ()
-  set(BUILDDEBUG 0)
-  set(CFLAGS "")
-  set(LDFLAGS "")
 endif ()
+
+# Normalize whitespace in CFLAGS and LDFLAGS
+string(REGEX REPLACE "  +" " " CFLAGS "${CFLAGS}")
+string(REGEX REPLACE "  +" " " LDFLAGS "${LDFLAGS}")
+string(STRIP "${CFLAGS}" CFLAGS)
+string(STRIP "${LDFLAGS}" LDFLAGS)
 
 set(BUILDHDF5 0)
 set(H5NEEDMPI 0)
