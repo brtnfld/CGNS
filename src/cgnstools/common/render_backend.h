@@ -263,6 +263,19 @@ void cgns_render_set_view(cgns_render_context_t* ctx,
 void cgns_render_set_model(cgns_render_context_t* ctx,
                            const float* matrix);
 
+/**
+ * Update camera view and projection matrices.
+ * This combines setting both view and projection matrices and updates
+ * the rendering pipeline. Safe to call during rendering.
+ *
+ * @param ctx Rendering context
+ * @param view_matrix View matrix (16-element column-major), or NULL to keep current
+ * @param proj_matrix Projection matrix (16-element column-major), or NULL to keep current
+ */
+void cgns_render_update_camera(cgns_render_context_t* ctx,
+                                const float* view_matrix,
+                                const float* proj_matrix);
+
 /* ========================================================================
  * Render State Management
  * ======================================================================== */

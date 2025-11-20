@@ -2,7 +2,10 @@
 # tkogl #
 #########
 
-set(tkogl_FILES 
+# Find OpenGL package
+find_package(OpenGL REQUIRED)
+
+set(tkogl_FILES
 	tkogl.c
 	get.c
 	gencyl.c

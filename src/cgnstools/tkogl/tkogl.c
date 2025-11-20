@@ -1510,39 +1510,8 @@ OGLwinEventProc(clientData, eventPtr)
     }
 #else
     if (eventPtr->type == Expose) {
-#ifdef CGNS_ENABLE_BGFX
-       /* Initialize bgfx on first Expose event when window is fully realized */
-       if (glxwinPtr->bgfx_needs_init) {
-           cgns_platform_data_t platform_data;
-           platform_data.display = (void*)Tk_Display(glxwinPtr->tkwin);
-           platform_data.window = (void*)(uintptr_t)Tk_WindowId(glxwinPtr->tkwin);
-
-           glxwinPtr->bgfx_render_ctx = (void*)cgns_render_initialize(&platform_data);
-
-           printf("DEBUG: tkogl - After cgns_render_initialize, ctx=%p\n", glxwinPtr->bgfx_render_ctx);
-           fflush(stdout);
-
-           if (glxwinPtr->bgfx_render_ctx == NULL) {
-               fprintf(stderr, "bgfx: Failed to initialize renderer\n");
-               glxwinPtr->bgfx_needs_init = 0; /* Don't try again */
-           } else {
-               /* Set the render context for cgnstcl wrapper functions */
-               printf("DEBUG: tkogl - About to call cgnstcl_set_render_context\n");
-               fflush(stdout);
-               cgnstcl_set_render_context((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
-               printf("DEBUG: tkogl - After cgnstcl_set_render_context\n");
-               fflush(stdout);
-               glxwinPtr->bgfx_needs_init = 0; /* Initialization complete */
-               glxwinPtr->view_transform_set = 0;  /* Will be set in render loop */
-
-               /* Start the timer-based render loop (16ms = ~60fps) */
-               printf("DEBUG: tkogl - Starting bgfx render timer loop\n");
-               fflush(stdout);
-               glxwinPtr->render_timer = Tcl_CreateTimerHandler(16, BgfxRenderLoop,
-                                                                 (ClientData)glxwinPtr);
-           }
-       }
-#endif
+       /* bgfx integration now handled cleanly via bgfx_driver.c */
+       /* This tkogl widget is only used for traditional OpenGL rendering */
        ARRANGE_REDRAW(glxwinPtr);
     }
     else if (eventPtr->type == ConfigureNotify) {
@@ -1587,22 +1556,7 @@ OGLwinDestroy(void* clientData)
 {
     OGLwin *glxwinPtr = (OGLwin *) clientData;
 
-#ifdef CGNS_ENABLE_BGFX
-    /* Cancel the render timer if it's active */
-    if (glxwinPtr->render_timer != NULL) {
-        Tcl_DeleteTimerHandler(glxwinPtr->render_timer);
-        glxwinPtr->render_timer = NULL;
-    }
-
-    /* Shutdown bgfx context if it was initialized */
-    if (glxwinPtr->bgfx_render_ctx != NULL) {
-        /* Clear the render context in cgnstcl first */
-        cgnstcl_set_render_context(NULL);
-        /* Then shutdown bgfx */
-        cgns_render_shutdown((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
-        glxwinPtr->bgfx_render_ctx = NULL;
-    }
-#endif
+    /* bgfx cleanup now handled in Tcl via plot_shutdown_bgfx command */
 
 #if defined(__WIN32__) || defined(_WIN32)
     if (glxwinPtr->hrc != 0) {

@@ -13,8 +13,8 @@
 
 #include "gl_config.h"
 
-#ifdef CGNSTCL_BGFX_DISABLED
-/* Need to include render_backend.h for cgns_render_context_t type */
+#ifdef CGNS_ENABLE_BGFX
+/* Include render backend for bgfx support */
 #include "../common/render_backend.h"
 #endif
 
@@ -318,6 +318,77 @@ static void glBitmap(int width, int height, float xorig, float yorig,
 static void glPixelStorei(int pname, int param) {
     /* Unsupported in bgfx - ignore */
 }
+
+#ifdef CGNS_ENABLE_BGFX
+/**
+ * render_cgns_scene - Main rendering function called by bgfx_driver
+ *
+ * This function is called from plot_render_frame (in bgfx_driver.c) each frame.
+ * It contains all the rendering logic for the CGNS scene.
+ *
+ * For now, this is a stub that renders a test triangle to verify the
+ * rendering pipeline is working. Replace with actual CGNS rendering code.
+ */
+void render_cgns_scene(cgns_render_context_t* ctx)
+{
+    if (!ctx) return;
+
+    /* Get the render context from bgfx_driver */
+    extern void* Bgfx_GetRenderContext(void);
+    ctx = (cgns_render_context_t*)Bgfx_GetRenderContext();
+    if (!ctx) return;
+
+    /* Enable depth testing and lighting */
+    cgns_render_enable(ctx, CGNS_STATE_DEPTH_TEST);
+    cgns_render_enable(ctx, CGNS_STATE_LIGHTING);
+    cgns_render_set_shade_model(ctx, CGNS_SHADE_SMOOTH);
+
+    /* Set up a simple material */
+    cgns_material_t material;
+    material.ambient[0] = 0.2f;
+    material.ambient[1] = 0.2f;
+    material.ambient[2] = 0.2f;
+    material.ambient[3] = 1.0f;
+
+    material.diffuse[0] = 0.7f;
+    material.diffuse[1] = 0.7f;
+    material.diffuse[2] = 0.7f;
+    material.diffuse[3] = 1.0f;
+
+    material.specular[0] = 1.0f;
+    material.specular[1] = 1.0f;
+    material.specular[2] = 1.0f;
+    material.specular[3] = 1.0f;
+
+    material.shininess = 32.0f;
+
+    cgns_render_set_material(ctx, &material);
+
+    /* Render a test triangle to verify rendering works */
+    cgns_render_begin(ctx, CGNS_PRIM_TRIANGLES);
+
+    /* Red vertex */
+    cgns_render_set_color4f(ctx, 1.0f, 0.0f, 0.0f, 1.0f);
+    cgns_render_normal3f(ctx, 0.0f, 0.0f, 1.0f);
+    cgns_render_vertex3f(ctx, -0.5f, -0.5f, 0.0f);
+
+    /* Green vertex */
+    cgns_render_set_color4f(ctx, 0.0f, 1.0f, 0.0f, 1.0f);
+    cgns_render_normal3f(ctx, 0.0f, 0.0f, 1.0f);
+    cgns_render_vertex3f(ctx, 0.5f, -0.5f, 0.0f);
+
+    /* Blue vertex */
+    cgns_render_set_color4f(ctx, 0.0f, 0.0f, 1.0f, 1.0f);
+    cgns_render_normal3f(ctx, 0.0f, 0.0f, 1.0f);
+    cgns_render_vertex3f(ctx, 0.0f, 0.5f, 0.0f);
+
+    cgns_render_end(ctx);
+
+    /* TODO: Replace this test triangle with actual CGNS mesh rendering code */
+    /* The existing rendering code in this file can be adapted to use the */
+    /* render backend API instead of direct OpenGL calls */
+}
+#endif /* CGNS_ENABLE_BGFX */
 
 static void glDepthMask(int flag) {
     /* TODO: May need to add this to render backend for transparency */

@@ -21,7 +21,9 @@ endif ()
 
 # Add render backend source if bgfx is enabled
 if (CGNS_ENABLE_BGFX)
-  list(APPEND cgnsplot_FILES ../common/render_backend_bgfx.c)
+  list(APPEND cgnsplot_FILES
+    ../common/render_backend_bgfx.c
+    bgfx_driver.c)
 endif ()
 
 # Define executable and dependencies
@@ -58,6 +60,9 @@ else ()
   list(APPEND PLOT_LK_LIBS ${X11_X11_LIB} ${X11_Xmu_LIB} ${X11_SM_LIB} m)
 endif ()
 
+# OpenGL is needed for both traditional and bgfx modes
+find_package(OpenGL REQUIRED)
+
 # Configure bgfx backend if enabled
 if (CGNS_ENABLE_BGFX)
   add_definitions(-DCGNS_ENABLE_BGFX)
@@ -65,44 +70,85 @@ if (CGNS_ENABLE_BGFX)
   # Add bgfx include paths
   target_include_directories(plotwish PRIVATE
     ${CMAKE_SOURCE_DIR}/external/bgfx/include
+    ${CMAKE_SOURCE_DIR}/external/bgfx/include/../bindings/c
     ${CMAKE_SOURCE_DIR}/external/bx/include
     ${CMAKE_SOURCE_DIR}/external/bimg/include)
 
-  # Add bgfx, bx, and bimg libraries
-  # Note: bgfx needs to be built separately (e.g., make linux-release64)
-  find_library(BGFX_LIBRARY NAMES bgfx bgfxRelease
-    PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
-    NO_DEFAULT_PATH)
+  # Check if bgfx.cmake exists (CMake-based build from source)
+  if (EXISTS "${CMAKE_SOURCE_DIR}/external/bgfx.cmake")
+    # Use CMake-built bgfx libraries
+    # Note: bgfx.cmake is included in the render_backend CMakeLists,
+    # so the targets should already be defined
+    if (NOT TARGET bgfx)
+      # Include bgfx.cmake if not already included
+      include("${CMAKE_SOURCE_DIR}/external/bgfx.cmake")
+    endif()
 
-  find_library(BX_LIBRARY NAMES bx bxRelease
-    PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
-    NO_DEFAULT_PATH)
+    list(APPEND PLOT_LK_LIBS bgfx bimg bx)
+    message(STATUS "Using CMake-built bgfx libraries")
+  else()
+    # Fall back to searching for pre-built libraries
+    # Determine platform-specific library paths
+    if(APPLE)
+      # macOS: Check for both ARM64 and x86_64 builds
+      find_library(BGFX_LIBRARY NAMES bgfx bgfxRelease
+        PATHS
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx-arm64/bin
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx64_clang/bin
+        NO_DEFAULT_PATH)
+      find_library(BX_LIBRARY NAMES bx bxRelease
+        PATHS
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx-arm64/bin
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx64_clang/bin
+        NO_DEFAULT_PATH)
+      find_library(BIMG_LIBRARY NAMES bimg bimgRelease
+        PATHS
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx-arm64/bin
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx64_clang/bin
+        NO_DEFAULT_PATH)
+      find_library(BIMG_DECODE_LIBRARY NAMES bimg_decode bimg_decodeRelease
+        PATHS
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx-arm64/bin
+          ${CMAKE_SOURCE_DIR}/external/bgfx/.build/osx64_clang/bin
+        NO_DEFAULT_PATH)
+    else()
+      # Linux
+      find_library(BGFX_LIBRARY NAMES bgfx bgfxRelease
+        PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
+        NO_DEFAULT_PATH)
+      find_library(BX_LIBRARY NAMES bx bxRelease
+        PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
+        NO_DEFAULT_PATH)
+      find_library(BIMG_LIBRARY NAMES bimg bimgRelease
+        PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
+        NO_DEFAULT_PATH)
+      find_library(BIMG_DECODE_LIBRARY NAMES bimg_decode bimg_decodeRelease
+        PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
+        NO_DEFAULT_PATH)
+    endif()
 
-  find_library(BIMG_LIBRARY NAMES bimg bimgRelease
-    PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
-    NO_DEFAULT_PATH)
+    if (BGFX_LIBRARY AND BX_LIBRARY AND BIMG_LIBRARY)
+      list(APPEND PLOT_LK_LIBS ${BGFX_LIBRARY} ${BIMG_DECODE_LIBRARY} ${BIMG_LIBRARY} ${BX_LIBRARY})
+      message(STATUS "Found pre-built bgfx library: ${BGFX_LIBRARY}")
+      message(STATUS "Found pre-built bx library: ${BX_LIBRARY}")
+      message(STATUS "Found pre-built bimg library: ${BIMG_LIBRARY}")
+    else ()
+      message(WARNING "bgfx/bx/bimg libraries not found.")
+      message(WARNING "Option 1: Use CMake build - ensure bgfx.cmake exists in ${CMAKE_SOURCE_DIR}/external/")
+      if(APPLE)
+        message(WARNING "Option 2: Build manually - cd ${CMAKE_SOURCE_DIR}/external/bgfx && make osx-arm64-release")
+      else()
+        message(WARNING "Option 2: Build manually - cd ${CMAKE_SOURCE_DIR}/external/bgfx && make linux-release64")
+      endif()
+    endif ()
+  endif()
 
-  find_library(BIMG_DECODE_LIBRARY NAMES bimg_decode bimg_decodeRelease
-    PATHS ${CMAKE_SOURCE_DIR}/external/bgfx/.build/linux64_gcc/bin
-    NO_DEFAULT_PATH)
-
-  if (BGFX_LIBRARY AND BX_LIBRARY AND BIMG_LIBRARY)
-    list(APPEND PLOT_LK_LIBS ${BGFX_LIBRARY} ${BIMG_DECODE_LIBRARY} ${BIMG_LIBRARY} ${BX_LIBRARY})
-    message(STATUS "Found bgfx library: ${BGFX_LIBRARY}")
-    message(STATUS "Found bx library: ${BX_LIBRARY}")
-    message(STATUS "Found bimg library: ${BIMG_LIBRARY}")
-    message(STATUS "Found bimg_decode library: ${BIMG_DECODE_LIBRARY}")
-  else ()
-    message(WARNING "bgfx/bx/bimg libraries not found. Please build bgfx first:
-      cd ${CMAKE_SOURCE_DIR}/external/bgfx
-      make linux-release64")
-  endif ()
-
-  # bgfx backend still needs some GL for platform integration
-  # but doesn't use OpenGL for rendering
-  # bgfx is a C++ library, so we need to link against stdc++
-  # bgfx also needs dl (dynamic linking) and pthread
-  target_link_libraries(plotwish PRIVATE tkogl ${PLOT_LK_LIBS} OpenGL::GL stdc++ dl pthread)
+  # bgfx is a C++ library, link to standard library
+  if (APPLE)
+    target_link_libraries(plotwish PRIVATE tkogl ${PLOT_LK_LIBS} OpenGL::GL)
+  else()
+    target_link_libraries(plotwish PRIVATE tkogl ${PLOT_LK_LIBS} OpenGL::GL stdc++ dl pthread)
+  endif()
 else ()
   # Standard OpenGL mode
   target_link_libraries(plotwish PRIVATE tkogl ${PLOT_LK_LIBS} OpenGL::GL)

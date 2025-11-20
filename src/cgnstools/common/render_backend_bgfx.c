@@ -665,13 +665,30 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     printf("DEBUG: Setting default render state...\n");
     fflush(stdout);
     /* Black background: RGBA format = 0xRRGGBBAA, so black = 0x000000FF */
-    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x000000FF, 1.0f, 0);
+    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
     bgfx_set_view_rect(0, 0, 0, 1280, 720);
 
-    /* NOTE: We do NOT call bgfx_set_view_transform() because it causes hangs */
-    /* The bgfx renderer will use default pass-through behavior */
-    /* Geometry coordinates should be in normalized device coordinates (NDC) [-1,1] */
-    printf("DEBUG: Skipping view/projection setup (using default pass-through)\n");
+    /* Initialize view and projection matrices */
+    /* CRITICAL: Setting these during initialization (before event loop) avoids hangs */
+    printf("DEBUG: Initializing view/projection matrices...\n");
+    fflush(stdout);
+
+    /* Create identity view matrix (camera at origin, looking down -Z axis) */
+    cgns_render_matrix_identity(ctx->view_matrix);
+
+    /* Create orthographic projection matrix for typical 3D visualization */
+    /* Range: -10 to +10 in all axes (adjustable by application) */
+    cgns_render_matrix_ortho(ctx->projection_matrix,
+        -10.0f, 10.0f,  /* left, right */
+        -10.0f, 10.0f,  /* bottom, top */
+        -10.0f, 10.0f   /* near, far */
+    );
+
+    /* Set the view transform in bgfx */
+    /* This works safely during init, before the Tk event loop interferes */
+    bgfx_set_view_transform(0, ctx->view_matrix, ctx->projection_matrix);
+
+    printf("DEBUG: View transform initialized successfully\n");
     fflush(stdout);
 
     printf("DEBUG: About to print fully initialized message...\n");
@@ -1147,6 +1164,36 @@ void cgns_render_set_model(cgns_render_context_t* ctx,
     if (!bgfx_ctx || !matrix) return;
 
     memcpy(bgfx_ctx->model_matrix, matrix, sizeof(float) * 16);
+}
+
+/**
+ * Update camera view and projection matrices dynamically.
+ * This is safe to call during rendering (unlike calling it from Tk event thread).
+ *
+ * @param ctx Rendering context
+ * @param view_matrix New view matrix (4x4, column-major), or NULL to keep current
+ * @param proj_matrix New projection matrix (4x4, column-major), or NULL to keep current
+ */
+void cgns_render_update_camera(cgns_render_context_t* ctx,
+                                const float* view_matrix,
+                                const float* proj_matrix)
+{
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    if (!bgfx_ctx) return;
+
+    /* Update view matrix if provided */
+    if (view_matrix) {
+        memcpy(bgfx_ctx->view_matrix, view_matrix, sizeof(float) * 16);
+    }
+
+    /* Update projection matrix if provided */
+    if (proj_matrix) {
+        memcpy(bgfx_ctx->projection_matrix, proj_matrix, sizeof(float) * 16);
+    }
+
+    /* Update bgfx view transform */
+    /* This is safe when called from render thread (plot_render_frame) */
+    bgfx_set_view_transform(0, bgfx_ctx->view_matrix, bgfx_ctx->projection_matrix);
 }
 
 void cgns_render_normal3fv(cgns_render_context_t* ctx, const float* n)

@@ -145,6 +145,17 @@ wm protocol . WM_DELETE_WINDOW do_quit
 
 proc do_quit {} {
   global ProgData
+
+  # Stop render loop if bgfx is active
+  if {[info commands stop_render_loop] != ""} {
+    catch stop_render_loop
+  }
+
+  # Shutdown bgfx if active
+  if {[info commands plot_shutdown_bgfx] != ""} {
+    catch plot_shutdown_bgfx
+  }
+
   catch CGNSclose
   set ProgData(winwidth) [winfo width .main]
   set ProgData(winheight) [winfo height .main]
@@ -584,13 +595,63 @@ frame .main.sel
 
 sep_locate $ProgData(seppos)
 
-#----- OpenGL window
+#----- Rendering window
 
-set OGLwin .main.plot.gl
-if {[catch {OGLwin $OGLwin} msg]} {
-  error_exit $msg
+# Check if bgfx commands are available (CGNS_ENABLE_BGFX=ON)
+if {[info commands plot_init_bgfx] != ""} {
+  # bgfx mode: Use container frame for native window
+  set OGLwin .main.plot.gl
+  frame $OGLwin -container 1 -width 640 -height 480 -bg black
+  pack $OGLwin -side left -fill both -expand 1
+
+  # Initialize bgfx after window is mapped
+  bind $OGLwin <Map> {
+    after idle {
+      # Initialize bgfx with the container frame
+      if {[catch {plot_init_bgfx .main.plot.gl} msg]} {
+        puts stderr "bgfx initialization failed: $msg"
+        puts stderr "Falling back to black window (rendering disabled)"
+      } else {
+        puts "bgfx initialized successfully"
+        # Start render loop (60 FPS)
+        start_render_loop
+      }
+    }
+  }
+
+  # Handle resize events
+  bind $OGLwin <Configure> {
+    catch {plot_resize %w %h}
+  }
+
+  # Define render loop
+  proc start_render_loop {} {
+    global ProgData
+    if {$ProgData(drawID) == ""} {
+      # Render one frame
+      catch {plot_render_frame}
+      # Schedule next frame (16ms = ~60 FPS)
+      set ProgData(drawID) [after 16 start_render_loop]
+    }
+  }
+
+  # Stop render loop
+  proc stop_render_loop {} {
+    global ProgData
+    if {$ProgData(drawID) != ""} {
+      after cancel $ProgData(drawID)
+      set ProgData(drawID) ""
+    }
+  }
+
+} else {
+  # Traditional OpenGL/tkogl mode
+  set OGLwin .main.plot.gl
+  if {[catch {OGLwin $OGLwin} msg]} {
+    error_exit $msg
+  }
+  pack $OGLwin -side left -fill both -expand 1
 }
-pack $OGLwin -side left -fill both -expand 1
 
 #---------- selections
 

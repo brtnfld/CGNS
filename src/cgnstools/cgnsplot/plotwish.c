@@ -18,6 +18,10 @@
 extern int Cgnstcl_Init (Tcl_Interp *interp);
 extern int Tkogl_Init (Tcl_Interp *interp);
 
+#ifdef CGNS_ENABLE_BGFX
+#include "bgfx_driver.h"
+#endif
+
 int Tcl_AppInit(Tcl_Interp *  interp);
 /*
  *----------------------------------------------------------------------
@@ -89,6 +93,12 @@ Tcl_AppInit(Tcl_Interp *  interp)
         return TCL_ERROR;
     if (Tkogl_Init(interp) == TCL_ERROR)
         return TCL_ERROR;
+
+#ifdef CGNS_ENABLE_BGFX
+    /* Initialize bgfx driver - provides clean Tcl commands for bgfx rendering */
+    if (Bgfx_Driver_Init(interp) == TCL_ERROR)
+        return TCL_ERROR;
+#endif
 
     /*
      * Call Tcl_CreateCommand for application-specific commands, if

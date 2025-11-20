@@ -6,6 +6,11 @@
 
 cmake_minimum_required(VERSION 3.10)
 
+# Enable C++ language support if not already enabled
+if(NOT CMAKE_CXX_COMPILER)
+    enable_language(CXX)
+endif()
+
 # Detect platform
 if(WIN32)
     set(BGFX_PLATFORM "windows")
@@ -33,10 +38,18 @@ list(FILTER BX_SOURCES EXCLUDE REGEX ".*amalgamated\\.cpp$")
 
 add_library(bx STATIC ${BX_SOURCES})
 
+set_target_properties(bx PROPERTIES LINKER_LANGUAGE CXX)
+
 target_include_directories(bx PUBLIC
     ${BX_INC_DIR}
-    ${BX_INC_DIR}/compat/msvc  # For cross-platform compatibility
 )
+
+# Only include MSVC compatibility headers on Windows
+if(WIN32)
+    target_include_directories(bx PUBLIC
+        ${BX_INC_DIR}/compat/msvc
+    )
+endif()
 
 target_compile_definitions(bx PUBLIC
     BX_CONFIG_DEBUG=$<CONFIG:Debug>
@@ -60,6 +73,8 @@ file(GLOB BIMG_SOURCES
 )
 
 add_library(bimg STATIC ${BIMG_SOURCES})
+
+set_target_properties(bimg PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(bimg PUBLIC
     ${BIMG_INC_DIR}
@@ -107,6 +122,8 @@ list(APPEND BGFX_SOURCES ${BGFX_RENDERER_SOURCES})
 
 # Create bgfx library
 add_library(bgfx STATIC ${BGFX_SOURCES})
+
+set_target_properties(bgfx PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(bgfx PUBLIC
     ${BGFX_INC_DIR}
@@ -166,9 +183,9 @@ target_include_directories(bgfx PUBLIC
     ${BGFX_INC_DIR}/../bindings/c
 )
 
-# Set C++ standard
+# Set C++ standard (bgfx requires C++17)
 set_target_properties(bgfx bx bimg PROPERTIES
-    CXX_STANDARD 14
+    CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
 )
 

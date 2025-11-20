@@ -24,7 +24,9 @@
 #	    endif
 #   endif
 #elif defined(__APPLE__)
-#include <X11/Xatom.h>
+#   define EXPORT(a,b) a b
+#   include <X11/Xatom.h>		/* for XA_RGB_DEFAULT_MAP atom */
+#   include <X11/Xmu/StdCmap.h>	/* for XmuLookupStandardColormap() */
 #else
 #   define EXPORT(a,b) a b
 #   include <X11/Xatom.h>		/* for XA_RGB_DEFAULT_MAP atom */
