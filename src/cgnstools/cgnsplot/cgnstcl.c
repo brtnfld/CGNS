@@ -8,12 +8,8 @@
 # include <windows.h>
 #endif
 
-/* Disable bgfx wrappers in cgnstcl - use native OpenGL for now */
-/* The bgfx window handle integration needs more work */
-#ifdef CGNS_ENABLE_BGFX
-#define CGNSTCL_BGFX_DISABLED
-#undef CGNS_ENABLE_BGFX
-#endif
+/* bgfx wrappers are now enabled - window handle integration is working */
+/* #define CGNSTCL_BGFX_DISABLED */
 
 #include "gl_config.h"
 
@@ -177,6 +173,11 @@ void cgnstcl_set_render_context(cgns_render_context_t *ctx) {
     }
 }
 
+/* Function to get the render context - used by tkoglparse.c */
+cgns_render_context_t* cgnstcl_get_render_context(void) {
+    return render_ctx;
+}
+
 /* Wrapper functions to map OpenGL calls to bgfx render backend */
 /* These are defined early so they can be used throughout the file */
 
@@ -221,7 +222,8 @@ static void glColor4fv(const float *c) {
 }
 
 static unsigned int glGenLists(int n) {
-    static unsigned int next_list_id = 1;
+    /* Start from 100 to avoid collision with tkogl's UnusedDList() which starts from 1 */
+    static unsigned int next_list_id = 100;
     unsigned int id = next_list_id;
     next_list_id += n;
     return id;
@@ -236,6 +238,7 @@ static void glEndList(void) {
 }
 
 static void glCallList(unsigned int id) {
+    printf("DEBUG: cgnstcl glCallList wrapper called with ID=%u\n", id);
     if (render_ctx) cgns_render_call_list(render_ctx, id);
 }
 

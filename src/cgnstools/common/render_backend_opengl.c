@@ -10,7 +10,16 @@
  */
 
 #include "render_backend.h"
-#include "gl_config.h"
+
+/* This file ALWAYS needs real OpenGL headers, regardless of bgfx */
+#ifdef _WIN32
+#include <GL/gl.h>
+#include <GL/glu.h>
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

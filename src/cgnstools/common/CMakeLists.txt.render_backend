@@ -89,16 +89,56 @@ if(CGNS_ENABLE_BGFX)
     if(EXISTS "${BGFX_EXTERNAL_DIR}/bgfx/include/bgfx/bgfx.h")
         message(STATUS "Found bgfx in external directory: ${BGFX_EXTERNAL_DIR}")
 
-        # Include our simplified bgfx CMake build
-        include("${BGFX_EXTERNAL_DIR}/bgfx.cmake")
+        # Add bgfx include paths
+        target_include_directories(cgns_render_backend PUBLIC
+            ${BGFX_EXTERNAL_DIR}/bgfx/include
+            ${BGFX_EXTERNAL_DIR}/bx/include
+            ${BGFX_EXTERNAL_DIR}/bimg/include
+        )
 
-        # Link bgfx libraries
-        target_link_libraries(cgns_render_backend PUBLIC bgfx bx bimg)
+        # Find pre-built bgfx libraries
+        # Note: bgfx needs to be built separately (e.g., make linux-release64)
+        find_library(BGFX_LIBRARY NAMES bgfx bgfxRelease
+            PATHS ${BGFX_EXTERNAL_DIR}/bgfx/.build/linux64_gcc/bin
+            NO_DEFAULT_PATH)
 
-        # Enable bgfx backend
-        target_compile_definitions(cgns_render_backend PUBLIC CGNS_ENABLE_BGFX)
+        find_library(BX_LIBRARY NAMES bx bxRelease
+            PATHS ${BGFX_EXTERNAL_DIR}/bgfx/.build/linux64_gcc/bin
+            NO_DEFAULT_PATH)
 
-        message(STATUS "bgfx backend enabled successfully")
+        find_library(BIMG_LIBRARY NAMES bimg bimgRelease
+            PATHS ${BGFX_EXTERNAL_DIR}/bgfx/.build/linux64_gcc/bin
+            NO_DEFAULT_PATH)
+
+        find_library(BIMG_DECODE_LIBRARY NAMES bimg_decode bimg_decodeRelease
+            PATHS ${BGFX_EXTERNAL_DIR}/bgfx/.build/linux64_gcc/bin
+            NO_DEFAULT_PATH)
+
+        if(BGFX_LIBRARY AND BX_LIBRARY AND BIMG_LIBRARY)
+            # Link pre-built bgfx libraries
+            target_link_libraries(cgns_render_backend PUBLIC
+                ${BGFX_LIBRARY}
+                ${BIMG_DECODE_LIBRARY}
+                ${BIMG_LIBRARY}
+                ${BX_LIBRARY}
+                stdc++
+                dl
+                pthread
+            )
+
+            # Enable bgfx backend
+            target_compile_definitions(cgns_render_backend PUBLIC CGNS_ENABLE_BGFX)
+
+            message(STATUS "bgfx backend enabled successfully")
+            message(STATUS "  - bgfx library: ${BGFX_LIBRARY}")
+            message(STATUS "  - bx library: ${BX_LIBRARY}")
+            message(STATUS "  - bimg library: ${BIMG_LIBRARY}")
+        else()
+            message(WARNING "bgfx/bx/bimg pre-built libraries not found. Please build bgfx first:")
+            message(WARNING "  cd ${BGFX_EXTERNAL_DIR}/bgfx")
+            message(WARNING "  make linux-release64")
+            set(CGNS_ENABLE_BGFX OFF CACHE BOOL "Enable bgfx backend" FORCE)
+        endif()
 
     else()
         message(WARNING "bgfx not found in ${BGFX_EXTERNAL_DIR}")
@@ -148,6 +188,28 @@ install(FILES ${RENDER_BACKEND_HEADERS}
 )
 
 # ========================================================================
+# Test Executables
+# ========================================================================
+
+# Optional test programs
+option(CGNS_BUILD_RENDER_TESTS "Build render backend test programs" ON)
+
+if(CGNS_BUILD_RENDER_TESTS)
+    # Simple bgfx backend test (headless)
+    if(CGNS_ENABLE_BGFX)
+        add_executable(test_bgfx_simple test_bgfx_simple.c)
+        target_link_libraries(test_bgfx_simple PRIVATE cgns_render_backend m)
+
+        # Add test to CTest if enabled
+        if(BUILD_TESTING)
+            add_test(NAME test_bgfx_simple COMMAND test_bgfx_simple)
+        endif()
+
+        message(STATUS "bgfx test program: test_bgfx_simple")
+    endif()
+endif()
+
+# ========================================================================
 # Summary
 # ========================================================================
 
@@ -155,4 +217,5 @@ message(STATUS "===== Render Backend Configuration =====")
 message(STATUS "  OpenGL support: ENABLED (always)")
 message(STATUS "  bgfx support:   ${CGNS_ENABLE_BGFX}")
 message(STATUS "  Default backend: ${CGNS_RENDER_BACKEND}")
+message(STATUS "  Build tests:    ${CGNS_BUILD_RENDER_TESTS}")
 message(STATUS "========================================")

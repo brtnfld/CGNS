@@ -1372,6 +1372,14 @@ TkVertex (interp, args, nargs)
    GLfloat* coord;
    assert (nargs >= 2 && nargs <= 4);
    coord = (GLfloat*) args [0];
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx && (nargs == 3 || nargs == 4)) {
+       /* For 3D and 4D (homogeneous) vertices, use first 3 components */
+       cgns_render_vertex3fv(ctx, coord);
+       return TCL_OK;
+   }
+#endif
    switch (nargs) {
       case 2: glVertex2fv (coord); break;
       case 3: glVertex3fv (coord); break;
@@ -1389,6 +1397,12 @@ TkNormal (interp, args, nargs)
    GLfloat* coord;
    assert (nargs == 3);
    coord = (GLfloat*) args [0];
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx) {
+       cgns_render_normal3fv(ctx, coord);
+   } else
+#endif
    glNormal3fv (coord);
    return TCL_OK;
 }
@@ -1402,6 +1416,17 @@ TkColor (interp, args, nargs)
    GLfloat* coord;
    assert (nargs >= 3 && nargs <= 4);
    coord = (GLfloat*) args [0];
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx) {
+       if (nargs == 3) {
+           cgns_render_set_color4f(ctx, coord[0], coord[1], coord[2], 1.0f);
+       } else {
+           cgns_render_set_color4f(ctx, coord[0], coord[1], coord[2], coord[3]);
+       }
+       return TCL_OK;
+   }
+#endif
    switch (nargs) {
       case 3: glColor3fv (coord); break;
       case 4: glColor4fv (coord); break;
@@ -1480,6 +1505,23 @@ TkPolygonMode (interp, args, nargs)
      int nargs;
 {
    assert (nargs == 2);
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx) {
+       GLenum mode = *((GLenum*) args[1]);
+       /* Convert GL enum to CGNS polygon mode */
+       cgns_polygon_mode_t poly_mode;
+       if (mode == GL_FILL) {
+           poly_mode = CGNS_POLY_FILL;
+       } else if (mode == GL_LINE) {
+           poly_mode = CGNS_POLY_LINE;
+       } else {
+           poly_mode = CGNS_POLY_POINT;
+       }
+       cgns_render_set_polygon_mode(ctx, poly_mode);
+       return TCL_OK;
+   }
+#endif
    glPolygonMode (*((GLenum*) args[0]),*((GLenum*) args[1]));
    return TCL_OK;
 }
@@ -1602,6 +1644,25 @@ TkBegin (interp, args, nargs)
      int nargs;
 {
    assert (nargs == 1);
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx) {
+       /* Convert GL enum to CGNS primitive type */
+       GLenum gl_type = *((GLenum*) args [0]);
+       cgns_primitive_type_t cgns_type;
+
+       switch (gl_type) {
+           case GL_POINTS:         cgns_type = CGNS_PRIM_POINTS; break;
+           case GL_LINES:          cgns_type = CGNS_PRIM_LINES; break;
+           case GL_TRIANGLES:      cgns_type = CGNS_PRIM_TRIANGLES; break;
+           case GL_QUADS:          cgns_type = CGNS_PRIM_QUADS; break;
+           case GL_POLYGON:        cgns_type = CGNS_PRIM_POLYGON; break;
+           default:                cgns_type = CGNS_PRIM_TRIANGLES; break;
+       }
+
+       cgns_render_begin(ctx, cgns_type);
+   } else
+#endif
    glBegin (*((GLenum*) args [0]));
    return TCL_OK;
 }
@@ -1613,6 +1674,12 @@ TkEnd (interp, args, nargs)
      int nargs;
 {
    assert (nargs == 0);
+#ifdef CGNS_ENABLE_BGFX
+   cgns_render_context_t* ctx = cgnstcl_get_render_context();
+   if (ctx) {
+       cgns_render_end(ctx);
+   } else
+#endif
    glEnd ();
    return TCL_OK;
 }

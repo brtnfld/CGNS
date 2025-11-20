@@ -35,6 +35,14 @@ typedef int (TkOGLExtProc) (Tcl_Interp* interp, int argc, char** argv);
 
 EXPORT (int,RegisterTkOGLExtension) (Tcl_Interp* interp, char* extname, TkOGLExtProc* extproc);
 
+#ifdef CGNS_ENABLE_BGFX
+/* Include render backend API for bgfx mode */
+#include "../common/render_backend.h"
+
+/* Function to get the global bgfx render context (from cgnstcl.c) */
+cgns_render_context_t* cgnstcl_get_render_context(void);
+#endif
+
 #endif /* _TK_OGL */
 
 

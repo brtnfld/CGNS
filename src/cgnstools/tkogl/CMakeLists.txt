@@ -36,4 +36,13 @@ if(CGNS_ENABLE_BGFX)
 	target_compile_definitions(tkogl PRIVATE CGNS_ENABLE_BGFX)
 	# tkogl needs real OpenGL headers for widget management even when using bgfx
 	target_compile_definitions(tkogl PRIVATE TKOGL_NEEDS_REAL_GL)
+
+	# Add bgfx include paths
+	get_filename_component(CGNS_SOURCE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+	set(BGFX_EXTERNAL_DIR "${CGNS_SOURCE_ROOT}/external")
+	target_include_directories(tkogl PUBLIC
+		${BGFX_EXTERNAL_DIR}/bgfx/include
+		${BGFX_EXTERNAL_DIR}/bx/include
+		${BGFX_EXTERNAL_DIR}/bimg/include
+	)
 endif()

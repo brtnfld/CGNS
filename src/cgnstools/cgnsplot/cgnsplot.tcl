@@ -1687,6 +1687,9 @@ proc update_node {node {mode ""} {clr ""}} {
   global ProgData OGLwin
   if {$node == "" || $ProgData($node,dim) == 0} return
   update_children $node $mode $clr
+  # Rebuild display lists and mainlist to reflect visibility changes
+  # This ensures zone display lists are actually called during rendering
+  init_display
   OGLaxis $ProgData(axis)
   $OGLwin redraw
 }

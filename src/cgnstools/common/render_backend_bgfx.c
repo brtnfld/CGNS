@@ -23,17 +23,17 @@
 /* bgfx C99 API */
 #include <bgfx/c99/bgfx.h>
 
-/* Include compiled shaders */
-#include "shaders/vs_basic_glsl.h"
-#include "shaders/fs_smooth_glsl.h"
-#include "shaders/fs_flat_glsl.h"
-#include "shaders/fs_unlit_glsl.h"
+/* Include compiled shaders - SPIRV for Vulkan renderer */
+#include "shaders/vs_basic_spirv.h"
+#include "shaders/fs_smooth_spirv.h"
+#include "shaders/fs_flat_spirv.h"
+#include "shaders/fs_unlit_spirv.h"
 
-/* Include textured shaders (Phase 3) */
-#include "shaders/vs_textured_glsl.h"
-#include "shaders/fs_textured_smooth_glsl.h"
-#include "shaders/fs_textured_flat_glsl.h"
-#include "shaders/fs_textured_unlit_glsl.h"
+/* Include textured shaders (Phase 3) - SPIRV for Vulkan */
+#include "shaders/vs_textured_spirv.h"
+#include "shaders/fs_textured_smooth_spirv.h"
+#include "shaders/fs_textured_flat_spirv.h"
+#include "shaders/fs_textured_unlit_spirv.h"
 #endif
 
 /* ========================================================================
@@ -151,21 +151,49 @@ int cgns_render_backend_available(cgns_render_backend_t backend)
  * ======================================================================== */
 
 /**
+ * Draw batch - represents a single glBegin/glEnd block with its own primitive type
+ */
+typedef struct {
+    cgns_vertex_t* vertices;           /* Vertex data for this batch */
+    size_t vertex_count;               /* Number of vertices in this batch */
+    cgns_primitive_type_t primitive_type; /* Primitive type for THIS batch */
+    cgns_material_t material;          /* Material for this batch */
+    int lighting_enabled;              /* Lighting state */
+    cgns_shade_model_t shade_model;    /* Shading model */
+
+    /* Phase 3: Texture state per batch */
+    unsigned int texture_id;
+    int texture_enabled;
+    int texture_blend_mode;
+} draw_batch_t;
+
+/**
  * Display list structure for recorded rendering commands
+ * Now supports multiple batches with different primitive types
  */
 typedef struct {
     unsigned int id;
-    cgns_vertex_t* vertices;
-    size_t vertex_count;
-    cgns_primitive_type_t primitive_type;
-    cgns_material_t material;
-    int lighting_enabled;
-    cgns_shade_model_t shade_model;
 
-    /* Phase 3: Texture state */
-    unsigned int texture_id;        /* Bound texture at record time */
-    int texture_enabled;            /* Was texture enabled when recorded? */
-    int texture_blend_mode;         /* Blend mode (0=modulate, 1=replace, 2=decal) */
+    /* Batch-based storage (NEW) */
+    draw_batch_t* batches;             /* Array of draw batches */
+    size_t batch_count;                /* Number of batches */
+    size_t batch_capacity;             /* Allocated capacity */
+
+    /* Legacy fields kept for backward compatibility during transition */
+    cgns_vertex_t* vertices;           /* DEPRECATED - use batches instead */
+    size_t vertex_count;               /* DEPRECATED */
+    cgns_primitive_type_t primitive_type; /* DEPRECATED */
+    cgns_material_t material;          /* DEPRECATED */
+    int lighting_enabled;              /* DEPRECATED */
+    cgns_shade_model_t shade_model;    /* DEPRECATED */
+    unsigned int texture_id;           /* DEPRECATED */
+    int texture_enabled;               /* DEPRECATED */
+    int texture_blend_mode;            /* DEPRECATED */
+
+    /* Nested display list calls (for deferred inlining) */
+    unsigned int* called_lists;        /* IDs of lists to call */
+    size_t called_list_count;          /* Number of called lists */
+    size_t called_list_capacity;       /* Allocated capacity */
 } display_list_t;
 
 /**
@@ -237,6 +265,13 @@ typedef struct {
     size_t display_list_capacity;
     unsigned int recording_list_id;
     int recording;
+    int frames_rendered;  /* Count frames to delay view transform setup */
+
+    /* Batch recording state (for tracking glBegin/glEnd boundaries) */
+    draw_batch_t* recording_batches;     /* Temporary batch array during recording */
+    size_t recording_batch_count;        /* Number of batches recorded so far */
+    size_t recording_batch_capacity;     /* Allocated capacity */
+    size_t batch_start_vertex;           /* Vertex index where current batch started */
 
     /* Error handling */
     char error_msg[256];
@@ -472,6 +507,20 @@ static bgfx_context_t* alloc_bgfx_context(void)
     ctx->display_list_count = 0;
     ctx->recording = 0;
     ctx->recording_list_id = 0;
+    ctx->frames_rendered = 0;
+
+    /* Initialize batch recording storage */
+    ctx->recording_batch_capacity = 16;
+    ctx->recording_batches = (draw_batch_t*)calloc(ctx->recording_batch_capacity, sizeof(draw_batch_t));
+    ctx->recording_batch_count = 0;
+    ctx->batch_start_vertex = 0;
+
+    if (!ctx->recording_batches) {
+        free(ctx->vertex_buffer);
+        free(ctx->display_lists);
+        free(ctx);
+        return NULL;
+    }
 
     return ctx;
 }
@@ -485,6 +534,9 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     bgfx_context_t* ctx;
     bgfx_shader_handle_t vsh, fsh_smooth, fsh_flat, fsh_unlit;
     bgfx_shader_handle_t vsh_tex, fsh_tex_smooth, fsh_tex_flat, fsh_tex_unlit;
+
+    printf("DEBUG: cgns_render_initialize() called, platform_data=%p\n", platform_data);
+    fflush(stdout);
 
     ctx = alloc_bgfx_context();
     if (!ctx) {
@@ -502,71 +554,80 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     if (platform_data != NULL) {
         cgns_platform_data_t* pd = (cgns_platform_data_t*)platform_data;
 
-        #if !defined(__WIN32__) && !defined(_WIN32)
-        /* X11/Linux: Set native display and window handle */
-        bgfx_platform_data_t bgfx_pd;
-        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
-        bgfx_pd.ndt = pd->display;
-        bgfx_pd.nwh = pd->window;
-        bgfx_set_platform_data(&bgfx_pd);
-        #elif defined(__WIN32__) || defined(_WIN32)
-        /* Win32: Set window handle */
-        bgfx_platform_data_t bgfx_pd;
-        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
-        bgfx_pd.nwh = pd->window;
-        bgfx_set_platform_data(&bgfx_pd);
-        #elif defined(__APPLE__)
-        /* macOS: Set native window handle */
-        bgfx_platform_data_t bgfx_pd;
-        memset(&bgfx_pd, 0, sizeof(bgfx_pd));
-        bgfx_pd.nwh = pd->window;
-        bgfx_set_platform_data(&bgfx_pd);
-        #endif
+        /* Set platform data in init structure (correct way per bgfx examples) */
+        init.platformData.ndt = pd->display;  /* X11 display */
+        init.platformData.nwh = pd->window;   /* X11 window */
+        init.platformData.context = NULL;     /* Let bgfx create context */
+        init.platformData.backBuffer = NULL;
+        init.platformData.backBufferDS = NULL;
+        init.platformData.type = BGFX_NATIVE_WINDOW_HANDLE_TYPE_DEFAULT;  /* X11 */
 
-        init.type = BGFX_RENDERER_TYPE_COUNT; /* Auto-select best renderer (OpenGL/Vulkan/etc.) */
-        printf("bgfx GPU mode: rendering to window\n");
+        /* Auto-select best renderer (Vulkan preferred, falls back to OpenGL) */
+        init.type = BGFX_RENDERER_TYPE_COUNT;
     } else {
         /* For headless/test mode (NULL platform_data), use NOOP renderer */
         init.type = BGFX_RENDERER_TYPE_NOOP;
-        printf("bgfx headless mode: using NOOP renderer\n");
     }
 
     init.resolution.width = 1280;
     init.resolution.height = 720;
-    init.resolution.reset = BGFX_RESET_VSYNC;
+    init.resolution.reset = 0;  /* No VSYNC - was causing hangs */
+
+    printf("DEBUG: About to call bgfx_init()...\n");
+    fflush(stdout);
 
     if (!bgfx_init(&init)) {
+        fprintf(stderr, "bgfx: Failed to initialize renderer\n");
+        fflush(stderr);
         free(ctx->vertex_buffer);
         free(ctx);
-        fprintf(stderr, "Failed to initialize bgfx\n");
         return NULL;
     }
 
-    printf("bgfx initialized - Renderer: %s\n",
-           bgfx_get_renderer_name(bgfx_get_renderer_type()));
+    printf("DEBUG: bgfx_init() succeeded!\n");
+    fflush(stdout);
+
+    /* Check which renderer was selected */
+    bgfx_renderer_type_t renderer = bgfx_get_renderer_type();
+    printf("DEBUG: bgfx selected renderer type: %d\n", renderer);
+    printf("DEBUG: (0=Noop, 1=Direct3D9, 2=Direct3D11, 3=Direct3D12, 4=Gnm, 5=Metal, 6=Nvn, 7=OpenGLES, 8=OpenGL, 9=Vulkan)\n");
+    fflush(stdout);
 
     /* Initialize vertex layouts */
     init_vertex_layout(&ctx->vertex_layout);
     init_vertex_layout_textured(&ctx->vertex_layout_textured);
 
-    /* Create non-textured shaders */
-    vsh = create_shader(vs_basic_glsl, sizeof(vs_basic_glsl));
-    fsh_smooth = create_shader(fs_smooth_glsl, sizeof(fs_smooth_glsl));
-    fsh_flat = create_shader(fs_flat_glsl, sizeof(fs_flat_glsl));
-    fsh_unlit = create_shader(fs_unlit_glsl, sizeof(fs_unlit_glsl));
+    /* Create non-textured shaders - using SPIRV for Vulkan */
+    printf("DEBUG: Creating non-textured shaders (SPIRV for Vulkan)...\n");
+    fflush(stdout);
+    vsh = create_shader(vs_basic_spirv, sizeof(vs_basic_spirv));
+    fsh_smooth = create_shader(fs_smooth_spirv, sizeof(fs_smooth_spirv));
+    fsh_flat = create_shader(fs_flat_spirv, sizeof(fs_flat_spirv));
+    fsh_unlit = create_shader(fs_unlit_spirv, sizeof(fs_unlit_spirv));
 
     /* Create non-textured shader programs */
+    printf("DEBUG: Creating non-textured shader programs...\n");
+    fflush(stdout);
     ctx->program_smooth = create_program(vsh, fsh_smooth);
     ctx->program_flat = create_program(vsh, fsh_flat);
     ctx->program_unlit = create_program(vsh, fsh_unlit);
 
-    /* Create textured shaders (Phase 3) */
-    vsh_tex = create_shader(vs_textured_glsl, sizeof(vs_textured_glsl));
-    fsh_tex_smooth = create_shader(fs_textured_smooth_glsl, sizeof(fs_textured_smooth_glsl));
-    fsh_tex_flat = create_shader(fs_textured_flat_glsl, sizeof(fs_textured_flat_glsl));
-    fsh_tex_unlit = create_shader(fs_textured_unlit_glsl, sizeof(fs_textured_unlit_glsl));
+    printf("DEBUG: Shader programs created - smooth=%u, flat=%u, unlit=%u\n",
+           ctx->program_smooth.idx, ctx->program_flat.idx, ctx->program_unlit.idx);
+    printf("DEBUG: Checking if programs are valid (idx != UINT16_MAX = %u)...\n", UINT16_MAX);
+    fflush(stdout);
+
+    /* Create textured shaders (Phase 3) - using SPIRV for Vulkan */
+    printf("DEBUG: Creating textured shaders (SPIRV for Vulkan)...\n");
+    fflush(stdout);
+    vsh_tex = create_shader(vs_textured_spirv, sizeof(vs_textured_spirv));
+    fsh_tex_smooth = create_shader(fs_textured_smooth_spirv, sizeof(fs_textured_smooth_spirv));
+    fsh_tex_flat = create_shader(fs_textured_flat_spirv, sizeof(fs_textured_flat_spirv));
+    fsh_tex_unlit = create_shader(fs_textured_unlit_spirv, sizeof(fs_textured_unlit_spirv));
 
     /* Create textured shader programs (Phase 3) */
+    printf("DEBUG: Creating textured shader programs...\n");
+    fflush(stdout);
     ctx->program_textured_smooth = create_program(vsh_tex, fsh_tex_smooth);
     ctx->program_textured_flat = create_program(vsh_tex, fsh_tex_flat);
     ctx->program_textured_unlit = create_program(vsh_tex, fsh_tex_unlit);
@@ -590,6 +651,8 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     ctx->s_texture = bgfx_create_uniform("s_texture", BGFX_UNIFORM_TYPE_SAMPLER, 1);
 
     /* Initialize texture state */
+    printf("DEBUG: Initializing texture state...\n");
+    fflush(stdout);
     for (int i = 0; i < 8; i++) {
         ctx->bound_textures[i].idx = UINT16_MAX;  /* Invalid handle */
     }
@@ -599,10 +662,24 @@ cgns_render_context_t* cgns_render_initialize(void* platform_data)
     ctx->current_texcoord[1] = 0.0f;
 
     /* Set default render state */
-    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x303030ff, 1.0f, 0);
+    printf("DEBUG: Setting default render state...\n");
+    fflush(stdout);
+    /* Black background: RGBA format = 0xRRGGBBAA, so black = 0x000000FF */
+    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x000000FF, 1.0f, 0);
     bgfx_set_view_rect(0, 0, 0, 1280, 720);
 
+    /* NOTE: We do NOT call bgfx_set_view_transform() because it causes hangs */
+    /* The bgfx renderer will use default pass-through behavior */
+    /* Geometry coordinates should be in normalized device coordinates (NDC) [-1,1] */
+    printf("DEBUG: Skipping view/projection setup (using default pass-through)\n");
+    fflush(stdout);
+
+    printf("DEBUG: About to print fully initialized message...\n");
+    fflush(stdout);
     printf("bgfx backend fully initialized (Phase 3: texture support enabled)\n");
+    fflush(stdout);
+    printf("DEBUG: After fully initialized message, about to return\n");
+    fflush(stdout);
 
     return (cgns_render_context_t*)ctx;
 }
@@ -639,6 +716,9 @@ void cgns_render_shutdown(cgns_render_context_t* ctx)
     bgfx_destroy_program(bgfx_ctx->program_textured_flat);
     bgfx_destroy_program(bgfx_ctx->program_textured_unlit);
 
+    /* Flush pending commands before shutdown */
+    bgfx_frame(false);
+
     /* Shutdown bgfx */
     bgfx_shutdown();
 
@@ -665,16 +745,37 @@ void cgns_render_shutdown(cgns_render_context_t* ctx)
 void cgns_render_begin_frame(cgns_render_context_t* ctx)
 {
     (void)ctx;
-    /* bgfx automatically handles frame synchronization */
-    /* Just need to ensure touch view 0 to preserve framebuffer */
-    bgfx_touch(0);
+    printf("DEBUG: cgns_render_begin_frame\n");
+
+    /* REMOVED bgfx_touch(0) - testing if it interferes with geometry submission */
+    /* In bgfx, touch() is for views WITHOUT geometry; bgfx_submit() marks the view */
+    printf("DEBUG: NOT calling bgfx_touch - relying on bgfx_submit to mark view\n");
+    fflush(stdout);
 }
 
 void cgns_render_end_frame(cgns_render_context_t* ctx)
 {
-    (void)ctx;
+    bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
+    printf("DEBUG: cgns_render_end_frame (submitting frame)\n");
+    fflush(stdout);
     /* Advance to next frame. Rendering thread will be kicked to process submitted rendering primitives */
+    printf("DEBUG: About to call bgfx_frame()...\n");
+    fflush(stdout);
     bgfx_frame(false);
+    printf("DEBUG: bgfx_frame() completed successfully\n");
+    fflush(stdout);
+
+    /* KNOWN ISSUE: bgfx requires bgfx_set_view_transform() for proper geometry rendering,
+     * but calling it causes application hang in Tk/X11 environment.
+     * This is a fundamental threading/event loop incompatibility between bgfx and Tk.
+     * Result: bgfx presents frames (clear color works) but geometry not visible.
+     *
+     * Possible solutions:
+     * 1. Run bgfx in separate thread (major architecture change)
+     * 2. Find bgfx configuration that doesn't require explicit transforms
+     * 3. Use native OpenGL backend instead
+     */
+    (void)bgfx_ctx;  /* Unused */
 }
 
 /* ========================================================================
@@ -687,8 +788,26 @@ void cgns_render_begin(cgns_render_context_t* ctx,
     bgfx_context_t* bgfx_ctx = (bgfx_context_t*)ctx;
     if (!bgfx_ctx) return;
 
+    static int log_count = 0;
+    if (log_count < 50) {  /* Limit logging to first 50 calls */
+        const char* type_name = (type == CGNS_PRIM_POINTS) ? "POINTS" :
+                                (type == CGNS_PRIM_LINES) ? "LINES" :
+                                (type == CGNS_PRIM_TRIANGLES) ? "TRIANGLES" :
+                                (type == CGNS_PRIM_QUADS) ? "QUADS" :
+                                (type == CGNS_PRIM_POLYGON) ? "POLYGON" : "UNKNOWN";
+        printf("DEBUG: glBegin(%s) recording=%d\n", type_name, bgfx_ctx->recording);
+        log_count++;
+    }
+
     bgfx_ctx->current_primitive = type;
-    bgfx_ctx->vertex_count = 0;
+
+    if (bgfx_ctx->recording) {
+        /* Mark the start of a new batch - record where this batch's vertices begin */
+        bgfx_ctx->batch_start_vertex = bgfx_ctx->vertex_count;
+    } else {
+        /* Not recording - reset for immediate mode rendering */
+        bgfx_ctx->vertex_count = 0;
+    }
 }
 
 void cgns_render_vertex3fv(cgns_render_context_t* ctx, const float* v)
@@ -721,6 +840,11 @@ void cgns_render_vertex3fv(cgns_render_context_t* ctx, const float* v)
     memcpy(vtx->normal, bgfx_ctx->current_normal, sizeof(float) * 3);
     memcpy(vtx->color, bgfx_ctx->current_color, sizeof(float) * 4);
     memcpy(vtx->texcoord, bgfx_ctx->current_texcoord, sizeof(float) * 2); /* Phase 3 */
+
+    printf("DEBUG: vertex3fv pos=(%.2f,%.2f,%.2f) color=(%.2f,%.2f,%.2f,%.2f)\n",
+           v[0], v[1], v[2],
+           vtx->color[0], vtx->color[1], vtx->color[2], vtx->color[3]);
+    fflush(stdout);
 }
 
 void cgns_render_end(cgns_render_context_t* ctx)
@@ -734,7 +858,56 @@ void cgns_render_end(cgns_render_context_t* ctx)
     bgfx_vertex_layout_t* layout;
     bgfx_program_handle_t program;
 
-    if (!bgfx_ctx || bgfx_ctx->vertex_count == 0) return;
+    printf("DEBUG: cgns_render_end() called, recording=%d, vertex_count=%zu\n",
+           bgfx_ctx ? bgfx_ctx->recording : -1,
+           bgfx_ctx ? bgfx_ctx->vertex_count : 0);
+    fflush(stdout);
+
+    if (!bgfx_ctx || bgfx_ctx->vertex_count == 0) {
+        printf("DEBUG: cgns_render_end() early return (ctx=%p, vertex_count=%zu)\n",
+               (void*)bgfx_ctx, bgfx_ctx ? bgfx_ctx->vertex_count : 0);
+        fflush(stdout);
+        return;
+    }
+
+    /* If recording a display list, finalize the current batch */
+    if (bgfx_ctx->recording) {
+        size_t batch_vertex_count = bgfx_ctx->vertex_count - bgfx_ctx->batch_start_vertex;
+
+        if (batch_vertex_count > 0) {
+            /* Grow recording_batches array if needed */
+            if (bgfx_ctx->recording_batch_count >= bgfx_ctx->recording_batch_capacity) {
+                size_t new_capacity = bgfx_ctx->recording_batch_capacity == 0 ? 16 : bgfx_ctx->recording_batch_capacity * 2;
+                draw_batch_t* new_batches = (draw_batch_t*)realloc(bgfx_ctx->recording_batches,
+                                                                    new_capacity * sizeof(draw_batch_t));
+                if (!new_batches) {
+                    fprintf(stderr, "Failed to grow recording_batches array\n");
+                    return;
+                }
+                bgfx_ctx->recording_batches = new_batches;
+                bgfx_ctx->recording_batch_capacity = new_capacity;
+            }
+
+            /* Create new batch (note: vertices stay in main buffer, we just record the range) */
+            draw_batch_t* batch = &bgfx_ctx->recording_batches[bgfx_ctx->recording_batch_count++];
+            batch->vertices = NULL;  /* Will be allocated in end_list */
+            batch->vertex_count = batch_vertex_count;
+            batch->primitive_type = bgfx_ctx->current_primitive;
+            memcpy(&batch->material, &bgfx_ctx->current_material, sizeof(cgns_material_t));
+            batch->lighting_enabled = bgfx_ctx->lighting_enabled;
+            batch->shade_model = bgfx_ctx->shade_model;
+            batch->texture_id = (bgfx_ctx->texture_enabled && bgfx_ctx->bound_textures[0].idx != UINT16_MAX) ?
+                                (unsigned int)bgfx_ctx->bound_textures[0].idx : 0;
+            batch->texture_enabled = bgfx_ctx->texture_enabled;
+            batch->texture_blend_mode = bgfx_ctx->texture_blend_mode;
+
+            printf("DEBUG: glEnd() finalized batch %zu: %zu vertices, type=%d\n",
+                   bgfx_ctx->recording_batch_count - 1, batch_vertex_count, batch->primitive_type);
+        }
+
+        /* Vertices stay in the buffer for cgns_render_end_list() to save */
+        return;
+    }
 
     /* Triangulate quads/polygons if needed */
     actual_vertex_count = bgfx_ctx->vertex_count;
@@ -785,9 +958,17 @@ void cgns_render_end(cgns_render_context_t* ctx)
     /* Allocate transient vertex buffer */
     bgfx_alloc_transient_vertex_buffer(&tvb, actual_vertex_count, layout);
 
-    /* Copy vertices to transient buffer */
-    memcpy(tvb.data, bgfx_ctx->vertex_buffer,
-           actual_vertex_count * sizeof(cgns_vertex_t));
+    /* Copy vertices to transient buffer vertex-by-vertex
+     * Source: cgns_vertex_t array (48 bytes per vertex)
+     * Dest: layout-specific stride (40 or 48 bytes per vertex)
+     * Must copy vertex-by-vertex to handle different stride sizes */
+    uint16_t stride = bgfx_vertex_layout_get_stride(layout);
+    /* Copy vertex-by-vertex to handle stride mismatch */
+    for (size_t i = 0; i < actual_vertex_count; i++) {
+        memcpy((uint8_t*)tvb.data + i * stride,
+               &bgfx_ctx->vertex_buffer[i],
+               stride);
+    }
 
     /* Set vertex buffer */
     bgfx_set_transient_vertex_buffer(0, &tvb, 0, actual_vertex_count);
@@ -860,19 +1041,28 @@ void cgns_render_end(cgns_render_context_t* ctx)
     state |= BGFX_STATE_CULL_CW;
 
     /* Handle different primitive types */
-    switch (bgfx_ctx->current_primitive) {
-        case CGNS_PRIM_LINES:
-            state |= BGFX_STATE_PT_LINES;
-            break;
-        case CGNS_PRIM_POINTS:
-            state |= BGFX_STATE_PT_POINTS;
-            break;
-        case CGNS_PRIM_TRIANGLES:
-        case CGNS_PRIM_QUADS:
-        case CGNS_PRIM_POLYGON:
-        default:
-            state |= BGFX_STATE_PT_TRISTRIP; /* Default to triangles */
-            break;
+    /* Check if polygon mode forces wireframe rendering */
+    if (bgfx_ctx->polygon_mode == CGNS_POLY_LINE &&
+        (bgfx_ctx->current_primitive == CGNS_PRIM_TRIANGLES ||
+         bgfx_ctx->current_primitive == CGNS_PRIM_QUADS ||
+         bgfx_ctx->current_primitive == CGNS_PRIM_POLYGON)) {
+        /* Wireframe mode: render triangles/quads as lines */
+        state |= BGFX_STATE_PT_LINES;
+    } else {
+        switch (bgfx_ctx->current_primitive) {
+            case CGNS_PRIM_LINES:
+                state |= BGFX_STATE_PT_LINES;
+                break;
+            case CGNS_PRIM_POINTS:
+                state |= BGFX_STATE_PT_POINTS;
+                break;
+            case CGNS_PRIM_TRIANGLES:
+            case CGNS_PRIM_QUADS:
+            case CGNS_PRIM_POLYGON:
+            default:
+                state |= BGFX_STATE_PT_TRISTRIP; /* Default to triangles */
+                break;
+        }
     }
 
     bgfx_set_state(state, 0);
@@ -1000,6 +1190,9 @@ void cgns_render_set_color4f(cgns_render_context_t* ctx,
     bgfx_ctx->current_color[1] = g;
     bgfx_ctx->current_color[2] = b;
     bgfx_ctx->current_color[3] = a;
+
+    printf("DEBUG: set_color4f(%.2f, %.2f, %.2f, %.2f)\n", r, g, b, a);
+    fflush(stdout);
 }
 
 void cgns_render_set_material(cgns_render_context_t* ctx,
@@ -1118,7 +1311,17 @@ void cgns_render_draw_batch(cgns_render_context_t* ctx,
     size_t actual_vertex_count = count;
     cgns_vertex_t* temp_vertices = NULL;
 
-    if (!bgfx_ctx || !vertices || count == 0) return;
+    printf("DEBUG: cgns_render_draw_batch - rendering %zu vertices (type=%d)\n", count, type);
+    fflush(stdout);
+
+    if (!bgfx_ctx || !vertices || count == 0) {
+        printf("DEBUG: Early return - ctx=%p, vertices=%p, count=%zu\n", (void*)bgfx_ctx, (const void*)vertices, count);
+        fflush(stdout);
+        return;
+    }
+
+    printf("DEBUG: Validation passed, proceeding with rendering\n");
+    fflush(stdout);
 
     /* Triangulate if needed */
     if (type == CGNS_PRIM_QUADS || type == CGNS_PRIM_POLYGON) {
@@ -1159,16 +1362,27 @@ void cgns_render_draw_batch(cgns_render_context_t* ctx,
     /* Allocate transient vertex buffer */
     bgfx_alloc_transient_vertex_buffer(&tvb, actual_vertex_count, layout);
 
-    /* Copy vertices */
-    memcpy(tvb.data, vertices, actual_vertex_count * sizeof(cgns_vertex_t));
-
-    /* Set vertex buffer */
+    /* Copy vertices to transient buffer vertex-by-vertex
+     * Source: cgns_vertex_t array (48 bytes per vertex)
+     * Dest: layout-specific stride (40 or 48 bytes per vertex)
+     * Must copy vertex-by-vertex to handle different stride sizes */
+    uint16_t stride = bgfx_vertex_layout_get_stride(layout);
+    /* Copy vertex-by-vertex to handle stride mismatch */
+    for (size_t i = 0; i < actual_vertex_count; i++) {
+        memcpy((uint8_t*)tvb.data + i * stride,
+               &vertices[i],
+               stride);
+    }
     bgfx_set_transient_vertex_buffer(0, &tvb, 0, actual_vertex_count);
 
     /* Set matrix transform */
+    printf("DEBUG: Setting matrix transform\n");
+    fflush(stdout);
     bgfx_set_transform(bgfx_ctx->model_matrix, 1);
 
     /* Set lighting uniforms */
+    printf("DEBUG: Setting lighting uniforms (enabled=%d)\n", bgfx_ctx->lighting_enabled);
+    fflush(stdout);
     float lighting_enable[4] = {bgfx_ctx->lighting_enabled ? 1.0f : 0.0f, 0.0f, 0.0f, 0.0f};
     bgfx_set_uniform(bgfx_ctx->u_enableLighting, lighting_enable, 1);
 
@@ -1219,32 +1433,56 @@ void cgns_render_draw_batch(cgns_render_context_t* ctx,
     /* Set render state */
     state = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A;
 
-    if (bgfx_ctx->depth_test_enabled) {
+    /* TEMPORARILY DISABLE DEPTH TESTING FOR DEBUGGING */
+    printf("DEBUG: Depth testing DISABLED for testing\n");
+    fflush(stdout);
+    /* if (bgfx_ctx->depth_test_enabled) {
         state |= BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS;
-    }
+    } */
 
     if (bgfx_ctx->blend_enabled) {
         state |= BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA);
     }
 
-    state |= BGFX_STATE_CULL_CW;
+    /* TEMPORARILY DISABLE CULLING FOR DEBUGGING */
+    /* state |= BGFX_STATE_CULL_CW; */
+    printf("DEBUG: Culling DISABLED for testing\n");
+    fflush(stdout);
 
     /* Handle primitive types */
     switch (type) {
-        case CGNS_PRIM_LINES:
-            state |= BGFX_STATE_PT_LINES;
-            break;
         case CGNS_PRIM_POINTS:
             state |= BGFX_STATE_PT_POINTS;
+            printf("DEBUG: Primitive type=POINTS\n");
+            break;
+        case CGNS_PRIM_LINES:
+            state |= BGFX_STATE_PT_LINES;
+            printf("DEBUG: Primitive type=LINES (BGFX_STATE_PT_LINES set)\n");
+            break;
+        case CGNS_PRIM_TRIANGLES:
+            /* Triangle list is bgfx default (no flag needed) - NOT tristrip! */
+            /* Don't set any PT_ flag - default is triangle list mode */
+            printf("DEBUG: Primitive type=TRIANGLES (default triangle list)\n");
+            break;
+        case CGNS_PRIM_QUADS:
+        case CGNS_PRIM_POLYGON:
+            /* These are triangulated into triangle lists */
+            /* Don't set any PT_ flag - default is triangle list mode */
+            printf("DEBUG: Primitive type=QUADS/POLYGON (triangulated)\n");
             break;
         default:
-            state |= BGFX_STATE_PT_TRISTRIP;
+            fprintf(stderr, "Unknown primitive type %d, using default (triangle list)\n", type);
             break;
     }
 
+    printf("DEBUG: Setting render state (state=0x%llx)\n", (unsigned long long)state);
+    fflush(stdout);
     bgfx_set_state(state, 0);
 
     /* Select shader program based on texture and lighting state (Phase 3) */
+    printf("DEBUG: Selecting shader program (texture=%d, lighting=%d, shade_model=%d)\n",
+           bgfx_ctx->texture_enabled, bgfx_ctx->lighting_enabled, bgfx_ctx->shade_model);
+    fflush(stdout);
     bgfx_program_handle_t program;
     if (bgfx_ctx->texture_enabled) {
         /* Use textured shader programs */
@@ -1253,6 +1491,7 @@ void cgns_render_draw_batch(cgns_render_context_t* ctx,
         } else if (bgfx_ctx->shade_model == CGNS_SHADE_FLAT && bgfx_ctx->lighting_enabled) {
             program = bgfx_ctx->program_textured_flat;
         } else {
+            /* Lighting disabled - use textured unlit shader */
             program = bgfx_ctx->program_textured_unlit;
         }
     } else {
@@ -1262,12 +1501,21 @@ void cgns_render_draw_batch(cgns_render_context_t* ctx,
         } else if (bgfx_ctx->shade_model == CGNS_SHADE_FLAT && bgfx_ctx->lighting_enabled) {
             program = bgfx_ctx->program_flat;
         } else {
+            /* Lighting disabled - use unlit shader (now valid after fixing input/output) */
             program = bgfx_ctx->program_unlit;
         }
     }
 
+    printf("DEBUG: Using shader program handle idx=%u (smooth=%u, flat=%u, unlit=%u)\n",
+           program.idx, bgfx_ctx->program_smooth.idx, bgfx_ctx->program_flat.idx, bgfx_ctx->program_unlit.idx);
+    fflush(stdout);
+
     /* Submit draw call */
-    bgfx_submit(0, program, 0, BGFX_DISCARD_ALL);
+    printf("DEBUG: About to call bgfx_submit (view=0, depth=0, flags=BGFX_DISCARD_NONE)\n");
+    fflush(stdout);
+    bgfx_submit(0, program, 0, BGFX_DISCARD_NONE);
+    printf("DEBUG: bgfx_submit completed successfully\n");
+    fflush(stdout);
 
     /* Cleanup */
     free(temp_vertices);
@@ -1295,17 +1543,42 @@ void cgns_render_new_list(cgns_render_context_t* ctx, unsigned int list)
 
     if (!bgfx_ctx) return;
 
+    printf("DEBUG: cgns_render_new_list - creating display list ID=%u\n", list);
+
     /* Find existing display list or create new one */
     display_list_t* dl = NULL;
     for (i = 0; i < bgfx_ctx->display_list_count; i++) {
         if (bgfx_ctx->display_lists[i].id == list) {
             dl = &bgfx_ctx->display_lists[i];
-            /* Free existing vertices if any */
+            printf("DEBUG: Found existing display list %u, reusing\n", list);
+
+            /* Free existing batches if any */
+            if (dl->batches) {
+                size_t j;
+                for (j = 0; j < dl->batch_count; j++) {
+                    if (dl->batches[j].vertices) {
+                        free(dl->batches[j].vertices);
+                    }
+                }
+                free(dl->batches);
+                dl->batches = NULL;
+            }
+            dl->batch_count = 0;
+
+            /* Free legacy vertices if any */
             if (dl->vertices) {
                 free(dl->vertices);
                 dl->vertices = NULL;
             }
             dl->vertex_count = 0;
+
+            /* Free called lists array if any */
+            if (dl->called_lists) {
+                free(dl->called_lists);
+                dl->called_lists = NULL;
+            }
+            dl->called_list_count = 0;
+            dl->called_list_capacity = 0;
             break;
         }
     }
@@ -1337,8 +1610,10 @@ void cgns_render_new_list(cgns_render_context_t* ctx, unsigned int list)
     bgfx_ctx->recording = 1;
     bgfx_ctx->recording_list_id = list;
 
-    /* Clear vertex buffer to start fresh recording */
+    /* Clear vertex buffer and batch recording state to start fresh */
     bgfx_ctx->vertex_count = 0;
+    bgfx_ctx->recording_batch_count = 0;
+    bgfx_ctx->batch_start_vertex = 0;
 }
 
 void cgns_render_end_list(cgns_render_context_t* ctx)
@@ -1364,17 +1639,100 @@ void cgns_render_end_list(cgns_render_context_t* ctx)
         return;
     }
 
-    /* Copy recorded vertices to display list */
-    if (bgfx_ctx->vertex_count > 0) {
-        dl->vertices = (cgns_vertex_t*)malloc(bgfx_ctx->vertex_count * sizeof(cgns_vertex_t));
-        if (dl->vertices) {
-            memcpy(dl->vertices, bgfx_ctx->vertex_buffer,
-                   bgfx_ctx->vertex_count * sizeof(cgns_vertex_t));
-            dl->vertex_count = bgfx_ctx->vertex_count;
-        } else {
-            fprintf(stderr, "Failed to allocate display list vertices\n");
-            dl->vertex_count = 0;
+    /* Calculate total batch count: recorded batches + batches from called lists */
+    size_t total_batch_count = bgfx_ctx->recording_batch_count;
+    if (dl->called_list_count > 0) {
+        printf("DEBUG: Inlining batches from %zu called lists\n", dl->called_list_count);
+        for (i = 0; i < dl->called_list_count; i++) {
+            unsigned int called_id = dl->called_lists[i];
+            display_list_t* called_dl = NULL;
+            size_t j;
+            for (j = 0; j < bgfx_ctx->display_list_count; j++) {
+                if (bgfx_ctx->display_lists[j].id == called_id) {
+                    called_dl = &bgfx_ctx->display_lists[j];
+                    break;
+                }
+            }
+            if (called_dl && called_dl->batch_count > 0) {
+                printf("DEBUG:   - Inlining list %u (%zu batches)\n", called_id, called_dl->batch_count);
+                total_batch_count += called_dl->batch_count;
+            }
         }
+    }
+
+    /* Allocate and populate batches for the display list */
+    if (total_batch_count > 0) {
+        dl->batches = (draw_batch_t*)calloc(total_batch_count, sizeof(draw_batch_t));
+        if (!dl->batches) {
+            fprintf(stderr, "Failed to allocate display list batches\n");
+            dl->batch_count = 0;
+            bgfx_ctx->recording = 0;
+            return;
+        }
+        dl->batch_count = total_batch_count;
+
+        size_t batch_idx = 0;
+        size_t vertex_offset = 0;
+
+        /* Copy directly recorded batches first */
+        for (i = 0; i < bgfx_ctx->recording_batch_count; i++) {
+            draw_batch_t* src_batch = &bgfx_ctx->recording_batches[i];
+            draw_batch_t* dst_batch = &dl->batches[batch_idx++];
+
+            /* Allocate and copy vertices for this batch */
+            dst_batch->vertices = (cgns_vertex_t*)malloc(src_batch->vertex_count * sizeof(cgns_vertex_t));
+            if (dst_batch->vertices) {
+                memcpy(dst_batch->vertices, &bgfx_ctx->vertex_buffer[vertex_offset],
+                       src_batch->vertex_count * sizeof(cgns_vertex_t));
+                dst_batch->vertex_count = src_batch->vertex_count;
+                dst_batch->primitive_type = src_batch->primitive_type;
+                memcpy(&dst_batch->material, &src_batch->material, sizeof(cgns_material_t));
+                dst_batch->lighting_enabled = src_batch->lighting_enabled;
+                dst_batch->shade_model = src_batch->shade_model;
+                dst_batch->texture_id = src_batch->texture_id;
+                dst_batch->texture_enabled = src_batch->texture_enabled;
+                dst_batch->texture_blend_mode = src_batch->texture_blend_mode;
+                vertex_offset += src_batch->vertex_count;
+            }
+        }
+
+        /* Inline batches from called lists */
+        for (i = 0; i < dl->called_list_count; i++) {
+            unsigned int called_id = dl->called_lists[i];
+            display_list_t* called_dl = NULL;
+            size_t j;
+            for (j = 0; j < bgfx_ctx->display_list_count; j++) {
+                if (bgfx_ctx->display_lists[j].id == called_id) {
+                    called_dl = &bgfx_ctx->display_lists[j];
+                    break;
+                }
+            }
+            if (called_dl && called_dl->batches && called_dl->batch_count > 0) {
+                for (j = 0; j < called_dl->batch_count; j++) {
+                    draw_batch_t* src_batch = &called_dl->batches[j];
+                    draw_batch_t* dst_batch = &dl->batches[batch_idx++];
+                    dst_batch->vertices = (cgns_vertex_t*)malloc(src_batch->vertex_count * sizeof(cgns_vertex_t));
+                    if (dst_batch->vertices) {
+                        memcpy(dst_batch->vertices, src_batch->vertices,
+                               src_batch->vertex_count * sizeof(cgns_vertex_t));
+                        dst_batch->vertex_count = src_batch->vertex_count;
+                        dst_batch->primitive_type = src_batch->primitive_type;
+                        memcpy(&dst_batch->material, &src_batch->material, sizeof(cgns_material_t));
+                        dst_batch->lighting_enabled = src_batch->lighting_enabled;
+                        dst_batch->shade_model = src_batch->shade_model;
+                        dst_batch->texture_id = src_batch->texture_id;
+                        dst_batch->texture_enabled = src_batch->texture_enabled;
+                        dst_batch->texture_blend_mode = src_batch->texture_blend_mode;
+                    }
+                }
+            }
+        }
+
+        printf("DEBUG: cgns_render_end_list - display list %u compiled with %zu batches\n",
+               bgfx_ctx->recording_list_id, dl->batch_count);
+    } else {
+        printf("DEBUG: cgns_render_end_list - display list %u has NO batches\n",
+               bgfx_ctx->recording_list_id);
     }
 
     /* Save current state */
@@ -1406,56 +1764,159 @@ void cgns_render_call_list(cgns_render_context_t* ctx, unsigned int list)
 
     if (!bgfx_ctx) return;
 
+    printf("DEBUG: cgns_render_call_list called with list ID=%u, recording=%d\n", list, bgfx_ctx->recording);
+
+    /* If we're recording another display list, store this call for deferred inlining */
+    if (bgfx_ctx->recording) {
+        /* Find the display list we're currently recording */
+        display_list_t* recording_dl = NULL;
+        for (i = 0; i < bgfx_ctx->display_list_count; i++) {
+            if (bgfx_ctx->display_lists[i].id == bgfx_ctx->recording_list_id) {
+                recording_dl = &bgfx_ctx->display_lists[i];
+                break;
+            }
+        }
+
+        if (!recording_dl) {
+            fprintf(stderr, "ERROR: Recording list %u not found!\n", bgfx_ctx->recording_list_id);
+            return;
+        }
+
+        /* Grow called_lists array if needed */
+        if (recording_dl->called_list_count >= recording_dl->called_list_capacity) {
+            size_t new_capacity = recording_dl->called_list_capacity == 0 ? 4 : recording_dl->called_list_capacity * 2;
+            unsigned int* new_array = (unsigned int*)realloc(recording_dl->called_lists, new_capacity * sizeof(unsigned int));
+            if (!new_array) {
+                fprintf(stderr, "Failed to grow called_lists array\n");
+                return;
+            }
+            recording_dl->called_lists = new_array;
+            recording_dl->called_list_capacity = new_capacity;
+        }
+
+        /* Check for recursive call (display list calling itself) */
+        if (list == bgfx_ctx->recording_list_id) {
+            fprintf(stderr, "WARNING: Recursive display list call detected (list %u calling itself) - ignoring to prevent infinite loop\n", list);
+            printf("DEBUG: Recursive call to list %u ignored\n", list);
+            return;
+        }
+
+        /* Store the list ID for deferred inlining */
+        recording_dl->called_lists[recording_dl->called_list_count++] = list;
+        printf("DEBUG: Stored call to list %u (will inline during end_list), total calls=%zu\n", list, recording_dl->called_list_count);
+        return;
+    }
+
+    /* Not recording - render the list normally */
     /* Find the display list */
     display_list_t* dl = NULL;
     for (i = 0; i < bgfx_ctx->display_list_count; i++) {
         if (bgfx_ctx->display_lists[i].id == list) {
             dl = &bgfx_ctx->display_lists[i];
+            printf("DEBUG: Found display list %u with %zu batches for rendering\n", list, dl->batch_count);
             break;
         }
     }
 
-    if (!dl || !dl->vertices || dl->vertex_count == 0) {
-        fprintf(stderr, "Display list %u not found or empty\n", list);
+    if (!dl) {
+        fprintf(stderr, "Display list %u not found (have %zu lists)\n", list, bgfx_ctx->display_list_count);
         return;
     }
+
+    /* Check if display list has batches */
+    if (!dl->batches || dl->batch_count == 0) {
+        printf("DEBUG: Display list %u has no batches\n", list);
+        return;
+    }
+
+    /* Not recording - render all batches in the display list */
+    printf("DEBUG: Rendering display list %u with %zu batches\n", list, dl->batch_count);
 
     /* Save current state */
     cgns_material_t saved_material;
     int saved_lighting = bgfx_ctx->lighting_enabled;
     cgns_shade_model_t saved_shade = bgfx_ctx->shade_model;
-
-    /* Save texture state (Phase 3) */
     int saved_texture_enabled = bgfx_ctx->texture_enabled;
     int saved_texture_blend_mode = bgfx_ctx->texture_blend_mode;
     bgfx_texture_handle_t saved_texture = bgfx_ctx->bound_textures[0];
-
     memcpy(&saved_material, &bgfx_ctx->current_material, sizeof(cgns_material_t));
 
-    /* Restore display list state */
-    memcpy(&bgfx_ctx->current_material, &dl->material, sizeof(cgns_material_t));
-    bgfx_ctx->lighting_enabled = dl->lighting_enabled;
-    bgfx_ctx->shade_model = dl->shade_model;
+    /* Merge consecutive batches with same state to reduce transient buffer allocations */
+    size_t merged_start = 0;
+    size_t merged_count = 0;
+    cgns_vertex_t* merged_vertices = NULL;
+    size_t merged_capacity = 0;
 
-    /* Restore texture state (Phase 3) */
-    bgfx_ctx->texture_enabled = dl->texture_enabled;
-    bgfx_ctx->texture_blend_mode = dl->texture_blend_mode;
-    if (dl->texture_id != 0) {
-        bgfx_ctx->bound_textures[0].idx = (uint16_t)dl->texture_id;
-    } else {
-        bgfx_ctx->bound_textures[0].idx = UINT16_MAX;  /* No texture */
+    for (i = 0; i <= dl->batch_count; i++) {
+        draw_batch_t* batch = (i < dl->batch_count) ? &dl->batches[i] : NULL;
+        int should_flush = 0;
+
+        /* Check if we need to flush accumulated batches */
+        if (i == dl->batch_count) {
+            should_flush = 1; /* End of list - flush remaining */
+        } else if (merged_count == 0) {
+            merged_start = i; /* Start new merge group */
+        } else {
+            /* Check if this batch can be merged with previous ones */
+            draw_batch_t* prev = &dl->batches[merged_start];
+            if (batch->primitive_type != prev->primitive_type ||
+                batch->lighting_enabled != prev->lighting_enabled ||
+                batch->shade_model != prev->shade_model ||
+                batch->texture_enabled != prev->texture_enabled ||
+                batch->texture_id != prev->texture_id) {
+                should_flush = 1; /* State changed - flush before continuing */
+            }
+        }
+
+        if (should_flush && merged_count > 0) {
+            /* Render merged batches */
+            draw_batch_t* first = &dl->batches[merged_start];
+
+            /* Set state from first batch */
+            memcpy(&bgfx_ctx->current_material, &first->material, sizeof(cgns_material_t));
+            bgfx_ctx->lighting_enabled = first->lighting_enabled;
+            bgfx_ctx->shade_model = first->shade_model;
+            bgfx_ctx->texture_enabled = first->texture_enabled;
+            bgfx_ctx->texture_blend_mode = first->texture_blend_mode;
+            if (first->texture_id != 0) {
+                bgfx_ctx->bound_textures[0].idx = (uint16_t)first->texture_id;
+            } else {
+                bgfx_ctx->bound_textures[0].idx = UINT16_MAX;
+            }
+
+            /* Render merged vertices */
+            cgns_render_draw_batch(ctx, first->primitive_type, merged_vertices, merged_count);
+
+            merged_count = 0;
+
+            /* Start new merge group at current batch */
+            if (i < dl->batch_count) {
+                merged_start = i;
+            }
+        }
+
+        /* Add current batch to merge group */
+        if (batch && batch->vertices && batch->vertex_count > 0) {
+            /* Grow merged buffer if needed */
+            if (merged_count + batch->vertex_count > merged_capacity) {
+                merged_capacity = (merged_count + batch->vertex_count) * 2;
+                merged_vertices = (cgns_vertex_t*)realloc(merged_vertices,
+                                                           merged_capacity * sizeof(cgns_vertex_t));
+            }
+
+            /* Copy vertices to merged buffer */
+            memcpy(&merged_vertices[merged_count], batch->vertices,
+                   batch->vertex_count * sizeof(cgns_vertex_t));
+            merged_count += batch->vertex_count;
+        }
     }
 
-    /* Render the display list using batch rendering */
-    cgns_render_draw_batch(ctx, dl->primitive_type, dl->vertices,
-                           dl->vertex_count);
+    free(merged_vertices);
 
     /* Restore previous state */
     memcpy(&bgfx_ctx->current_material, &saved_material, sizeof(cgns_material_t));
     bgfx_ctx->lighting_enabled = saved_lighting;
     bgfx_ctx->shade_model = saved_shade;
-
-    /* Restore texture state (Phase 3) */
     bgfx_ctx->texture_enabled = saved_texture_enabled;
     bgfx_ctx->texture_blend_mode = saved_texture_blend_mode;
     bgfx_ctx->bound_textures[0] = saved_texture;
@@ -1471,9 +1932,25 @@ void cgns_render_delete_list(cgns_render_context_t* ctx, unsigned int list)
     /* Find and delete the display list */
     for (i = 0; i < bgfx_ctx->display_list_count; i++) {
         if (bgfx_ctx->display_lists[i].id == list) {
-            /* Free vertices */
+            /* Free batches and their vertices */
+            if (bgfx_ctx->display_lists[i].batches) {
+                size_t j;
+                for (j = 0; j < bgfx_ctx->display_lists[i].batch_count; j++) {
+                    if (bgfx_ctx->display_lists[i].batches[j].vertices) {
+                        free(bgfx_ctx->display_lists[i].batches[j].vertices);
+                    }
+                }
+                free(bgfx_ctx->display_lists[i].batches);
+            }
+
+            /* Free legacy vertices (if any) */
             if (bgfx_ctx->display_lists[i].vertices) {
                 free(bgfx_ctx->display_lists[i].vertices);
+            }
+
+            /* Free called_lists array */
+            if (bgfx_ctx->display_lists[i].called_lists) {
+                free(bgfx_ctx->display_lists[i].called_lists);
             }
 
             /* Shift remaining display lists down */

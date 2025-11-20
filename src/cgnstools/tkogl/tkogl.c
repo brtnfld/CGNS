@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <math.h>
 #include <assert.h>
 #include "tkogl.h"
 #include "tkoglparse.h"
@@ -24,6 +25,7 @@
 
 #ifdef CGNS_ENABLE_BGFX
 #include "../common/render_backend.h"
+#include <bgfx/c99/bgfx.h>
 
 /* External function to set render context in cgnstcl.c */
 extern void cgnstcl_set_render_context(cgns_render_context_t *ctx);
@@ -112,6 +114,9 @@ typedef struct {
 
 #ifdef CGNS_ENABLE_BGFX
     void* bgfx_render_ctx;      /* bgfx render context */
+    int bgfx_needs_init;        /* Flag: 1 if bgfx init pending, 0 if done */
+    Tcl_TimerToken render_timer; /* Timer for bgfx render loop */
+    int view_transform_set;      /* Flag: 1 if view transform initialized */
 #endif
 
 } OGLwin;
@@ -174,6 +179,10 @@ static int	OGLwinWidgetCmd (ClientData clientData,
 
 
 static void 	OGLwinRedraw (ClientData clientData);
+
+#ifdef CGNS_ENABLE_BGFX
+static void     BgfxRenderLoop (ClientData clientData);
+#endif
 
 int             OGLwinCmd(ClientData, Tcl_Interp*, int, char**);
 
@@ -288,10 +297,13 @@ EXPORT(int,Tkogl_Init)(Tcl_Interp* interp)
 
 
 #else
+#ifndef CGNS_ENABLE_BGFX
     /*** make sure OpenGL's GLX extension supported ***/
+    /* Skip this check in bgfx mode - bgfx doesn't require GLX */
     if (!glXQueryExtension(Tk_Display(topLevel), NULL, NULL)) {
        ERRMSG ("X server has no OpenGL GLX extension");
     }
+#endif
 #endif
 
     /*** Initialize the GL function parse tables ***/
@@ -495,9 +507,16 @@ OGLwinCmd(clientData, interp, argc, argv)
 
 #ifndef __WIN32__
     Colormap cmap;
+#ifdef CGNS_ENABLE_BGFX
+    /* In bgfx mode, don't need XVisualInfo */
+#else
     XVisualInfo *vi;
     int configuration [50], *confPtr;
 #endif
+#endif
+
+    printf("DEBUG: OGLwinCmd - entry\n");
+    fflush(stdout);
 
     if (argc < 2) {
     	Tcl_AppendResult(interp, "wrong # args:  should be \"",
@@ -505,10 +524,14 @@ OGLwinCmd(clientData, interp, argc, argv)
     	return TCL_ERROR;
     }
 
+    printf("DEBUG: OGLwinCmd - calling Tk_CreateWindowFromPath\n");
+    fflush(stdout);
     tkwin = Tk_CreateWindowFromPath(interp, mainwin, argv[1], (char *) NULL);
     if (tkwin == NULL) {
        ERRMSG ("Could not create window");
     }
+    printf("DEBUG: OGLwinCmd - Tk_CreateWindowFromPath succeeded\n");
+    fflush(stdout);
 
 
     /*
@@ -551,10 +574,14 @@ OGLwinCmd(clientData, interp, argc, argv)
         (Tcl_CmdDeleteProc *)0);
 
 
+    printf("DEBUG: OGLwinCmd - calling OGLwinConfigure\n");
+    fflush(stdout);
     if (OGLwinConfigure(interp, glxwinPtr, argc-2, argv+2, 0) != TCL_OK) {
     	Tk_DestroyWindow(glxwinPtr->tkwin);
 	    return TCL_ERROR;
     }
+    printf("DEBUG: OGLwinCmd - OGLwinConfigure succeeded\n");
+    fflush(stdout);
 
 #ifdef __WIN32__
     if (WinMakeWindowExist (glxwinPtr) != TCL_OK) {
@@ -562,6 +589,30 @@ OGLwinCmd(clientData, interp, argc, argv)
     	return TCL_ERROR;
     }
 
+#else
+#ifdef CGNS_ENABLE_BGFX
+    /*
+     * In bgfx mode, use default X11 visual (NOT GLX visual)
+     * bgfx uses EGL internally which works with regular X11 visuals
+     * bgfx will create its own EGL context - we don't create any GL context
+     */
+    printf("DEBUG: bgfx mode - setting up default X11 visual (EGL-compatible)\n");
+    {
+        /* Use default X11 visual - bgfx EGL backend will handle GL context */
+        Visual *visual = DefaultVisual(glxwinPtr->display, DefaultScreen(glxwinPtr->display));
+        int depth = DefaultDepth(glxwinPtr->display, DefaultScreen(glxwinPtr->display));
+        cmap = DefaultColormap(glxwinPtr->display, DefaultScreen(glxwinPtr->display));
+
+        printf("DEBUG: Using default visual - depth=%d\n", depth);
+
+        Tk_SetWindowVisual(tkwin, visual, depth, cmap);
+        Tk_SetWindowColormap(tkwin, cmap);
+
+        /* No GLX context - bgfx will create EGL context */
+        glxwinPtr->cx = NULL;
+        printf("DEBUG: No GLX context created - bgfx will use EGL\n");
+    }
+    printf("DEBUG: visual setup complete (EGL-ready)\n");
 #else
     /*
      * For OpenGL under X we may allocate the OpenGL X context and
@@ -634,7 +685,13 @@ OGLwinCmd(clientData, interp, argc, argv)
 	(Tk_Colormap(tkwin) != Tk_Colormap (Tk_Parent(tkwin)))) {
        TkWmAddToColormapWindows((TkWindow *)tkwin);
     }
+#endif
 
+#ifdef CGNS_ENABLE_BGFX
+    /* GLX context already created above - just init bgfx tracking */
+    glxwinPtr->bgfx_render_ctx = NULL;  /* Will be initialized after window is mapped */
+#else
+    /* Standard OpenGL mode - create OpenGL context */
     /* See if this window will share display lists with another */
     if (glxwinPtr->context != NULL) {
         Tcl_CmdInfo info;
@@ -661,38 +718,41 @@ OGLwinCmd(clientData, interp, argc, argv)
         Tk_DestroyWindow(glxwinPtr->tkwin);
         return TCL_ERROR;
     }
-
-#ifdef CGNS_ENABLE_BGFX
-    /* Initialize bgfx with window handle for GPU rendering */
-    {
-        cgns_platform_data_t platform_data;
-        platform_data.display = (void*)Tk_Display(tkwin);
-        platform_data.window = (void*)(uintptr_t)Tk_WindowId(tkwin);
-
-        glxwinPtr->bgfx_render_ctx = (void*)cgns_render_initialize(&platform_data);
-
-        if (glxwinPtr->bgfx_render_ctx == NULL) {
-            fprintf(stderr, "Warning: bgfx initialization failed, using OpenGL fallback\n");
-        } else {
-            printf("bgfx initialized with window handle - GPU rendering enabled\n");
-            /* Set the render context for cgnstcl wrapper functions */
-            cgnstcl_set_render_context((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
-        }
-    }
 #endif
 
     Tk_MapWindow (tkwin);
 
+#ifndef CGNS_ENABLE_BGFX
+    /* Only set colormap windows in OpenGL mode (with custom GLX colormap) */
+    /* In bgfx mode, we use default colormap and don't need colormap windows */
     XSetWMColormapWindows(glxwinPtr->display,
 			  Tk_WindowId(tkwin),
 			  &(Tk_WindowId(tkwin)), 1 );
+#endif
 
 #endif
+#ifdef CGNS_ENABLE_BGFX
+    /* Don't initialize bgfx yet - wait for first Expose event when window is fully realized */
+    glxwinPtr->bgfx_needs_init = 1;
+    glxwinPtr->bgfx_render_ctx = NULL;
+    glxwinPtr->render_timer = NULL;
+    glxwinPtr->view_transform_set = 0;
+#else
+    /* Only make OpenGL context current in OpenGL mode */
     MakeCurrent(glxwinPtr);
+#endif
+    printf("DEBUG: OGLwinCmd - calling OGLwinViewport\n");
+    fflush(stdout);
     OGLwinViewport (glxwinPtr);
+    printf("DEBUG: OGLwinCmd - calling ARRANGE_REDRAW\n");
+    fflush(stdout);
     ARRANGE_REDRAW(glxwinPtr);
+    printf("DEBUG: OGLwinCmd - calling GetAbsXY\n");
+    fflush(stdout);
     GetAbsXY (glxwinPtr);
 
+    printf("DEBUG: OGLwinCmd - returning TCL_OK\n");
+    fflush(stdout);
     Tcl_SetResult(interp, Tk_PathName(glxwinPtr->tkwin), TCL_VOLATILE);
     return TCL_OK;
 }
@@ -749,7 +809,10 @@ MakeCurrent (OGLwin* oglwinPtr)
    if (oglwinPtr == NULL) return;
    previous = oglwinPtr;
 
-#ifdef __WIN32__
+#ifdef CGNS_ENABLE_BGFX
+    /* In bgfx mode, context is managed by bgfx - no need to make current */
+    return;
+#elif defined(__WIN32__)
     wglMakeCurrent (oglwinPtr->hdc, oglwinPtr->hrc);
 #else
     glXMakeCurrent(oglwinPtr->display, Tk_WindowId(oglwinPtr->tkwin),
@@ -776,9 +839,12 @@ OGLwinRedraw (clientData)
    OGLwin *glxwinPtr = (OGLwin *) clientData;
    Tk_Window tkwin = glxwinPtr->tkwin;
 
+   printf("DEBUG: OGLwinRedraw called\n");
+
    glxwinPtr->updatePending = 0;
 
    if (tkwin == NULL || !Tk_IsMapped(tkwin)) {
+      printf("DEBUG: OGLwinRedraw - window not mapped, returning\n");
       return;
    }
 
@@ -800,6 +866,12 @@ OGLwinRedraw (clientData)
     }
 
 #else
+#ifdef CGNS_ENABLE_BGFX
+   /* In bgfx mode, rendering is handled by the timer-driven BgfxRenderLoop */
+   /* OGLwinRedraw is only called by ARRANGE_REDRAW, we can just return */
+   printf("DEBUG: OGLwinRedraw - bgfx mode, rendering handled by timer loop\n");
+   return;
+#else
    MakeCurrent(glxwinPtr);
 
    if (glxwinPtr->redrawList != -1) {
@@ -816,9 +888,92 @@ OGLwinRedraw (clientData)
       /* explicit flush for single buffered case */
    }
 #endif
+#endif
 }
 
+#ifdef CGNS_ENABLE_BGFX
+/*
+ *----------------------------------------------------------------------
+ *
+ * BgfxRenderLoop --
+ *
+ *     Timer-driven render loop for bgfx. This function is called
+ *     periodically by Tcl's event loop to drive bgfx rendering.
+ *     It sets up view transform (once), renders the display list,
+ *     advances the frame, and reschedules itself.
+ *
+ *----------------------------------------------------------------------
+ */
+static void
+BgfxRenderLoop(ClientData clientData)
+{
+    OGLwin *glxwinPtr = (OGLwin *) clientData;
 
+    if (!glxwinPtr->bgfx_render_ctx || glxwinPtr->tkwin == NULL) {
+        return;  /* Widget destroyed or context not ready */
+    }
+
+    /* Set view transform EVERY frame to handle window resizes and ensure correct aspect ratio */
+    float view[16];
+    float proj[16];
+
+    /* Simple lookAt view matrix: camera at (0, 0, 2) looking at origin
+     * This is a translation matrix: T(0, 0, -2) - closer to see small axes */
+    view[0] = 1.0f; view[4] = 0.0f; view[8]  = 0.0f; view[12] = 0.0f;
+    view[1] = 0.0f; view[5] = 1.0f; view[9]  = 0.0f; view[13] = 0.0f;
+    view[2] = 0.0f; view[6] = 0.0f; view[10] = 1.0f; view[14] = -2.0f;  /* Camera closer */
+    view[3] = 0.0f; view[7] = 0.0f; view[11] = 0.0f; view[15] = 1.0f;
+
+    /* Perspective projection matrix (FOV=60deg, aspect from CURRENT window size, near=0.01, far=1000.0) */
+    float fov = 60.0f * 3.14159f / 180.0f;  /* Convert to radians - wider FOV */
+    float width = (float)Tk_Width(glxwinPtr->tkwin);
+    float height = (float)Tk_Height(glxwinPtr->tkwin);
+    float aspect = (height > 0.0f) ? (width / height) : 1.0f;  /* Current window aspect ratio */
+    float znear = 0.01f;    /* Very close near plane */
+    float zfar = 1000.0f;   /* Far enough for large CGNS meshes */
+
+    float f = 1.0f / tanf(fov / 2.0f);
+
+    proj[0] = f / aspect; proj[4] = 0.0f; proj[8]  = 0.0f;                           proj[12] = 0.0f;
+    proj[1] = 0.0f;       proj[5] = f;    proj[9]  = 0.0f;                           proj[13] = 0.0f;
+    proj[2] = 0.0f;       proj[6] = 0.0f; proj[10] = (zfar + znear) / (znear - zfar); proj[14] = (2.0f * zfar * znear) / (znear - zfar);
+    proj[3] = 0.0f;       proj[7] = 0.0f; proj[11] = -1.0f;                          proj[15] = 0.0f;
+
+    bgfx_set_view_transform(0, view, proj);
+
+    /* Set view rect (in case window was resized) */
+    bgfx_set_view_rect(0, 0, 0,
+                       (uint16_t)Tk_Width(glxwinPtr->tkwin),
+                       (uint16_t)Tk_Height(glxwinPtr->tkwin));
+
+    /* Black background: bgfx uses RGBA format = 0xRRGGBBAA */
+    bgfx_set_view_clear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH,
+                       0x000000FF, 1.0f, 0);
+
+    /* Verify context is still valid before rendering */
+    if (!glxwinPtr->bgfx_render_ctx) {
+        printf("ERROR: bgfx context became NULL in render loop!\n");
+        fflush(stdout);
+        return;  /* Don't reschedule */
+    }
+
+    /* Begin frame */
+    cgns_render_begin_frame((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+
+    /* Render display list if one is set */
+    if (glxwinPtr->redrawList != -1) {
+        cgns_render_call_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx,
+                             glxwinPtr->redrawList);
+    }
+
+    /* End frame and present */
+    cgns_render_end_frame((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+
+    /* Reschedule for next frame (~60fps) */
+    glxwinPtr->render_timer = Tcl_CreateTimerHandler(16, BgfxRenderLoop,
+                                                      (ClientData)glxwinPtr);
+}
+#endif
 
 /*
  *----------------------------------------------------------------------
@@ -833,7 +988,13 @@ UnusedDList ()
 {
    /* Returns an integer number corresponding to a free display list
     */
+#ifdef CGNS_ENABLE_BGFX
+   /* In bgfx mode, use a simple counter since there's no real OpenGL context */
+   static unsigned int next_list_id = 1;
+   return next_list_id++;
+#else
    return glGenLists (1);
+#endif
 }
 
 static int
@@ -1021,12 +1182,36 @@ OGLwinWidgetCmd(clientData, interp, argc, argv)
         }
         argc -= 2;
         argv += 2;
+#ifdef CGNS_ENABLE_BGFX
+        if (glxwinPtr->bgfx_render_ctx) {
+            cgns_render_new_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx, glxwinPtr->redrawList);
+        } else
+#endif
         glNewList (glxwinPtr->redrawList, GL_COMPILE);
         while (result == TCL_OK && argc > 0) {
+#ifdef CGNS_ENABLE_BGFX
+            /* In bgfx mode, intercept -call arguments to trigger deferred inlining */
+            if (glxwinPtr->bgfx_render_ctx && argc >= 2 &&
+                strcmp(argv[0], "-call") == 0) {
+                int call_list_id;
+                if (Tcl_GetInt(interp, argv[1], &call_list_id) == TCL_OK) {
+                    cgns_render_call_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx, (unsigned int)call_list_id);
+                    narg = 2;
+                    argc -= narg;
+                    argv += narg;
+                    continue;
+                }
+            }
+#endif
 	        result = ParseGLFunc (interp, argc, argv, &narg);
 	        argc -= narg;
 	        argv += narg;
         }
+#ifdef CGNS_ENABLE_BGFX
+        if (glxwinPtr->bgfx_render_ctx) {
+            cgns_render_end_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+        } else
+#endif
         glEndList();
         ARRANGE_REDRAW (glxwinPtr);
    }
@@ -1044,12 +1229,36 @@ OGLwinWidgetCmd(clientData, interp, argc, argv)
 	        argc -= 2;
 	        argv += 2;
         }
+#ifdef CGNS_ENABLE_BGFX
+        if (glxwinPtr->bgfx_render_ctx) {
+            cgns_render_new_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx, newlist);
+        } else
+#endif
         glNewList (newlist, GL_COMPILE);
         while (result == TCL_OK && argc > 0) {
+#ifdef CGNS_ENABLE_BGFX
+            /* In bgfx mode, intercept -call arguments to trigger deferred inlining */
+            if (glxwinPtr->bgfx_render_ctx && argc >= 2 &&
+                strcmp(argv[0], "-call") == 0) {
+                int call_list_id;
+                if (Tcl_GetInt(interp, argv[1], &call_list_id) == TCL_OK) {
+                    cgns_render_call_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx, (unsigned int)call_list_id);
+                    narg = 2;
+                    argc -= narg;
+                    argv += narg;
+                    continue;
+                }
+            }
+#endif
 	        result = ParseGLFunc (interp, argc, argv, &narg);
 	        argc -= narg;
 	        argv += narg;
         }
+#ifdef CGNS_ENABLE_BGFX
+        if (glxwinPtr->bgfx_render_ctx) {
+            cgns_render_end_list((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+        } else
+#endif
         glEndList();
         if (result == TCL_OK) {
 	  char tmp[128];
@@ -1061,6 +1270,12 @@ OGLwinWidgetCmd(clientData, interp, argc, argv)
       /* sends the gl commands directly */
       int narg;
       MAPWINDOW;
+#ifdef CGNS_ENABLE_BGFX
+      /* In bgfx mode, begin frame before rendering commands */
+      if (glxwinPtr->bgfx_render_ctx) {
+          cgns_render_begin_frame((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+      }
+#endif
       argc -= 2;
       argv += 2;
       while (result == TCL_OK && argc > 0) {
@@ -1068,6 +1283,12 @@ OGLwinWidgetCmd(clientData, interp, argc, argv)
 	      argc -= narg;
 	      argv += narg;
       }
+#ifdef CGNS_ENABLE_BGFX
+      /* In bgfx mode, end frame after rendering commands */
+      if (glxwinPtr->bgfx_render_ctx) {
+          cgns_render_end_frame((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+      } else
+#endif
       glFlush ();
    }
    else if ((c == 's') && (strncmp(argv[1], "select", length) == 0)) {
@@ -1212,10 +1433,17 @@ OGLwinConfigure(interp, glxwinPtr, argc, argv, flags)
     int flags;				/* Flags to pass to
 					 * Tk_ConfigureWidget. */
 {
+    printf("DEBUG: OGLwinConfigure - entry, argc=%d\n", argc);
+    fflush(stdout);
+    /* Note: Removed TK_CONFIG_OBJS flag as it might be causing issues */
     if (Tk_ConfigureWidget(interp, glxwinPtr->tkwin, configSpecs,
-	    argc, (void *)argv, (char *) glxwinPtr, flags|TK_CONFIG_OBJS) != TCL_OK) {
+	    argc, (void *)argv, (char *) glxwinPtr, flags) != TCL_OK) {
+	printf("DEBUG: OGLwinConfigure - Tk_ConfigureWidget FAILED\n");
+	fflush(stdout);
 	return TCL_ERROR;
     }
+    printf("DEBUG: OGLwinConfigure - Tk_ConfigureWidget succeeded\n");
+    fflush(stdout);
 
     /*
      * Register the desired geometry for the window.  Then arrange for
@@ -1282,6 +1510,39 @@ OGLwinEventProc(clientData, eventPtr)
     }
 #else
     if (eventPtr->type == Expose) {
+#ifdef CGNS_ENABLE_BGFX
+       /* Initialize bgfx on first Expose event when window is fully realized */
+       if (glxwinPtr->bgfx_needs_init) {
+           cgns_platform_data_t platform_data;
+           platform_data.display = (void*)Tk_Display(glxwinPtr->tkwin);
+           platform_data.window = (void*)(uintptr_t)Tk_WindowId(glxwinPtr->tkwin);
+
+           glxwinPtr->bgfx_render_ctx = (void*)cgns_render_initialize(&platform_data);
+
+           printf("DEBUG: tkogl - After cgns_render_initialize, ctx=%p\n", glxwinPtr->bgfx_render_ctx);
+           fflush(stdout);
+
+           if (glxwinPtr->bgfx_render_ctx == NULL) {
+               fprintf(stderr, "bgfx: Failed to initialize renderer\n");
+               glxwinPtr->bgfx_needs_init = 0; /* Don't try again */
+           } else {
+               /* Set the render context for cgnstcl wrapper functions */
+               printf("DEBUG: tkogl - About to call cgnstcl_set_render_context\n");
+               fflush(stdout);
+               cgnstcl_set_render_context((cgns_render_context_t*)glxwinPtr->bgfx_render_ctx);
+               printf("DEBUG: tkogl - After cgnstcl_set_render_context\n");
+               fflush(stdout);
+               glxwinPtr->bgfx_needs_init = 0; /* Initialization complete */
+               glxwinPtr->view_transform_set = 0;  /* Will be set in render loop */
+
+               /* Start the timer-based render loop (16ms = ~60fps) */
+               printf("DEBUG: tkogl - Starting bgfx render timer loop\n");
+               fflush(stdout);
+               glxwinPtr->render_timer = Tcl_CreateTimerHandler(16, BgfxRenderLoop,
+                                                                 (ClientData)glxwinPtr);
+           }
+       }
+#endif
        ARRANGE_REDRAW(glxwinPtr);
     }
     else if (eventPtr->type == ConfigureNotify) {
@@ -1327,6 +1588,12 @@ OGLwinDestroy(void* clientData)
     OGLwin *glxwinPtr = (OGLwin *) clientData;
 
 #ifdef CGNS_ENABLE_BGFX
+    /* Cancel the render timer if it's active */
+    if (glxwinPtr->render_timer != NULL) {
+        Tcl_DeleteTimerHandler(glxwinPtr->render_timer);
+        glxwinPtr->render_timer = NULL;
+    }
+
     /* Shutdown bgfx context if it was initialized */
     if (glxwinPtr->bgfx_render_ctx != NULL) {
         /* Clear the render context in cgnstcl first */
