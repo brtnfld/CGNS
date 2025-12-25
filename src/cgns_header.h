@@ -1045,6 +1045,10 @@ typedef struct {
     char *filename;         /* name of file                         */
     int filetype;           /* type of file                         */
     int version;            /* version of the CGNS file * 1000      */
+    int effective_version;  /* Version based on actual features used */
+    int min_read_version;   /* Minimum version we'll accept (user-set) */
+    int max_read_version;   /* Maximum version we'll accept (user-set) */
+    int write_version;      /* Version to write (CG_LIBVER_AUTO or specific) */
     int cgio;               /* index of I/O control                 */
     double rootid;          /* root ID of file                      */
     int mode;               /* reading or writing                   */
@@ -1417,6 +1421,11 @@ void cgi_array_print(char *routine, cgns_array *array);
 
 cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
 			       cgsize_t nelems, const cgsize_t *connect, const cgsize_t *connect_offset);
+
+/* version bounds feature detection */
+CGNSDLL int cgi_calculate_min_version(cgns_file *file);
+CGNSDLL int cgi_check_version_limit(cgns_file *file, int limit_version);
+CGNSDLL int cgi_require_version(cgns_file *file, int required_version);
 
 /* free memory */
 void cgi_free_file(cgns_file *cg);

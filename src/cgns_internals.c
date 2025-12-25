@@ -17888,6 +17888,292 @@ int cgi_AverageInterfaceType(char *Name, CGNS_ENUMT(AverageInterfaceType_t) *typ
     return CG_ERROR;
 }
 
+/***********************************************************************\
+ *          Version Bounds Feature Detection System                    *
+\***********************************************************************/
+
+/* Forward declarations for detector functions */
+static int detect_extended_elements(cgns_base *base);
+static int detect_reordered_elements(cgns_base *base);
+static int detect_ngon_v32_format(cgns_base *base);
+static int detect_element_start_offset(cgns_base *base);
+static int detect_particle_zones(cgns_base *base);
+static int detect_particle_coordinates(cgns_base *base);
+static int detect_particle_solutions(cgns_base *base);
+static int detect_element_interpolation(cgns_base *base);
+static int detect_solution_interpolation(cgns_base *base);
+
+typedef struct {
+    const char *feature_name;
+    int min_version;
+    int (*detector)(cgns_base *base);  /* Function to detect feature usage */
+} cgns_feature_version;
+
+static const cgns_feature_version feature_table[] = {
+    /* CGNS 3.0 features */
+    {"Extended_ElementTypes", 3000, detect_extended_elements},
+
+    /* CGNS 3.1 features */
+    {"Reordered_ElementTypes", 3100, detect_reordered_elements},
+
+    /* CGNS 3.2 features */
+    {"NGON_NFACE_V32", 3200, detect_ngon_v32_format},
+
+    /* CGNS 4.0 features */
+    {"ElementStartOffset", 4000, detect_element_start_offset},
+
+    /* CGNS 4.5 features */
+    {"ParticleZone_t", 4500, detect_particle_zones},
+    {"ParticleCoordinates_t", 4500, detect_particle_coordinates},
+    {"ParticleSolution_t", 4500, detect_particle_solutions},
+
+    /* CGNS 5.0 features */
+    {"ElementInterpolation_t", 5000, detect_element_interpolation},
+    {"SolutionInterpolation_t", 5000, detect_solution_interpolation},
+
+    {NULL, 0, NULL}
+};
+
+/* Detect CGNS 3.0+ extended element types */
+static int detect_extended_elements(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            CGNS_ENUMT(ElementType_t) type = section->el_type;
+
+            /* CGNS 3.0 introduced higher-order elements:
+             * TETRA_10, PYRA_14, PENTA_15, PENTA_18, HEXA_20, HEXA_27 */
+            if (type == CGNS_ENUMV(TETRA_10) ||
+                type == CGNS_ENUMV(PYRA_14) ||
+                type == CGNS_ENUMV(PENTA_15) ||
+                type == CGNS_ENUMV(PENTA_18) ||
+                type == CGNS_ENUMV(HEXA_20) ||
+                type == CGNS_ENUMV(HEXA_27)) {
+                return 1;
+            }
+
+            /* Also check for elements beyond HEXA_27 (v3.0+)
+             * Exclude MIXED (v2.x), PYRA_13 (v3.1), and NGON_n/NFACE_n (v3.2) */
+            if (type > CGNS_ENUMV(HEXA_27) &&
+                type != CGNS_ENUMV(MIXED) &&
+                type != CGNS_ENUMV(PYRA_13) &&
+                type < CGNS_ENUMV(NGON_n)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 3.1+ reordered element types */
+static int detect_reordered_elements(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            CGNS_ENUMT(ElementType_t) type = section->el_type;
+
+            /* These types were reordered in CGNS 3.1 */
+            if (type == CGNS_ENUMV(PYRA_13) || type == CGNS_ENUMV(PYRA_14) ||
+                type == CGNS_ENUMV(PENTA_15) || type == CGNS_ENUMV(PENTA_18) ||
+                type == CGNS_ENUMV(HEXA_20)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 3.2+ NGON/NFACE format */
+static int detect_ngon_v32_format(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            CGNS_ENUMT(ElementType_t) type = section->el_type;
+
+            /* NGON_n/NFACE_n indicates CGNS 3.2+ format */
+            if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 4.0+ ElementStartOffset usage */
+static int detect_element_start_offset(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            if (section->connect_offset != NULL) {
+                return 1;  /* ElementStartOffset present */
+            }
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 4.5+ particle zones */
+static int detect_particle_zones(cgns_base *base) {
+    return (base->npzones > 0);
+}
+
+/* Detect CGNS 4.5+ particle coordinates */
+static int detect_particle_coordinates(cgns_base *base) {
+    for (int np = 0; np < base->npzones; np++) {
+        cgns_pzone *pzone = &base->pzone[np];
+        if (pzone->npcoor > 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 4.5+ particle solutions */
+static int detect_particle_solutions(cgns_base *base) {
+    for (int np = 0; np < base->npzones; np++) {
+        cgns_pzone *pzone = &base->pzone[np];
+        if (pzone->nsols > 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 5.0+ high-order element interpolation */
+static int detect_element_interpolation(cgns_base *base) {
+    /* NOTE: ElementInterpolation_t not yet implemented in CGNS structures
+     * Return 0 for now until CPEX 0045 is fully implemented */
+    (void)base;  /* Suppress unused parameter warning */
+    return 0;
+}
+
+/* Detect CGNS 5.0+ solution interpolation */
+static int detect_solution_interpolation(cgns_base *base) {
+    /* NOTE: SolutionInterpolation_t not yet implemented in CGNS structures
+     * Return 0 for now until CPEX 0045 is fully implemented */
+    (void)base;  /* Suppress unused parameter warning */
+    return 0;
+}
+
+/* Calculate minimum CGNS version required for file content */
+int cgi_calculate_min_version(cgns_file *file) {
+    int min_version = CG_LIBVER_EARLIEST;
+
+    for (int nb = 0; nb < file->nbases; nb++) {
+        cgns_base *base = &file->base[nb];
+
+        /* Check each feature in the table */
+        for (int i = 0; feature_table[i].feature_name != NULL; i++) {
+            if (feature_table[i].detector(base)) {
+                if (feature_table[i].min_version > min_version) {
+                    min_version = feature_table[i].min_version;
+                }
+            }
+        }
+    }
+
+    return min_version;
+}
+
+/* Performance-optimized version checker with short-circuiting
+ * Returns 1 if file requires version > limit_version, 0 otherwise
+ * Stops immediately when a violating feature is detected (short-circuit)
+ */
+int cgi_check_version_limit(cgns_file *file, int limit_version) {
+    for (int nb = 0; nb < file->nbases; nb++) {
+        cgns_base *base = &file->base[nb];
+
+        /* Check features in reverse order (newest first) for faster rejection */
+        for (int i = 0; feature_table[i].feature_name != NULL; i++) {
+            /* Skip features that don't violate the limit */
+            if (feature_table[i].min_version <= limit_version) {
+                continue;
+            }
+
+            /* Check if this version-violating feature is present */
+            if (feature_table[i].detector(base)) {
+                /* Short-circuit: found a feature that exceeds limit */
+                return 1;
+            }
+        }
+    }
+
+    /* No violating features found */
+    return 0;
+}
+
+/**
+ * \brief Require a minimum CGNS version for a write operation
+ * \param[in] file  Pointer to cgns_file structure
+ * \param[in] required_version  Minimum version required (encoded as MAJOR*1000 + MINOR*10)
+ * \return CG_OK on success, CG_ERROR if version requirement cannot be met
+ *
+ * This function ensures that a file's version is at least the required version.
+ * In AUTO mode, it automatically upgrades the version if needed.
+ * In explicit version mode, it returns an error if the required version exceeds
+ * the configured write version.
+ *
+ * This should be called before writing any version-specific feature.
+ */
+int cgi_require_version(cgns_file *file, int required_version) {
+    int nnod;
+    double *id;
+    float FileVersion;
+    cgsize_t dim_vals = 1;
+
+    /* Only relevant for write/modify modes */
+    if (file->mode != CG_MODE_WRITE && file->mode != CG_MODE_MODIFY) {
+        return CG_OK;
+    }
+
+    /* Check if upgrade is needed */
+    if (required_version <= file->effective_version) {
+        return CG_OK;  /* Already at or above required version */
+    }
+
+    /* Handle version upgrade based on write_version mode */
+    if (file->write_version == CG_LIBVER_AUTO) {
+        /* AUTO mode: Automatically upgrade to required version */
+        file->effective_version = required_version;
+        file->version = required_version;
+
+        /* Update the CGNSLibraryVersion node in the file */
+        FileVersion = (float)(required_version / 1000.0);
+
+        if (cgi_get_nodes(file->rootid, "CGNSLibraryVersion_t", &nnod, &id))
+            return CG_ERROR;
+
+        if (nnod > 0) {
+            if (cgio_write_all_data(file->cgio, id[0], &FileVersion)) {
+                free(id);
+                cg_io_error("cgio_write_all_data");
+                return CG_ERROR;
+            }
+            free(id);
+        } else {
+            /* Node doesn't exist - create it */
+            double dummy_id;
+            if (cgi_new_node(file->rootid, "CGNSLibraryVersion",
+                "CGNSLibraryVersion_t", &dummy_id, "R4", 1, &dim_vals,
+                (void *)&FileVersion)) {
+                return CG_ERROR;
+            }
+        }
+    } else {
+        /* Explicit version mode: Error if required version exceeds configured version */
+        cgi_error("Feature requires CGNS version %.2f but file is configured for %.2f. "
+            "Use cg_set_write_version(CG_LIBVER_AUTO) or specify higher version.",
+            required_version / 1000.0, file->write_version / 1000.0);
+        return CG_ERROR;
+    }
+
+    return CG_OK;
+}
+
 void cgi_array_print(char *routine, cgns_array *array)
 {
     int n;

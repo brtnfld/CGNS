@@ -223,6 +223,40 @@ MODULE cgns
 !DEC$endif
 
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
+!*     Version constants (found in cgnslib.h)                          *
+!* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
+! Version encoding: MAJOR * 1000 + MINOR * 10
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_EARLIEST = 1050  ! CGNS 1.05
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V12      = 1200
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V20      = 2000
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V25      = 2540  ! ADF2 compatible
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V30      = 3000
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V31      = 3100
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V32      = 3200
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V34      = 3400
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V40      = 4000
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V45      = 4500  ! Particles
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V50      = 5000  ! High-order
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_LATEST   = 5000
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_AUTO     = -1
+
+!DEC$if defined(BUILD_CGNS_DLL)
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_EARLIEST
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V12
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V20
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V25
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V30
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V31
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V32
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V34
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V40
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V45
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V50
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_LATEST
+!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_AUTO
+!DEC$endif
+
+!* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 !*     Configuration options (found in cgnslib.h)                      *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_ERROR      = 1
@@ -231,6 +265,10 @@ MODULE cgns
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_ADD_PATH   = 4
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_FILE_TYPE  = 5
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_RIND_INDEX = 6
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_SET_VERSION_BOUNDS = 10
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_VERSION_BOUNDS = 11
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_WRITE_VERSION      = 12
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_WRITE_VERSION  = 13
 
 ! Fortran length of names for variables is limited to 31 characters
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_HDF5_COMPRESS         = 201
@@ -259,6 +297,10 @@ MODULE cgns
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_ADD_PATH
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_FILE_TYPE
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_RIND_INDEX
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_SET_VERSION_BOUNDS
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_VERSION_BOUNDS
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_WRITE_VERSION
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_WRITE_VERSION
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_COMPRESS
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_MPI_COMM
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_DISKLESS
@@ -8952,6 +8994,57 @@ CONTAINS
     END SUBROUTINE cgp_poly_elements_read_data_elements_f
 
 #endif
+
+! *** Version Bounds API (Minimal Design) ***
+! This API provides two essential functions:
+! 1. cg_set_version_bounds_f() - Set read/write version compatibility range
+! 2. cg_get_file_min_version_f() - Analyze file features for minimum version
+!
+! For advanced control (rare use cases), use cg_configure_f() with:
+! - CG_CONFIG_GET_VERSION_BOUNDS - Get current bounds
+! - CG_CONFIG_WRITE_VERSION - Force specific write version
+! - CG_CONFIG_GET_WRITE_VERSION - Get write version setting
+
+  SUBROUTINE cg_set_version_bounds_f(low_bound, high_bound, ier)
+    INTEGER, INTENT(IN) :: low_bound
+    INTEGER, INTENT(IN) :: high_bound
+    INTEGER, INTENT(OUT) :: ier
+
+    INTERFACE
+      INTEGER(C_INT) FUNCTION cg_set_version_bounds(low_bound, high_bound) &
+           BIND(C, NAME="cg_set_version_bounds")
+        IMPORT :: C_INT
+        IMPLICIT NONE
+        INTEGER(C_INT), VALUE :: low_bound
+        INTEGER(C_INT), VALUE :: high_bound
+      END FUNCTION cg_set_version_bounds
+    END INTERFACE
+
+    ier = INT(cg_set_version_bounds(INT(low_bound, C_INT), INT(high_bound, C_INT)))
+
+  END SUBROUTINE cg_set_version_bounds_f
+
+  SUBROUTINE cg_get_file_min_version_f(fn, min_version, ier)
+    INTEGER, INTENT(IN) :: fn
+    INTEGER, INTENT(OUT) :: min_version
+    INTEGER, INTENT(OUT) :: ier
+
+    INTEGER(C_INT), TARGET :: c_min_version
+
+    INTERFACE
+      INTEGER(C_INT) FUNCTION cg_get_file_min_version(fn, min_version) &
+           BIND(C, NAME="cg_get_file_min_version")
+        IMPORT :: C_INT, C_PTR
+        IMPLICIT NONE
+        INTEGER(C_INT), VALUE :: fn
+        TYPE(C_PTR), VALUE :: min_version
+      END FUNCTION cg_get_file_min_version
+    END INTERFACE
+
+    ier = INT(cg_get_file_min_version(INT(fn, C_INT), C_LOC(c_min_version)))
+    min_version = INT(c_min_version)
+
+  END SUBROUTINE cg_get_file_min_version_f
 
 
 END MODULE cgns

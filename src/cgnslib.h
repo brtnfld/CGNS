@@ -215,6 +215,41 @@
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Set version bounds for file compatibility. The `value` parameter should be a pointer
+ * to an integer array of size 2: `int bounds[2] = {low_bound, high_bound}` where low_bound
+ * and high_bound are `CG_LIBVER_*` constants. This controls which CGNS versions are accepted
+ * when reading files and which features are allowed when writing. Files are validated based
+ * on actual feature usage, not just version numbers. Similar to HDF5's `H5Pset_libver_bounds()`.
+ */
+#define CG_CONFIG_SET_VERSION_BOUNDS    10
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Get current version bounds. The `value` parameter should be a pointer to an integer
+ * array of size 2 where the bounds will be stored: `int bounds[2]`. After the call,
+ * `bounds[0]` contains the low bound and `bounds[1]` contains the high bound.
+ */
+#define CG_CONFIG_GET_VERSION_BOUNDS    11
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Set the version number to write in new/modified files. The `value` parameter should
+ * be a `CG_LIBVER_*` constant or `CG_LIBVER_AUTO`. When set to `CG_LIBVER_AUTO` (default),
+ * the library automatically selects the minimum version based on features used, ensuring
+ * maximum compatibility. When set to a specific version, the file is labeled with that version
+ * and attempts to write incompatible features will produce errors.
+ */
+#define CG_CONFIG_WRITE_VERSION         12
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Get the version number that will be written to files. The `value` parameter should
+ * be a pointer to an integer where the write version will be stored.
+ */
+#define CG_CONFIG_GET_WRITE_VERSION     13
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
  * \brief Sets the  compression level for data written from HDF5. The default is no compression.
  * Setting `value` to -1 will use the   default  compression  level of  6. The acceptable
  * values are 0 to 9, corresponding to gzip compression levels. **This option currently
@@ -316,6 +351,31 @@
  *       the option only for backwards compatibility */
 #define CG_CONFIG_RIND_ZERO (void*)0
 #define CG_CONFIG_RIND_CORE (void*)1
+
+/* Version constants for bounds (similar to HDF5's H5F_LIBVER_*)
+ *
+ * VERSION ENCODING: MAJOR * 1000 + MINOR * 10
+ * Examples:
+ *   - CGNS 2.54 -> 2 * 1000 + 54 * 10 = 2540
+ *   - CGNS 5.0  -> 5 * 1000 + 0 * 10  = 5000
+ *
+ * This encoding allows integer comparison: version_a > version_b
+ */
+#define CG_LIBVER_EARLIEST   1050   /* CGNS 1.05 - earliest supported */
+#define CG_LIBVER_V12        1200   /* CGNS 1.2 */
+#define CG_LIBVER_V20        2000   /* CGNS 2.0 */
+#define CG_LIBVER_V25        2540   /* CGNS 2.54 - ADF2 compatible */
+#define CG_LIBVER_V30        3000   /* CGNS 3.0 */
+#define CG_LIBVER_V31        3100   /* CGNS 3.1 */
+#define CG_LIBVER_V32        3200   /* CGNS 3.2 */
+#define CG_LIBVER_V34        3400   /* CGNS 3.4 */
+#define CG_LIBVER_V40        4000   /* CGNS 4.0 */
+#define CG_LIBVER_V45        4500   /* CGNS 4.5 - Particles (CPEX 0046) */
+#define CG_LIBVER_V50        5000   /* CGNS 5.0 - High-order (CPEX 0045) */
+#define CG_LIBVER_LATEST     5000   /* Current library version (CGNS 5.0) */
+
+/* Special value to auto-detect based on feature usage */
+#define CG_LIBVER_AUTO       -1
 
 #ifdef __cplusplus
 extern "C" {
@@ -1059,6 +1119,20 @@ CGNSDLL int cg_set_compress(int compress);
 CGNSDLL int cg_get_compress(int *compress);
 CGNSDLL int cg_set_path(const char *path);
 CGNSDLL int cg_add_path(const char *path);
+
+/* Version bounds API - HDF5-style version compatibility control
+ *
+ * This minimal API provides essential version management:
+ * - cg_set_version_bounds(): Set read/write version compatibility range
+ * - cg_get_file_min_version(): Analyze file features for minimum version
+ *
+ * For advanced control (rare use cases):
+ * - Get bounds: cg_configure(CG_CONFIG_GET_VERSION_BOUNDS, bounds)
+ * - Force write version: cg_configure(CG_CONFIG_WRITE_VERSION, version)
+ * - Get write version: cg_configure(CG_CONFIG_GET_WRITE_VERSION, &version)
+ */
+CGNSDLL int cg_set_version_bounds(int low_bound, int high_bound);
+CGNSDLL int cg_get_file_min_version(int fn, int *min_version);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      typedef names                   				 *

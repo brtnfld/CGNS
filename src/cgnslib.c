@@ -185,6 +185,24 @@ int cgns_compress = 0;
 int cgns_filetype = CG_FILE_NONE;
 void* cgns_rindindex = CG_CONFIG_RIND_CORE;
 
+/* Global version bounds (defaults)
+ *
+ * THREAD SAFETY NOTE:
+ * These are global process-wide settings that affect all file operations.
+ * They are NOT thread-safe and should be set during initialization before
+ * opening any CGNS files in multi-threaded applications.
+ *
+ * If per-file version bounds are needed in multi-threaded environments,
+ * consider setting bounds immediately before cg_open() and protecting with
+ * application-level mutexes, or use separate processes.
+ *
+ * Default behavior: Accept all versions from EARLIEST to LATEST with AUTO
+ * write mode (selects minimum version based on features used).
+ */
+static int cgns_version_low_bound = CG_LIBVER_EARLIEST;
+static int cgns_version_high_bound = CG_LIBVER_LATEST;
+static int cgns_write_version = CG_LIBVER_AUTO;  /* Auto-detect by default */
+
 /* Flag for contiguous (0) or compact storage (1) */
 int HDF5storage_type = CG_COMPACT;
 
@@ -538,17 +556,41 @@ int cgi_open(const char *filename, int mode, int open_parallel, int *fn)
     cg->deleted = 0;
     cg->added = 0;
 
-     /* CGNS-Library Version */
+    /* Initialize version bounds from global configuration */
+    cg->effective_version = 0;
+    cg->min_read_version = cgns_version_low_bound;
+    cg->max_read_version = cgns_version_high_bound;
+    cg->write_version = cgns_write_version;
+
+     /* CGNS-Library Version - with AUTO mode support */
     if (mode == CG_MODE_WRITE) {
         dim_vals = 1;
-        /* FileVersion = (float) CGNS_DOTVERS; */
-        /* Jiao: Changed to use older compatible version */
-        if (filetype == CG_FILE_ADF2) {
-            FileVersion = (float) CGNS_COMPATDOTVERS;
-            cg->version = CGNS_COMPATVERSION;
+
+     /* Determine version to write based on write_version setting */
+        if (cg->write_version == CG_LIBVER_AUTO) {
+         /* AUTO mode: Start with minimum version (low_bound)
+          * Version will be automatically upgraded as features are added
+          * via cgi_require_version() during write operations */
+            cg->version = cg->min_read_version;
+            cg->effective_version = cg->min_read_version;
         } else {
-            FileVersion = (float) CGNS_DOTVERS;
-            cg->version = CGNSLibVersion;
+         /* Explicit version specified */
+            cg->version = cg->write_version;
+            cg->effective_version = cg->write_version;
+        }
+
+     /* Special handling for ADF2 files - must use compatible version */
+        if (filetype == CG_FILE_ADF2) {
+            if (cg->version > CGNS_COMPATVERSION) {
+                cgi_warning("ADF2 format requested but version %.2f specified. "
+                    "Downgrading to %.2f for compatibility.",
+                    cg->version / 1000.0, CGNS_COMPATVERSION / 1000.0);
+            }
+            cg->version = CGNS_COMPATVERSION;
+            cg->effective_version = CGNS_COMPATVERSION;
+            FileVersion = (float) CGNS_COMPATDOTVERS;
+        } else {
+            FileVersion = (float)(cg->version / 1000.0);
         }
 
         if (cgi_new_node(cg->rootid, "CGNSLibraryVersion",
@@ -560,20 +602,32 @@ int cgi_open(const char *filename, int mode, int open_parallel, int *fn)
      /* read file version from file and set cg->version = FileVersion*1000 */
         if (cg_version(cg->file_number, &FileVersion)) return CG_ERROR;
 
-     /* Check that the library version is at least as recent as the one used
-        to create the file being read */
+     /* Enhanced version checking with feature-based compatibility
+      * Step 1: Check minimum version requirement */
+        if (cg->version < cg->min_read_version) {
+            cgi_error("File version %.2f is below minimum readable version %.2f",
+                FileVersion, cg->min_read_version / 1000.0);
+            return CG_ERROR;
+        }
 
+     /* Step 2: CRITICAL SAFETY CHECK - Major version compatibility
+      * Must check BEFORE reading file structure to avoid crashes from
+      * incompatible data structures */
+        if ((cg->version / 1000) > (CGNSLibVersion / 1000)) {
+            cgi_error("File major version (%d) exceeds library major version (%d). "
+                "Library update required to read '%s'",
+                cg->version / 1000, CGNSLibVersion / 1000, filename);
+            return CG_ERROR;
+        }
+
+     /* Step 3: Minor version check with warning
+      * Files with newer minor versions are readable IF they don't use
+      * version-specific features (will be checked after reading) */
         if (cg->version > CGNSLibVersion) {
-
-        /* This code allows reading versions newer than the lib,
-               as long as the 1st digit of the versions are equal */
-            if ((cg->version / 1000) > (CGNSLibVersion / 1000)) {
-                cgi_error("A more recent version of the CGNS library created the file. Therefore, the CGNS library needs updating before reading the file '%s'.",filename);
-                return CG_ERROR;
-            }
-            /* warn only if different in second digit */
             if ((cg->version / 100) > (CGNSLibVersion / 100)) {
-                cgi_warning("The file being read is more recent that the CGNS library used");
+                cgi_warning("File version %.2f is newer than library version %.2f. "
+                    "Feature compatibility will be validated.",
+                    FileVersion, CGNSLibVersion / 1000.0);
             }
         }
 #if CG_SIZEOF_SIZE == 32
@@ -601,6 +655,42 @@ int cgi_open(const char *filename, int mode, int open_parallel, int *fn)
         int nnod;
         double *id;
         if (cgi_read()) return CG_ERROR;
+
+     /* Step 4: Feature-based compatibility checking (now safe after reading)
+      * PERFORMANCE: Only check features if user has set restrictive bounds.
+      * For the common case (max_read_version == LATEST), skip entirely. */
+        if (cg->max_read_version < CG_LIBVER_LATEST) {
+            /* User has set a restrictive bound - use short-circuit check for performance
+             * This stops immediately upon finding a violating feature */
+            if (cgi_check_version_limit(cg, cg->max_read_version)) {
+                /* File uses features beyond max_read_version
+                 * Calculate exact version for error message */
+                cg->effective_version = cgi_calculate_min_version(cg);
+                cgi_error("File requires version %.2f features but maximum readable "
+                    "version is %.2f. Use cg_set_version_bounds() to allow reading.",
+                    cg->effective_version / 1000.0, cg->max_read_version / 1000.0);
+                return CG_ERROR;
+            }
+            /* File is compatible - mark effective_version as not yet calculated
+             * It will be calculated lazily in cg_get_file_min_version() if needed */
+            cg->effective_version = 0;
+        } else {
+            /* No restrictive bounds - skip feature checking entirely for performance
+             * Set effective_version to 0 to indicate it hasn't been calculated yet */
+            cg->effective_version = 0;
+        }
+
+     /* Step 5: Provide informative message if file is readable with older library
+      * Only if file version is newer (rare case), calculate min version for the message */
+        if (cg->version > CGNSLibVersion) {
+            int min_version = cgi_calculate_min_version(cg);
+            if (min_version <= CGNSLibVersion) {
+                cgi_warning("File version %.2f is newer than library %.2f, but file "
+                    "only uses features from %.2f - safely readable.",
+                    cg->version / 1000.0, CGNSLibVersion / 1000.0,
+                    min_version / 1000.0);
+            }
+        }
 
         /* update version number in modify mode */
         if (cg->version < CGNSLibVersion && mode == CG_MODE_MODIFY &&
@@ -1119,6 +1209,40 @@ int cg_configure(int option, void *value)
         }
         cgns_rindindex = value;
     }
+    /* version bounds configuration */
+    else if (option == CG_CONFIG_SET_VERSION_BOUNDS) {
+        int *bounds = (int *)value;
+        return cg_set_version_bounds(bounds[0], bounds[1]);
+    }
+    else if (option == CG_CONFIG_GET_VERSION_BOUNDS) {
+        int *bounds = (int *)value;
+        /* Inline: get current version bounds */
+        if (bounds) {
+            bounds[0] = cgns_version_low_bound;
+            bounds[1] = cgns_version_high_bound;
+        }
+        return CG_OK;
+    }
+    else if (option == CG_CONFIG_WRITE_VERSION) {
+        int version = (int)((size_t)value);
+        /* Inline: set write version */
+        if (version != CG_LIBVER_AUTO &&
+            (version < cgns_version_low_bound || version > cgns_version_high_bound)) {
+            cgi_error("Write version %d.%02d is outside bounds [%d.%02d, %d.%02d]",
+                      version/1000, (version%1000)/10,
+                      cgns_version_low_bound/1000, (cgns_version_low_bound%1000)/10,
+                      cgns_version_high_bound/1000, (cgns_version_high_bound%1000)/10);
+            return CG_ERROR;
+        }
+        cgns_write_version = version;
+        return CG_OK;
+    }
+    else if (option == CG_CONFIG_GET_WRITE_VERSION) {
+        int *ver = (int *)value;
+        /* Inline: get write version */
+        if (ver) *ver = cgns_write_version;
+        return CG_OK;
+    }
     else {
         cgi_error("unknown config setting");
         return CG_ERROR;
@@ -1217,6 +1341,75 @@ int cg_add_path(const char *path)
         cg_io_error("cgio_path_add");
         return CG_ERROR;
     }
+    return CG_OK;
+}
+
+/**
+ * \ingroup CGNSInternals
+ *
+ * \brief Set version bounds for file compatibility
+ *
+ * \param[in] low_bound  Minimum CGNS version to accept (use CG_LIBVER_* constants)
+ * \param[in] high_bound Maximum CGNS version to accept (use CG_LIBVER_* constants)
+ * \return \ier
+ *
+ * \details Sets the range of CGNS library versions that can be read or written.
+ *          Files with versions outside this range will be rejected unless they
+ *          only use features within the bounds. Similar to HDF5's H5Pset_libver_bounds().
+ */
+int cg_set_version_bounds(int low_bound, int high_bound) {
+    /* Validate bounds */
+    if (low_bound < CG_LIBVER_EARLIEST || low_bound > CG_LIBVER_LATEST) {
+        cgi_error("Invalid low version bound: %d", low_bound);
+        return CG_ERROR;
+    }
+    if (high_bound < low_bound || high_bound > CG_LIBVER_LATEST) {
+        cgi_error("Invalid high version bound: %d", high_bound);
+        return CG_ERROR;
+    }
+
+    cgns_version_low_bound = low_bound;
+    cgns_version_high_bound = high_bound;
+
+    /* If write version is outside bounds, adjust it */
+    if (cgns_write_version != CG_LIBVER_AUTO) {
+        if (cgns_write_version < low_bound || cgns_write_version > high_bound) {
+            cgns_write_version = high_bound;
+        }
+    }
+
+    return CG_OK;
+}
+
+/**
+ * \ingroup CGNSInternals
+ *
+ * \brief Query minimum version required for current file content
+ *
+ * \param[in]  fn          \FILE_fn
+ * \param[out] min_version Minimum CGNS version required to read this file
+ * \return \ier
+ *
+ * \details Analyzes the file content and returns the minimum CGNS library
+ *          version required to read the file based on features actually used.
+ *          This may be lower than the version number stored in the file.
+ */
+int cg_get_file_min_version(int fn, int *min_version) {
+    cg = cgi_get_file(fn);
+    if (cg == 0) return CG_ERROR;
+
+    if (min_version == NULL) {
+        cgi_error("NULL pointer for min_version");
+        return CG_ERROR;
+    }
+
+    /* Lazy calculation with caching: only calculate if not already done
+     * effective_version == 0 means not yet calculated (see cg_open optimization) */
+    if (cg->effective_version == 0) {
+        cg->effective_version = cgi_calculate_min_version(cg);
+    }
+
+    *min_version = cg->effective_version;
     return CG_OK;
 }
 
@@ -1519,6 +1712,13 @@ int cg_base_write(int fn, const char * basename, int cell_dim,
         cg->nbases ++;
     }
     (*B) = index+1;
+
+     /* Version check: CGNSBase_t with CellDimension and PhysicalDimension
+      * was introduced in CGNS 1.2 (before that, base node had different structure)
+      * This ensures we don't write v1.2+ format into a v1.05 file */
+    if (cgi_require_version(cg, CG_LIBVER_V12) != CG_OK) {
+        return CG_ERROR;
+    }
 
      /* save data in memory and initialize base data structure */
     memset(base, 0, sizeof(cgns_base));
@@ -4819,6 +5019,9 @@ int cg_poly_section_write(int fn, int B, int Z, const char * SectionName,
     section = &(zone->section[*S-1]);
 
     if (connect_offset && ! IS_FIXED_SIZE(type)) {
+        /* Element start offsets require CGNS 4.0+ */
+        if (cgi_require_version(cg, CG_LIBVER_V40) != CG_OK) return CG_ERROR;
+
         /* Write element start offset connectivity */
         if (cgio_write_all_data(cg->cgio, section->connect_offset->id,
                                 connect_offset)) {
@@ -4975,6 +5178,19 @@ int cg_section_general_write(int fn, int B, int Z, const char * SectionName,
 
     zone = cgi_get_zone(cg, B, Z);
     if (zone==0) return CG_ERROR;
+
+    /* Check version requirements for element type */
+    if (type == CGNS_ENUMV(TETRA_10) || type == CGNS_ENUMV(PYRA_14) ||
+        type == CGNS_ENUMV(PENTA_15) || type == CGNS_ENUMV(PENTA_18) ||
+        type == CGNS_ENUMV(HEXA_20) || type == CGNS_ENUMV(HEXA_27)) {
+        if (cgi_require_version(cg, CG_LIBVER_V30) != CG_OK) return CG_ERROR;
+    }
+    else if (type == CGNS_ENUMV(PYRA_13)) {
+        if (cgi_require_version(cg, CG_LIBVER_V31) != CG_OK) return CG_ERROR;
+    }
+    else if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
+        if (cgi_require_version(cg, CG_LIBVER_V32) != CG_OK) return CG_OK;
+    }
 
      /* Overwrite a Elements_t Node: */
     for (index=0; index<zone->nsections; index++) {
