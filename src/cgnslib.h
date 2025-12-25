@@ -1122,16 +1122,30 @@ CGNSDLL int cg_add_path(const char *path);
 
 /* Version bounds API - HDF5-style version compatibility control
  *
- * This minimal API provides essential version management:
- * - cg_set_version_bounds(): Set read/write version compatibility range
+ * Global configuration (affects subsequent cg_open calls):
+ * - cg_set_version_bounds(): Set default read/write version compatibility range
+ *
+ * Per-file configuration (thread-safe, overrides global state):
+ * - cg_set_file_version_bounds(): Set bounds for specific file handle
+ * - cg_get_file_version_bounds(): Query bounds for specific file handle
  * - cg_get_file_min_version(): Analyze file features for minimum version
  *
+ * THREAD SAFETY: Global functions (cg_set_version_bounds, cg_configure) are
+ * NOT thread-safe. For multi-threaded code, use per-file functions immediately
+ * after cg_open() to override global state with thread-local configuration.
+ *
+ * MPI/PARALLEL SAFETY: All MPI ranks must use identical version bounds.
+ * Call cg_set_version_bounds() or cg_set_file_version_bounds() identically
+ * on all ranks before parallel file operations.
+ *
  * For advanced control (rare use cases):
- * - Get bounds: cg_configure(CG_CONFIG_GET_VERSION_BOUNDS, bounds)
+ * - Get global bounds: cg_configure(CG_CONFIG_GET_VERSION_BOUNDS, bounds)
  * - Force write version: cg_configure(CG_CONFIG_WRITE_VERSION, version)
  * - Get write version: cg_configure(CG_CONFIG_GET_WRITE_VERSION, &version)
  */
 CGNSDLL int cg_set_version_bounds(int low_bound, int high_bound);
+CGNSDLL int cg_set_file_version_bounds(int fn, int low_bound, int high_bound);
+CGNSDLL int cg_get_file_version_bounds(int fn, int *low_bound, int *high_bound);
 CGNSDLL int cg_get_file_min_version(int fn, int *min_version);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\

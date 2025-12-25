@@ -561,6 +561,7 @@ int cgi_open(const char *filename, int mode, int open_parallel, int *fn)
     cg->min_read_version = cgns_version_low_bound;
     cg->max_read_version = cgns_version_high_bound;
     cg->write_version = cgns_write_version;
+    cg->parallel_mode = open_parallel;  /* Track if opened via cgp_open */
 
      /* CGNS-Library Version - with AUTO mode support */
     if (mode == CG_MODE_WRITE) {
@@ -1376,6 +1377,97 @@ int cg_set_version_bounds(int low_bound, int high_bound) {
         if (cgns_write_version < low_bound || cgns_write_version > high_bound) {
             cgns_write_version = high_bound;
         }
+    }
+
+    return CG_OK;
+}
+
+/**
+ * \ingroup CGNSInternals
+ *
+ * \brief Set version bounds for a specific file handle (thread-safe)
+ *
+ * \param[in]  fn         \FILE_fn
+ * \param[in]  low_bound  Minimum acceptable CGNS version
+ * \param[in]  high_bound Maximum acceptable CGNS version
+ * \return \ier
+ *
+ * \details This function overrides the global version bounds for a specific
+ *          file handle. It should be called immediately after cg_open() to
+ *          ensure thread-safe configuration in multi-threaded environments.
+ *
+ *          Unlike cg_set_version_bounds() which modifies global state,
+ *          this function only affects the specified file handle.
+ *
+ * \par Thread Safety:
+ *      This function is thread-safe when called with different file handles.
+ *      It modifies only per-file state, not global variables.
+ *
+ * \par MPI/Parallel Usage:
+ *      All MPI ranks must call this with identical bounds for the same file
+ *      to ensure consistent behavior across ranks.
+ */
+int cg_set_file_version_bounds(int fn, int low_bound, int high_bound) {
+    cg = cgi_get_file(fn);
+    if (cg == 0) return CG_ERROR;
+
+    /* Validate bounds */
+    if (low_bound < CG_LIBVER_EARLIEST || low_bound > CG_LIBVER_LATEST) {
+        cgi_error("Low bound %d.%02d is outside supported range [1.05, %.2f]",
+                  low_bound/1000, (low_bound%1000)/10, CG_LIBVER_LATEST/1000.0);
+        return CG_ERROR;
+    }
+    if (high_bound < CG_LIBVER_EARLIEST || high_bound > CG_LIBVER_LATEST) {
+        cgi_error("High bound %d.%02d is outside supported range [1.05, %.2f]",
+                  high_bound/1000, (high_bound%1000)/10, CG_LIBVER_LATEST/1000.0);
+        return CG_ERROR;
+    }
+    if (low_bound > high_bound) {
+        cgi_error("Low bound %d.%02d is greater than high bound %d.%02d",
+                  low_bound/1000, (low_bound%1000)/10,
+                  high_bound/1000, (high_bound%1000)/10);
+        return CG_ERROR;
+    }
+
+    /* Update per-file bounds */
+    cg->min_read_version = low_bound;
+    cg->max_read_version = high_bound;
+
+    /* If in write mode with AUTO, adjust effective_version if needed */
+    if ((cg->mode == CG_MODE_WRITE || cg->mode == CG_MODE_MODIFY) &&
+        cg->write_version == CG_LIBVER_AUTO) {
+        if (cg->effective_version < low_bound) {
+            cg->effective_version = low_bound;
+            cg->version = low_bound;
+        }
+    }
+
+    return CG_OK;
+}
+
+/**
+ * \ingroup CGNSInternals
+ *
+ * \brief Query version bounds for a specific file handle
+ *
+ * \param[in]  fn         \FILE_fn
+ * \param[out] low_bound  Minimum acceptable CGNS version
+ * \param[out] high_bound Maximum acceptable CGNS version
+ * \return \ier
+ *
+ * \details Returns the version bounds currently configured for the file.
+ *          These may differ from global bounds if cg_set_file_version_bounds()
+ *          was called after cg_open().
+ */
+int cg_get_file_version_bounds(int fn, int *low_bound, int *high_bound) {
+    cg = cgi_get_file(fn);
+    if (cg == 0) return CG_ERROR;
+
+    if (low_bound != NULL) {
+        *low_bound = cg->min_read_version;
+    }
+    if (high_bound != NULL) {
+        *high_bound = cg->max_read_version;
     }
 
     return CG_OK;

@@ -1049,6 +1049,7 @@ typedef struct {
     int min_read_version;   /* Minimum version we'll accept (user-set) */
     int max_read_version;   /* Maximum version we'll accept (user-set) */
     int write_version;      /* Version to write (CG_LIBVER_AUTO or specific) */
+    int parallel_mode;      /* 1 if opened via cgp_open, 0 otherwise */
     int cgio;               /* index of I/O control                 */
     double rootid;          /* root ID of file                      */
     int mode;               /* reading or writing                   */

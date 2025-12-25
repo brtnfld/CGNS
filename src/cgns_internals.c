@@ -18124,10 +18124,21 @@ int cgi_require_version(cgns_file *file, int required_version) {
     double *id;
     float FileVersion;
     cgsize_t dim_vals = 1;
+    int current_min_version;
 
     /* Only relevant for write/modify modes */
     if (file->mode != CG_MODE_WRITE && file->mode != CG_MODE_MODIFY) {
         return CG_OK;
+    }
+
+    /* MODIFY MODE FIX: If effective_version is 0 (not yet calculated),
+     * we must calculate it before making version decisions to avoid
+     * accidentally downgrading the file's effective version.
+     * Example: File has v4.0 features, user writes v3.0 feature.
+     * Without this check, we'd set effective_version = 3000 (wrong).
+     * With this check, we detect the v4.0 features first. */
+    if (file->mode == CG_MODE_MODIFY && file->effective_version == 0) {
+        file->effective_version = cgi_calculate_min_version(file);
     }
 
     /* Check if upgrade is needed */
@@ -18137,9 +18148,27 @@ int cgi_require_version(cgns_file *file, int required_version) {
 
     /* Handle version upgrade based on write_version mode */
     if (file->write_version == CG_LIBVER_AUTO) {
-        /* AUTO mode: Automatically upgrade to required version */
-        file->effective_version = required_version;
-        file->version = required_version;
+        /* PARALLEL SAFETY CHECK: Auto-upgrading in parallel mode is dangerous.
+         * Multiple MPI ranks simultaneously writing to the CGNSLibraryVersion
+         * node creates a race condition that can corrupt the version metadata.
+         * In parallel mode, user must set explicit version before writes. */
+        if (file->parallel_mode) {
+            cgi_error("AUTO version upgrade not supported in parallel mode. "
+                "Feature requires CGNS version %.2f but file is at %.2f. "
+                "Before parallel writes, call:\n"
+                "  cg_configure(CG_CONFIG_WRITE_VERSION, (void*)CG_LIBVER_Vxx)\n"
+                "or use cg_set_file_version_bounds() to set an explicit version "
+                "that covers all features you will write.",
+                required_version / 1000.0, file->effective_version / 1000.0);
+            return CG_ERROR;
+        }
+
+        /* AUTO mode: Automatically upgrade to required version
+         * Use max() to ensure we never downgrade */
+        current_min_version = file->effective_version;
+        file->effective_version = (required_version > current_min_version)
+                                   ? required_version : current_min_version;
+        file->version = file->effective_version;
 
         /* Update the CGNSLibraryVersion node in the file */
         FileVersion = (float)(required_version / 1000.0);
