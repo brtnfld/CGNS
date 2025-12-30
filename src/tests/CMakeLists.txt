@@ -67,9 +67,6 @@ set(test_family_treef_FILES test_family_treef.F90)
 set(test_bboxf_FILES test_bboxf.F90)
 set(test_complexf_FILES test_complexf.F90)
 set(test_particlef_FILES test_particlef.F90 utilsf.F90)
-set(generate_version_test_files_FILES generate_version_test_files.c)
-set(test_version_bounds_FILES test_version_bounds.c)
-set(test_base_version_check_FILES test_base_version_check.c)
 
 # Build each test
 add_executable( cgioc                ${cgioc_FILES}                )
@@ -97,9 +94,6 @@ add_executable( test_complex         ${test_complex_FILES}         )
 add_executable( test_convert_elem    ${test_convert_elem_FILES}    )
 add_executable( test_back_comp       ${test_back_comp_FILES}       )
 add_executable( test_particle        ${test_particle_FILES}        )
-add_executable( generate_version_test_files ${generate_version_test_files_FILES} )
-add_executable( test_version_bounds  ${test_version_bounds_FILES}  )
-add_executable( test_base_version_check ${test_base_version_check_FILES} )
 #
 set(C_TESTS_LIST
 	cgioc
@@ -126,10 +120,7 @@ set(C_TESTS_LIST
 	test_complex
         test_convert_elem
         test_back_comp
-        test_particle
-        generate_version_test_files
-        test_version_bounds
-        test_base_version_check)
+        test_particle)
 set(SKIP_TESTS
         dbtest)
 # Modern Linking

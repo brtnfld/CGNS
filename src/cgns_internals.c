@@ -17902,6 +17902,8 @@ static int detect_particle_coordinates(cgns_base *base);
 static int detect_particle_solutions(cgns_base *base);
 static int detect_element_interpolation(cgns_base *base);
 static int detect_solution_interpolation(cgns_base *base);
+static int detect_high_order_elements(cgns_base *base);
+static int detect_unknown_modern_elements(cgns_base *base);
 
 typedef struct {
     const char *feature_name;
@@ -17930,6 +17932,12 @@ static const cgns_feature_version feature_table[] = {
     /* CGNS 5.0 features */
     {"ElementInterpolation_t", 5000, detect_element_interpolation},
     {"SolutionInterpolation_t", 5000, detect_solution_interpolation},
+    {"HighOrder_ElementTypes", 5000, detect_high_order_elements},
+
+    /* FAIL-SAFE: Must be LAST detector before NULL terminator
+     * Catches any unknown element types > HEXA_125 that weren't caught by
+     * specific detectors above. Defaults to LATEST to prevent corruption. */
+    {"Unknown_Modern_ElementTypes", CG_LIBVER_LATEST, detect_unknown_modern_elements},
 
     {NULL, 0, NULL}
 };
@@ -17996,6 +18004,61 @@ static int detect_ngon_v32_format(cgns_base *base) {
             /* NGON_n/NFACE_n indicates CGNS 3.2+ format */
             if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
                 return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* Detect CGNS 5.0+ high-order element types (CPEX 0045) */
+static int detect_high_order_elements(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        if (zone == NULL || zone->section == NULL) continue;
+
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            if (section == NULL) continue;
+
+            CGNS_ENUMT(ElementType_t) type = section->el_type;
+
+            /* CGNS 5.0 introduced high-order elements (CPEX 0045):
+             * BAR_4, TRI_9, TRI_10, QUAD_16, QUAD_25,
+             * TETRA_16, TETRA_20, TETRA_22, TETRA_34, TETRA_35,
+             * PYRA_21, PYRA_29, PYRA_30, PYRA_P4_29, PYRA_50, PYRA_55,
+             * PENTA_24, PENTA_38, PENTA_40, PENTA_33, PENTA_66, PENTA_75,
+             * HEXA_32, HEXA_56, HEXA_64, HEXA_44, HEXA_98, HEXA_125
+             * These all have element type IDs > NFACE_n (23) and <= HEXA_125 (56) */
+            if (type > CGNS_ENUMV(NFACE_n) && type <= CGNS_ENUMV(HEXA_125)) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+/* FAIL-SAFE: Detect unknown modern element types beyond last known type
+ * This ensures that if a new element type is added to the header but the
+ * feature table is not updated, we default to CG_LIBVER_LATEST rather than
+ * an outdated version. This prevents silent data corruption.
+ *
+ * NOTE: This only triggers for types BEYOND the highest known type (HEXA_125=56).
+ * Types 24-56 are already handled by detect_high_order_elements(). */
+static int detect_unknown_modern_elements(cgns_base *base) {
+    for (int nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        if (zone == NULL || zone->section == NULL) continue;
+
+        for (int ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            if (section == NULL) continue;
+
+            CGNS_ENUMT(ElementType_t) type = section->el_type;
+
+            /* Only catch types BEYOND the highest known type (HEXA_125 = 56).
+             * This prevents catching already-known high-order elements. */
+            if (type > CGNS_ENUMV(HEXA_125)) {
+                return 1;  /* Requires CG_LIBVER_LATEST */
             }
         }
     }
