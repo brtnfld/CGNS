@@ -1019,7 +1019,7 @@ int cgi_read_family_name(int in_link, double parent_id, char_33 parent_name,
     if (cgi_get_nodes(parent_id, "FamilyName_t", &fam_flag, &id)) return CG_ERROR;
     if (fam_flag==1) {
 
-        if (cg->version>1200) {
+        if (cg->version>=1200) {
 
          /* FamilyName in data field of the ADF node */
             if (cgi_read_string(id[0], NodeName, &FamilyName)) return CG_ERROR;
