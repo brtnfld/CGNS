@@ -872,10 +872,14 @@ typedef enum {
   CGNS_ENUMV( PENTA_75 )=53,
   CGNS_ENUMV( HEXA_44 )=54,
   CGNS_ENUMV( HEXA_98 )=55,
-  CGNS_ENUMV( HEXA_125 )=56
+  CGNS_ENUMV( HEXA_125 )=56  /* IMPORTANT: HEXA_125 is the last defined element type.
+                               * If you add new element types after this (e.g., HEXA_216),
+                               * you MUST update the fail-safe detector in cgns_internals.c
+                               * (detect_unknown_modern_elements function) which uses
+                               * "type > HEXA_125" to detect unknown future element types. */
 } CGNS_ENUMT( ElementType_t );
 
-#define NofValidElementTypes 57
+#define NofValidElementTypes 57  /* Update this count when adding new element types */
 
 extern CGNSDLL const char * ElementTypeName[NofValidElementTypes];
 
@@ -1137,6 +1141,13 @@ CGNSDLL int cg_add_path(const char *path);
  * MPI/PARALLEL SAFETY: All MPI ranks must use identical version bounds.
  * Call cg_set_version_bounds() or cg_set_file_version_bounds() identically
  * on all ranks before parallel file operations.
+ *
+ * PERFORMANCE IMPACT: Setting restrictive read version bounds (max_read_version
+ * < CG_LIBVER_LATEST) causes cg_open() to validate ALL sections in ALL zones
+ * to detect incompatible features. For large files (thousands of zones/sections),
+ * this transforms cg_open() from an O(N_bases) operation to an O(N_zones × N_sections)
+ * operation, potentially introducing significant latency. Default behavior
+ * (CG_LIBVER_LATEST) skips this validation for optimal performance.
  *
  * For advanced control (rare use cases):
  * - Get global bounds: cg_configure(CG_CONFIG_GET_VERSION_BOUNDS, bounds)
