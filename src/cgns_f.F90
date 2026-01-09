@@ -926,6 +926,12 @@ MODULE cgns
     ENUMERATOR :: CGNS_ENUMV(AverageK)
   END ENUM
 
+!DEC$if defined(BUILD_CGNS_DLL)
+!DEC$ATTRIBUTES DLLEXPORT :: WallFunctionTypeName
+!DEC$ATTRIBUTES DLLEXPORT :: AreaTypeName
+!DEC$ATTRIBUTES DLLEXPORT :: AverageInterfaceTypeName
+!DEC$endif
+
 ! For portability to Linux Absoft, all data statements were moved after the
 ! variables and parameters declarations
 
@@ -6401,7 +6407,7 @@ CONTAINS
         IMPORT :: c_int, c_char
         IMPLICIT NONE
         INTEGER(c_int), VALUE :: fn
-        CHARACTER(KIND=C_CHAR), DIMENSION(*) :: name1
+        CHARACTER(KIND=C_CHAR), DIMENSION(*), INTENT(IN) :: name1
         INTEGER(c_int), VALUE :: index1
       END FUNCTION cg_gorel_fc1
     END INTERFACE
