@@ -13,6 +13,19 @@
 #include "cgnslib.h"
 #include "hash.h"
 
+/* Tcl 8.x compatibility - Tcl_Size was introduced in Tcl 9.0 */
+#if !defined(TCL_MAJOR_VERSION) || TCL_MAJOR_VERSION < 9
+# if !defined(Tcl_Size)
+   typedef int Tcl_Size;
+# endif
+#endif
+
+#ifdef CG_BUILD_BASESCOPE
+typedef char char_66[66]; /* 32 + '/' + 32 + '\0' */
+#else
+typedef char char_66[33]; /* 32 + '\0' (caller's malloc compat issues) */
+#endif
+
 /* define this to exclude structured mesh boundaries */
 /* imin, imax, jmin, jmax, kmin, kmax */
 
@@ -87,7 +100,7 @@ typedef struct {
     int type;
     int dim;
     cgsize_t data[10];
-    char d_name[33];
+    char_66 d_name;
     cgsize_t nedges;
     Edge *edges;
     cgsize_t nfaces;
@@ -849,7 +862,8 @@ static int structured_list (Regn *mesh, Regn *reg, cgsize_t *dim, cgsize_t npts,
 
 static int structured_zone (Tcl_Interp *interp, cgsize_t *dim)
 {
-    char name[33], d_name[33];
+    char name[33];
+    char_66 d_name;
     int nints, nconns, nbocos, nholes, ii, nn, nr, nsets;
     cgsize_t i, j, k, n, ni, nj, nk, nf, ne, fn;
     cgsize_t npts, *pts, ndpts;
@@ -877,6 +891,7 @@ static int structured_zone (Tcl_Interp *interp, cgsize_t *dim)
 #ifndef NO_MESH_BOUNDARIES
     z->nregs += (2 * CellDim);
 #endif
+    /* MALLOC never returns NULL - it calls FATAL/exit on allocation failure */
     z->regs = (Regn *) MALLOC (funcname, z->nregs * sizeof(Regn));
     ni = dim[0] - 1;
     nj = dim[1] - 1;
@@ -2007,7 +2022,8 @@ static int unstructured_zone (Tcl_Interp *interp)
     CGNS_ENUMT(DataType_t) datatype;
     CGNS_ENUMT(BCType_t) bctype;
     CGNS_ENUMT(ElementType_t) elemtype;
-    char name[33], d_name[33];
+    char name[33];
+    char_66 d_name;
     Zone *z = &zones[cgnszone-1];
     static char *funcname = "unstructured_zone";
     static char *dspmsg = "finding exterior faces for";
@@ -3804,17 +3820,19 @@ static void transform_bounds (float m[16], float bb[3][2])
 static int CGNSbounds (ClientData data, Tcl_Interp *interp, int argc, char **argv)
 {
     float bbox[3][2], matrix[16];
-    int n, all = 0;
-    CONST char **args;
+    int all = 0;
+    Tcl_Size n = 0;
+    const char **args;
     char sbb[65];
 
     if (argc > 1) all = atoi(argv[1]);
     get_bounds (all, bbox);
     if (argc > 2) {
+        int i;
         if (TCL_OK != Tcl_SplitList (interp, argv[2], &n, &args))
             return TCL_ERROR;
-        for (n = 0; n < 16; n++)
-            matrix[n] = (float) atof (args[n]);
+        for (i = 0; i < 16; i++)
+            matrix[i] = (float) atof (args[i]);
         Tcl_Free ((char *)args);
         transform_bounds (matrix, bbox);
     }
@@ -3832,8 +3850,9 @@ static int CGNSbounds (ClientData data, Tcl_Interp *interp, int argc, char **arg
 
 static int OGLregion (ClientData data, Tcl_Interp *interp, int argc, char **argv)
 {
-    int zone, regn, nc;
-    CONST char **args;
+    int zone, regn;
+    Tcl_Size nc;
+    const char **args;
     Zone *z;
     Regn *r;
     static char slist[17];
@@ -3943,12 +3962,13 @@ static int OGLaxis (ClientData data, Tcl_Interp *interp, int argc, char **argv)
     glNewList (AxisDL, GL_COMPILE);
     if (vis) {
         if (argc == 3) {
-            int nb, n = 0;
-            CONST char **args;
+            int n = 0;
+	    Tcl_Size nb = 0;
+            const char **args;
             if (TCL_OK != Tcl_SplitList (interp, argv[2], &nb, &args))
                 return TCL_ERROR;
             if (nb == 3) {
-                for (n = 0; n < nb; n++) {
+                for (n = 0; n < (int)nb; n++) {
                     if (sscanf (args[n], "%f %f", &bbox[n][0], &bbox[n][1]) != 2)
                         break;
                 }
@@ -4151,7 +4171,7 @@ static int classify_polygon (Zone *z, int nnodes, cgsize_t *nodeid)
 
 /*------------------------------------------------------------------*/
 
-static cgsize_t find_elements ()
+static cgsize_t find_elements (void)
 {
 #define ELEM_INC 50
     int nz, nnodes, nn, nr, nf;
@@ -4904,7 +4924,7 @@ static void intersect_element (int zonenum, CGNS_ENUMT(ElementType_t) elemtype,
 
 /*------------------------------------------------------------------*/
 
-static cgsize_t find_intersects ()
+static cgsize_t find_intersects (void)
 {
     int nz, nr, nf, nfaces, nnodes;
     cgsize_t n, ne;
@@ -4977,7 +4997,7 @@ static cgsize_t find_intersects ()
 
 /*------------------------------------------------------------------*/
 
-static void draw_edges ()
+static void draw_edges (void)
 {
     int nz, nr;
     cgsize_t ne, nn;
@@ -5214,8 +5234,9 @@ static int OGLcutplane (ClientData data, Tcl_Interp *interp, int argc, char **ar
     mode = atoi(argv[1]);
 
     if (argc == 3) {
-        int np;
-        CONST char **args;
+        int i;
+        Tcl_Size np;
+        const char **args;
         if (TCL_OK != Tcl_SplitList (interp, argv[2], &np, &args))
             return TCL_ERROR;
         if (np != 4) {
@@ -5223,8 +5244,8 @@ static int OGLcutplane (ClientData data, Tcl_Interp *interp, int argc, char **ar
             Tcl_SetResult (interp, "invalid plane", TCL_STATIC);
             return TCL_ERROR;
         }
-        for (np = 0; np < 4; np++)
-            plane[np] = (float) atof (args[np]);
+        for (i = 0; i < 4; i++)
+            plane[i] = (float) atof (args[i]);
         Tcl_Free ((char *)args);
         init_cutplane(plane);
         find_elements();
@@ -5256,8 +5277,9 @@ static int OGLcutplane (ClientData data, Tcl_Interp *interp, int argc, char **ar
 
 static int OGLdrawplane (ClientData data, Tcl_Interp *interp, int argc, char **argv)
 {
-    int n, np, i, j, k, index, n0, n1;
-    CONST char **args;
+    int n, i, j, k, index, n0, n1;
+    Tcl_Size np;
+    const char **args;
     float plane[4], bbox[3][2], s[8], ds;
     float node[8][3], pnode[6][3];
     static char slist[17];
@@ -5354,8 +5376,9 @@ static int OGLdrawplane (ClientData data, Tcl_Interp *interp, int argc, char **a
 
 static int OGLcutconfig (ClientData data, Tcl_Interp *interp, int argc, char **argv)
 {
-    int n, np;
-    CONST char **args;
+    int n;
+    Tcl_Size np;
+    const char **args;
 
     if (argc < 2 || argc > 4) {
         Tcl_SetResult (interp, "usage: OGLcutconfig color [usecutclr] [ignorevis]",
@@ -5370,7 +5393,7 @@ static int OGLcutconfig (ClientData data, Tcl_Interp *interp, int argc, char **a
         Tcl_SetResult (interp, "invalid color", TCL_STATIC);
         return TCL_ERROR;
     }
-    for (n = 0; n < np; n++)
+    for (n = 0; n < (int)np; n++)
         cutcolor[n] = (float) atof (args[n]);
     Tcl_Free ((char *)args);
 

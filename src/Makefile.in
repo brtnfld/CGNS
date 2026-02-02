@@ -8,7 +8,7 @@ CGNSVER = @CGNSVERS@
 .SUFFIXES : .c .F90 .$(O) $(EXE)
 
 OBJDIR  = @BUILDDIR@
-COPTS	= $(CFLAGS) $(CFGFLAGS) -I. @BUILDOPTS@
+COPTS	= $(CFLAGS) $(CFGFLAGS) -DBUILDING_CGNS -I. @BUILDOPTS@
 FOPTS   = $(FFLAGS) -I. @BUILDOPTS@
 D_PRE   = @FC_D_PRE@
 CGNSLIB = $(LIBCGNS)
@@ -81,6 +81,7 @@ runtests : $(CGNSLIB)
 
 runptests : $(CGNSLIB)
 	cd ptests && $(MAKE) test
+	cd Test_UserGuideCode/C_code_parallel && $(MAKE) test
 
 #----------
 

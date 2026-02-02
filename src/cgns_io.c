@@ -23,6 +23,9 @@ freely, subject to the following restrictions:
 #define _XOPEN_SOURCE 600
 #endif
 #endif
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+  #define _POSIX_C_SOURCE 200112L
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,35 +51,36 @@ freely, subject to the following restrictions:
 #endif
 #if CG_BUILD_HDF5
 #include "adfh/ADFH.h"
-#if CG_BUILD_PARALLEL
 #include "hdf5.h"
 #endif
 #include "cgio_internal_type.h" /* for cgns_io_ctx_t */
-#endif
 
 #ifdef MEM_DEBUG
 #include "cg_malloc.h"
 #endif
 
 #if CG_BUILD_HDF5
-cgns_io_ctx_t ctx_cgio = { .hdf5_access = "NATIVE",
+cgns_io_ctx_t ctx_cgio = {
+    .hdf5_access_mode = CGIO_NATIVE_MODE,
 #if CG_BUILD_PARALLEL
-.pcg_mpi_comm = MPI_COMM_NULL, 
-.pcg_mpi_comm_size=1,
-.pcg_mpi_comm_rank=0,
-.pcg_mpi_initialized=0,
-.pcg_mpi_info=MPI_INFO_NULL,
-.default_pio_mode=H5FD_MPIO_COLLECTIVE
+    .pcg_mpi_comm = MPI_COMM_NULL,
+    .pcg_mpi_comm_size=1,
+    .pcg_mpi_comm_rank=0,
+    .pcg_mpi_initialized=0,
+    .pcg_mpi_info=MPI_INFO_NULL,
+    .default_pio_mode=H5FD_MPIO_COLLECTIVE
 #endif
 };
 #endif
 
 #if CG_HAVE_STAT64_STRUCT
 #ifdef _WIN32
-#define stat _stat64
+#define cgns_stat _stat64
 #else
-#define stat stat64
+#define cgns_stat stat64
 #endif
+#else
+#define cgns_stat stat
 #endif
 
 /* Flag for contiguous or compact HDF5 storage */
@@ -228,10 +232,11 @@ static int rewrite_file (int cginp, const char *filename)
     cgns_io *input, *output;
     char *tmpfile, *linkfile = NULL;
 #ifdef S_IFLNK
-    struct stat st;
+    struct cgns_stat st;
 #endif
 
-    input = get_cgnsio(cginp, 0);
+    if ((input = get_cgnsio(cginp, 0)) == NULL)
+        return get_error();
     if (input->mode != CGIO_MODE_READ && cgio_flush_to_disk(cginp))
         return get_error();
 
@@ -270,10 +275,16 @@ static int rewrite_file (int cginp, const char *filename)
     if (cgio_open_file(tmpfile, CGIO_MODE_WRITE, input->type, &cgout)) {
         UNLINK(tmpfile);
         free(tmpfile);
-        if (linkfile != NULL) free(linkfile);
+        free(linkfile);
         return get_error();
     }
-    output = get_cgnsio(cgout, 0);
+    if ((output = get_cgnsio(cgout, 0)) == NULL) {
+        cgio_close_file(cgout);
+        UNLINK(tmpfile);
+        free(tmpfile);
+        free(linkfile);
+        return get_error();
+    }
 
     ierr = recurse_nodes(cginp, input->rootid, cgout, output->rootid, 0, 0);
     cgio_close_file (cgout);
@@ -281,7 +292,7 @@ static int rewrite_file (int cginp, const char *filename)
     if (ierr) {
         UNLINK(tmpfile);
         free(tmpfile);
-        if (linkfile != NULL) free(linkfile);
+        free(linkfile);
         return set_error(ierr);
     }
 
@@ -554,6 +565,17 @@ int cgio_configure (int what, void *value)
     if (what > 200) {
 #if CG_BUILD_HDF5
         ADFH_Configure(what-200, value, &ierr);
+#else
+        /* Handle HDF5-specific options when HDF5 is not available */
+        if (what == 401) {  /* CG_CONFIG_GET_MAXIMUM_FILES */
+            /* Return ADF MAXIMUM_FILES constant */
+#ifdef NEW_ID_MAPPING
+            *(int *)value = 0xfff;   /* 4095 */
+#else
+            *(int *)value = 0x3fff;  /* 16383 */
+#endif
+            ierr = CGIO_ERR_NONE;
+        }
 #endif
     }
 /* nothing here yet
@@ -588,53 +610,68 @@ int cgio_check_file (const char *filename, int *file_type)
     int n;
     char buf[32];
     FILE *fp;
+    double rootid;
     static char *HDF5sig = "\211HDF\r\n\032\n";
-    struct stat st;
+    struct cgns_stat st;
 
     int mpibuf[2], err = CGIO_ERR_NONE;
 
-    if (ACCESS (filename, 0) || stat (filename, &st) ||
+    *file_type = CGIO_FILE_NONE;
+
+#if 0
+    /* ACCESS call deactivated file open try-error strategy used instead */
+    if (ACCESS (filename, 0) || cgns_stat (filename, &st) ||
         S_IFREG != (st.st_mode & S_IFREG)) {
         last_err = CGIO_ERR_NOT_FOUND;
         return last_err;
     }
-    *file_type = CGIO_FILE_NONE;
-
+#endif
 
 #if CG_BUILD_PARALLEL
     /* don't overload the file system by having all the processors doing a read */
     if(ctx_cgio.pcg_mpi_comm_rank == 0) {
 #endif
+#if CG_BUILD_HDF5
+      ADFH_Database_Valid(filename, &err);
+      if (err == 0) {
+        *file_type = CGIO_FILE_HDF5;
+      }
+      else {
+      /* HDF5 did not work now try other cases */
+#endif
+        fp = fopen(filename, "rb");
+        if (NULL == fp) {
+          if (errno == EMFILE) {
+            err = set_error(CGIO_ERR_TOO_MANY);
+          } else {
+            err = set_error(CGIO_ERR_FILE_OPEN);
+          }
+          return err;
+        }
+        if (sizeof(buf) != fread (buf, 1, sizeof(buf), fp)) {
+          buf[4] = 0;
+        }
+        buf[sizeof(buf)-1] = 0;
+        fclose (fp);
 
-      fp = fopen(filename, "rb");
-      if (NULL == fp) {
-	if (errno == EMFILE) {
-	  err = set_error(CGIO_ERR_TOO_MANY);
-	} else {
-	  err = set_error(CGIO_ERR_FILE_OPEN);
-	}
-	return err;
-      }
-    if (sizeof(buf) != fread (buf, 1, sizeof(buf), fp)) {
-      buf[4] = 0;
-    }
-    buf[sizeof(buf)-1] = 0;
-    fclose (fp);
+        /* check for ADF */
+        if (0 == strncmp (&buf[4], "ADF Database Version", 20)) {
+          *file_type = CGIO_FILE_ADF;
+          err = set_error(CGIO_ERR_NONE);
+        } else {
+          /* check for HDF5 */
+          for (n = 0; n < 8; n++) {
+            if (buf[n] != HDF5sig[n]) break;
+          }
+          if (n == 8) {
+            *file_type = CGIO_FILE_HDF5;
+            err = set_error(CGIO_ERR_NONE);
+          }
+        }
+#if CG_BUILD_HDF5
+      } /* endif case not hdf5 */
+#endif
 
-    /* check for ADF */
-    if (0 == strncmp (&buf[4], "ADF Database Version", 20)) {
-      *file_type = CGIO_FILE_ADF;
-      err = set_error(CGIO_ERR_NONE);
-    } else {
-      /* check for HDF5 */
-      for (n = 0; n < 8; n++) {
-	if (buf[n] != HDF5sig[n]) break;
-      }
-      if (n == 8) {
-	*file_type = CGIO_FILE_HDF5;
-	err = set_error(CGIO_ERR_NONE);
-      }
-    }
 #if CG_BUILD_PARALLEL
     }
     if(ctx_cgio.pcg_mpi_initialized) {
@@ -718,8 +755,9 @@ int cgio_copy_dimensions (int ndims, const cglong_t *dims64, cgsize_t *dims)
  * file operations
  *=========================================================*/
 
-int cgio_open_file (const char *filename, int file_mode,
-    int file_type, int *cgio_num)
+/* Extended internal API - accepts explicit HDF5 access mode for thread safety */
+int cgio_open_file_with_mode (const char *filename, int file_mode,
+    int file_type, int hdf5_access_mode, int *cgio_num)
 {
     int n, ierr;
     int type;
@@ -731,18 +769,14 @@ int cgio_open_file (const char *filename, int file_mode,
         case CGIO_MODE_READ:
         case 'r':
         case 'R':
+	    fmode = "READ_ONLY";
+	    file_mode = CGIO_MODE_READ;
+            /* skip file checking if HDF5 requested */
+	    if (file_type == CGIO_FILE_HDF5)
+               break;
             if (cgio_check_file(filename, &type))
                 return get_error();
-#if CG_BUILD_PARALLEL
-           if (file_type == CGIO_FILE_HDF5) {
-                if (type != CGIO_FILE_HDF5)
-                    return set_error(CGIO_ERR_NOT_HDF5);
-            }
-            else
-#endif
             file_type = type;
-            file_mode = CGIO_MODE_READ;
-            fmode = "READ_ONLY";
             break;
         case CGIO_MODE_WRITE:
         case 'w':
@@ -755,17 +789,14 @@ int cgio_open_file (const char *filename, int file_mode,
         case CGIO_MODE_MODIFY:
         case 'm':
         case 'M':
+            fmode = "OLD";
+            file_mode = CGIO_MODE_MODIFY;
+            /* skip file checking if HDF5 requested */
+            if (file_type == CGIO_FILE_HDF5)
+                break;
             if (cgio_check_file(filename, &type))
                 return get_error();
-#if CG_BUILD_PARALLEL
-           if (file_type == CGIO_FILE_HDF5) {
-                if (type != CGIO_FILE_HDF5)
-                    return set_error(CGIO_ERR_NOT_HDF5);
-            }
-#endif
             file_type = type;
-            file_mode = CGIO_MODE_MODIFY;
-            fmode = "OLD";
             break;
         default:
             return set_error(CGIO_ERR_FILE_MODE);
@@ -789,7 +820,11 @@ int cgio_open_file (const char *filename, int file_mode,
 #endif
 #if CG_BUILD_HDF5
     else if (file_type == CGIO_FILE_HDF5) {
-        ADFH_Database_Open(filename, fmode, ctx_cgio.hdf5_access, &rootid, &ierr);
+        /* Convert enum to string for ADFH API (Issue #836)
+         * Use the explicit hdf5_access_mode parameter instead of global state
+         * to ensure thread-safety (fixes race condition in parallel I/O) */
+        const char *format = (hdf5_access_mode == CGIO_PARALLEL_MODE) ? "PARALLEL" : "NATIVE";
+        ADFH_Database_Open(filename, fmode, format, &rootid, &ierr);
         if (ierr > 0) return set_error(ierr);
     }
 #endif
@@ -822,10 +857,21 @@ int cgio_open_file (const char *filename, int file_mode,
     iolist[n].type = file_type;
     iolist[n].mode = file_mode;
     iolist[n].rootid = rootid;
+
     *cgio_num = n + 1;
     num_open++;
 
     return set_error(CGIO_ERR_NONE);
+}
+
+/* Public API wrapper - preserved for ABI/API compatibility
+ * Defaults to NATIVE mode for backward compatibility with external applications */
+int cgio_open_file (const char *filename, int file_mode,
+    int file_type, int *cgio_num)
+{
+    /* Call extended function with NATIVE mode (serial I/O) as default */
+    return cgio_open_file_with_mode(filename, file_mode, file_type,
+                                     CGIO_NATIVE_MODE, cgio_num);
 }
 
 /*---------------------------------------------------------*/

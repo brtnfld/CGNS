@@ -4,27 +4,27 @@
 
 # Link all the executables to cgns and hdf5
 if(CGNS_BUILD_SHARED)
-  link_libraries(cgns_shared)
-else(CGNS_BUILD_SHARED)
-  link_libraries(cgns_static)
-endif(CGNS_BUILD_SHARED)
+  set(TESTS_LK_LIBS cgns_shared)
+else()
+  set(TESTS_LK_LIBS cgns_static)
+endif()
 
 if (CGNS_ENABLE_HDF5 AND HDF5_LIBRARY)
-  link_libraries(${HDF5_LIBRARY})
+  list(APPEND TESTS_LK_LIBS ${HDF5_LIBRARY})
   if(HDF5_NEED_ZLIB AND ZLIB_LIBRARY)
-    link_libraries(${ZLIB_LIBRARY})
-  endif(HDF5_NEED_ZLIB AND ZLIB_LIBRARY)
+    list(APPEND TESTS_LK_LIBS ${ZLIB_LIBRARY})
+  endif()
   if(HDF5_NEED_SZIP AND SZIP_LIBRARY)
-    link_libraries(${SZIP_LIBRARY})
-  endif(HDF5_NEED_SZIP AND SZIP_LIBRARY)
+    list(APPEND TESTS_LK_LIBS ${SZIP_LIBRARY})
+  endif()
   if(HDF5_NEED_MPI AND MPI_LIBS)
-    link_libraries(${MPI_LIBS})
-  endif(HDF5_NEED_MPI AND MPI_LIBS)
-endif (CGNS_ENABLE_HDF5 AND HDF5_LIBRARY)
+    list(APPEND TESTS_LK_LIBS ${MPI_LIBS})
+  endif()
+endif ()
 
 if (NOT WIN32)
-  link_libraries(m)
-endif (NOT WIN32)
+  list(APPEND TESTS_LK_LIBS m)
+endif ()
 
 # Set the files needed by each test
 set(cgioc_FILES cgioc.c)
@@ -50,6 +50,9 @@ set(write_zones_FILES write_zones.c utils.c)
 set(test_family_tree_FILES test_family_tree.c)
 set(test_complex_FILES test_complex.c)
 set(test_convert_elem_FILES test_convert_elem.c)
+set(test_back_comp_FILES test_back_comp.c)
+set(test_particle_FILES test_particle.c)
+set(test_parameters_FILES test_parameters.c)
 #set(cgiof_FILES cgiof.F90)
 #set(cgwrite_FILES cgwrite.F90)
 #set(cgread_FILES cgread.F90)
@@ -64,6 +67,18 @@ set(test_general_rindf_FILES test_general_rindf.F90)
 set(test_family_treef_FILES test_family_treef.F90)
 set(test_bboxf_FILES test_bboxf.F90)
 set(test_complexf_FILES test_complexf.F90)
+set(test_particlef_FILES test_particlef.F90 utilsf.F90)
+set(test_params_fortran_FILES test_params_fortran.F90)
+
+# HDF5-specific tests
+set(cgioc_hdf_FILES cgioc_hdf.c)
+
+# 64-bit tests
+set(test64c_FILES test64c.c utils.c)
+# Note: test64f.F90 and test64f_f03.F90 use fixed-form syntax despite .F90 extension
+# In autotools, these are in a separate FALL64 variable and may not be regularly built
+set(test64f_FILES test64f.F90)
+set(test64f_f03_FILES test64f_f03.F90)
 
 # Build each test
 add_executable( cgioc                ${cgioc_FILES}                )
@@ -89,6 +104,64 @@ add_executable( test_family_tree     ${test_family_tree_FILES}     )
 add_executable( test_bbox            ${test_bbox_FILES}            )
 add_executable( test_complex         ${test_complex_FILES}         )
 add_executable( test_convert_elem    ${test_convert_elem_FILES}    )
+add_executable( test_back_comp       ${test_back_comp_FILES}       )
+add_executable( test_particle        ${test_particle_FILES}        )
+add_executable( test_parameters      ${test_parameters_FILES}      )
+
+# HDF5-specific test (conditional on HDF5 support)
+if (CGNS_ENABLE_HDF5)
+  add_executable( cgioc_hdf ${cgioc_hdf_FILES} )
+endif()
+
+# 64-bit test (conditional on 64-bit support)
+if (CGNS_ENABLE_64BIT)
+  add_executable( test64c ${test64c_FILES} )
+endif()
+#
+set(C_TESTS_LIST
+	cgioc
+	dbtest
+	elemtest
+	open_cgns
+	ser_benchmark_hdf5
+	test_core_vfd        
+	test_exts            
+	test_goto            
+	test_partial         
+	test_ver31           
+	test_multifam        
+	test_general_rind    
+	test_general_reshape 
+	write_array          
+	write_bcdata         
+	write_links          
+	write_rind           
+	write_test           
+	write_zones          
+	test_family_tree     
+	test_bbox            
+	test_complex
+        test_convert_elem
+        test_back_comp
+        test_particle
+        test_parameters)
+
+# Conditionally add HDF5-specific tests
+if (CGNS_ENABLE_HDF5)
+  list(APPEND C_TESTS_LIST cgioc_hdf)
+endif()
+
+# Conditionally add 64-bit tests
+if (CGNS_ENABLE_64BIT)
+  list(APPEND C_TESTS_LIST test64c)
+endif()
+
+set(SKIP_TESTS
+        dbtest)
+# Modern Linking
+foreach(TGTNAME ${C_TESTS_LIST})
+  target_link_libraries(${TGTNAME} PRIVATE ${TESTS_LK_LIBS})
+endforeach()
 
 # Conditionally build the fortran tests
 if (CGNS_ENABLE_FORTRAN)
@@ -101,7 +174,19 @@ if (CGNS_ENABLE_FORTRAN)
 	add_executable( test_general_rindf ${test_general_rindf_FILES} )
 	add_executable( test_family_treef  ${test_family_treef_FILES}  )
 	add_executable( test_bboxf         ${test_bboxf_FILES}         )
-	add_executable( test_complexf      ${test_complexf_FILES}      )
+        add_executable( test_complexf      ${test_complexf_FILES}      )
+        add_executable( test_particlef     ${test_particlef_FILES}     )
+        add_executable( test_params_fortran ${test_params_fortran_FILES} )
+
+	# 64-bit Fortran tests (conditional on 64-bit support)
+	# Both test64f.F90 and test64f_f03.F90 use fixed-form syntax despite .F90 extension
+	if (CGNS_ENABLE_64BIT)
+	  add_executable( test64f ${test64f_FILES} )
+	  set_source_files_properties(test64f.F90 PROPERTIES Fortran_FORMAT FIXED)
+
+	  add_executable( test64f_f03 ${test64f_f03_FILES} )
+	  set_source_files_properties(test64f_f03.F90 PROPERTIES Fortran_FORMAT FIXED)
+        endif()
 #	if (NOT CGNS_ENABLE_64BIT)
 # Don't build the F77 source because they will fail if ENABLE_64BIT is used
 #	  add_executable( cgiof       ${cgiof_FILES}  )
@@ -110,50 +195,59 @@ if (CGNS_ENABLE_FORTRAN)
 #	  add_executable( cgzconn      ${cgzconn_FILES}  )
 #	  add_executable( cgsubreg     ${cgsubreg_FILES}  )
 #	endif (NOT CGNS_ENABLE_64BIT)
-endif (CGNS_ENABLE_FORTRAN)
+        set(FORTRAN_TESTS_LIST
+	cgiof_f03          
+	cgwrite_f03        
+	cgread_f03         
+	cgzconn_f03        
+	cgsubreg_f03       
+	test_general_rindf 
+        test_family_treef
+	test_bboxf
+        test_complexf
+        test_particlef
+        test_params_fortran
+        )
+
+	# Conditionally add 64-bit Fortran tests
+	if (CGNS_ENABLE_64BIT)
+	  list(APPEND FORTRAN_TESTS_LIST test64f test64f_f03)
+	endif()
+
+	# Modern Linking
+	foreach(TGTNAME ${FORTRAN_TESTS_LIST})
+	  target_link_libraries(${TGTNAME} PRIVATE ${TESTS_LK_LIBS})
+	endforeach()
+endif ()
 
 # Add the tests so that ctest can find them
 if (CGNS_ENABLE_TESTS)
-  add_test( cgioc                cgioc                )
-  add_test( elemtest             elemtest             )
-  add_test( ser_benchmark_hdf5   ser_benchmark_hdf5   )
-  add_test( test_core_vfd        test_core_vfd        )
-  add_test( test_exts            test_exts            )
-  add_test( test_goto            test_goto            )
-  add_test( test_partial         test_partial         )
-  add_test( test_ver31           test_ver31           )
-  add_test( test_multifam        test_multifam        )
-  add_test( test_general_rind    test_general_rind    )
-  add_test( test_general_reshape test_general_reshape )
-  add_test( write_array          write_array          )
-  add_test( write_bcdata         write_bcdata         )
-  add_test( write_links          write_links          )
-  add_test( write_rind           write_rind           )
-  add_test( write_test           write_test           )
-  add_test( write_zones          write_zones          )
-  add_test( test_family_tree     test_family_tree     )
-  add_test( test_bbox            test_bbox            )
-  add_test( test_complex         test_complex         )
-  add_test( test_convert_elem    test_convert_elem    )
+
+  file(COPY data DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+  foreach(TARGETNAME ${C_TESTS_LIST})
+    if ( ${TARGETNAME} IN_LIST SKIP_TESTS )
+      continue()
+    endif()
+    add_test(NAME ${TARGETNAME} COMMAND ${TARGETNAME})
+    set_property (TEST ${TARGETNAME} PROPERTY SKIP_RETURN_CODE 125)
+    # On windows help ctest to find the required dlls
+    if(CGNS_BUILD_SHARED)
+      set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+        "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
+    endif()
+
+  endforeach()
 
   # Conditionally add the fortran tests
   if (CGNS_ENABLE_FORTRAN)
-	#add_test( f2c_test f2c_test ) # This still needs a regex test
-	add_test( cgiof_f03          cgiof_f03          )
-	add_test( cgwrite_f03        cgwrite_f03        )
-	add_test( cgread_f03         cgread_f03         )
-	add_test( cgzconn_f03        cgzconn_f03        )
-	add_test( cgsubreg_f03       cgsubreg_f03       )
-	add_test( test_general_rindf test_general_rindf )
-	add_test( test_family_treef  test_family_treef  )
-	add_test( test_bboxf         test_bboxf         )
-	add_test( test_complexf      test_complexf      )
-#	if (NOT CGNS_ENABLE_64BIT)
-#	  add_test( cgiof cgiof)
-#	  add_test( cgwrite   cgwrite  )
-#	  add_test( cgread    cgread   )
-#	  add_test( cgzconn   cgzconn  )
-#	  add_test( cgsubreg  cgsubreg )
-#	endif (NOT CGNS_ENABLE_64BIT)
+    foreach(TARGETNAME ${FORTRAN_TESTS_LIST})
+      add_test(NAME ${TARGETNAME} COMMAND ${TARGETNAME})
+      # On windows help ctest to find the required dlls
+      if(CGNS_BUILD_SHARED)
+        set_tests_properties(${TARGETNAME} PROPERTIES ENVIRONMENT_MODIFICATION
+          "PATH=path_list_prepend:$<$<BOOL:${WIN32}>:$<JOIN:$<TARGET_RUNTIME_DLL_DIRS:${TARGETNAME}>,\;>>")
+      endif()
+    endforeach()
   endif (CGNS_ENABLE_FORTRAN)
 endif (CGNS_ENABLE_TESTS)

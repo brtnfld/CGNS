@@ -32,19 +32,41 @@
  *   |_____|_|  |_|_|     \____/|_|  \_\ |_/_/    \_\_| \_|  |_|
  *
  * -------------------  DEVELOPER'S NOTES  ---------------------------
+ *
  *    (1) When adding a defined constant to this file, also add the same defined 
  *    constant to cgns_f.F90
+ *
+ *    (2) Fortran length of names for variables is limited to 31 characters.
  *          
  * ------------------------------------------------------------------------- */
-
+/**
+ * \defgroup CGNSInternals_FNC_CG_CONFIG Configuring CGNS Internals
+ */
 #ifndef CGNSLIB_H
 #define CGNSLIB_H
 
-#define CGNS_VERSION 4300
-#define CGNS_DOTVERS 4.30
+#define CGNS_VERSION 5000
+#define CGNS_DOTVERS 5.00
 
 #define CGNS_COMPATVERSION 2540
 #define CGNS_COMPATDOTVERS 2.54
+
+/* Version bounds constants for cg_parameters_t */
+#define CG_LIBVER_EARLIEST 1050  /* CGNS 1.05 (read compatibility) */
+#define CG_LIBVER_V12      1200  /* CGNS 1.2 */
+#define CG_LIBVER_V20      2000  /* CGNS 2.0 */
+#define CG_LIBVER_V25      2540  /* CGNS 2.54 (COMPATVERSION) */
+#define CG_LIBVER_V30      3000  /* CGNS 3.0 */
+#define CG_LIBVER_V31      3100  /* CGNS 3.1 */
+#define CG_LIBVER_V32      3200  /* CGNS 3.2 */
+#define CG_LIBVER_V33      3300  /* CGNS 3.3 */
+#define CG_LIBVER_V40      4000  /* CGNS 4.0 */
+#define CG_LIBVER_V41      4100  /* CGNS 4.1 */
+#define CG_LIBVER_V42      4200  /* CGNS 4.2 */
+#define CG_LIBVER_V43      4300  /* CGNS 4.3 */
+#define CG_LIBVER_V44      4400  /* CGNS 4.4 */
+#define CG_LIBVER_LATEST   5000  /* CGNS 5.0 (CGNS_VERSION) */
+#define CG_LIBVER_AUTO     -1    /* Automatic version selection */
 
 #include "cgnstypes.h"
 
@@ -120,24 +142,182 @@
 
 #define CG_MAX_GOTO_DEPTH 20
 
-/* configuration options */
+/* CONFIGURATION OPTIONS */
 
+/*        _______ _______ ______ _   _ _______ _____ ____  _   _  
+ *     /\|__   __|__   __|  ____| \ | |__   __|_   _/ __ \| \ | |
+ *    /  \  | |     | |  | |__  |  \| |  | |    | || |  | |  \| |
+ *   / /\ \ | |     | |  |  __| | . ` |  | |    | || |  | | . ` |
+ *  / ____ \| |     | |  | |____| |\  |  | |   _| || |__| | |\  |
+ * /_/    \_\_|     |_|  |______|_| \_|  |_|  |_____\____/|_| \_|
+ *
+ * When defining new CG_CONFIG_* options, it is essential to add a description
+ * for documentation purposes.
+ */
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief This allows the  user to define an error call-back function. The value should be a pointer
+ * to a function that receives the error.  The  function is defined as
+ * `void err_callback(int is_error, char *errmsg)`, or, in Fortran,
+ * \code{.F90}
+     SUBROUTINE err_callback(is_error, errmsg) BIND(C)
+        INTEGER(C_INT), VALUE ::is_error
+        CHARACTER(LEN=1), DIMENSION(*) :: errmsg
+   \endcode
+ * and will be called for errors and warnings.
+ *
+ * The first argument, `is_error`, will be 0 for warning messages, 1 for error messages, and
+ * -1 if the program is going to terminate (i.e., a call to cg_error_exit()). The second
+ * argument is the error or warning  message. If this is defined,  warning and error messages
+ * will go  to the function rather  than  the terminal.  A  `value`  of  NULL (Fortran,
+ * `C_NULL_PTR` or `C_NULL_FUNPTR`)  will remove the call-back function.
+*/
 #define CG_CONFIG_ERROR      1
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief This is the rewrite-upon-close setting. **Note**:  Prior  library   versions would
+ * automatically rewrite the  CGNS file when it  was closed after being opened in modify mode
+ * if there was unused space. This is no longer  done due to possible parallel I/O conflicts.
+ * The previous behavior may be recovered by setting the value to a positive integer. In this
+ * case, the file will be rewritten if the  number of node deletions  or modifications equals
+ * or  exceeds this number. Setting the `value` to a negative  number will  force the rewrite
+ * when the file is closed. The default value is 0 (no rewrite).
+ */
 #define CG_CONFIG_COMPRESS   2
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Sets the search path for locating linked-to files. The argument `value` should be a
+ * character string containing one or more  directories, formatted the same as   for the PATH
+ * environment variable. This will replace any current settings. Setting `value` to NULL will
+ * remove all paths. In Fortran,  the  path must terminate with a `NULL` character, `CHAR(0)`
+ * or `C_NULL_CHAR`.
+*/
 #define CG_CONFIG_SET_PATH   3
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Adds a directory, or list of directories, to the linked-to file search path. This
+ * is  the same  as `CG_CONFIG_SET_PATH`, but adds to the path  instead of replacing it. In
+ * Fortran, the path must terminate with a `NULL` character, `CHAR(0)` or `C_NULL_CHAR`.
+*/
 #define CG_CONFIG_ADD_PATH   4
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Sets the default file type for newly created CGNS files. The argument `value` should be
+ * set to one of `CG_FILE_NONE`, `CG_FILE_ADF`, `CG_FILE_HDF5`, or `CG_FILE_ADF2`. See the
+ * discussion above for cg_set_file_type().
+*/
 #define CG_CONFIG_FILE_TYPE  5
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief This  option  affects index  bounds   on  structured   arrays  with rind   planes.  The
+ * <a href="\CGNS_ORG/\SIDS_REF/grid.html#grid-coordinates-structure-definition-gridcoordinates-t">SIDS</a>
+ * specifies that core array locations begin at index 1. Lower rind planes, if present, would
+ * have an index of less than 1 (see
+ * <a href="\CGNS_ORG/\SIDS_REF/convention.html#structured-grid-notation-and-indexing-conventions">structured grid indexing conventions</a>
+ * ). Versions of the  Mid-Level  Library < 3.4 did  not produce
+ * this behavior. Index 1 always represented the start of  an array: in an array with no rind
+ * planes,  the core location would have index  1; in an array  with 1   rind plane, the core
+ * location would have index 2.  In  version 3.4 of the Mid-Level Library, the API's behavior
+ * was  fixed to  match what was specified in  the SIDS: core array locations always begin at
+ * index 1. This option allows for configuring the  library to pre-3.4 indexing behavior (set
+ * value    to  `CG_CONFIG_RIND_ZERO`) or   the   new    default   behavior  (set    value to
+ * `CG_CONFIG_RIND_CORE`). Note that using  `CG_CONFIG_RIND_ZERO` is considered  obsolete but
+ * is provided for backward compatibility. Most  users should not select this  option and use
+ * the  default. Values  used for  this option do  not need to be explicitly cast as `void*`.
+ * This  option does not change the CGNS file in any   way; it  only modifies the  API to the
+ * library.
+*/
 #define CG_CONFIG_RIND_INDEX 6
 
-#define CG_CONFIG_HDF5_COMPRESS        201
-#define CG_CONFIG_HDF5_MPI_COMM        202
-#define CG_CONFIG_HDF5_DISKLESS        203
-#define CG_CONFIG_HDF5_DISKLESS_INCR   204
-#define CG_CONFIG_HDF5_DISKLESS_WRITE  205
-#define CG_CONFIG_HDF5_ALIGNMENT       206
-#define CG_CONFIG_HDF5_MD_BLOCK_SIZE   207
-#define CG_CONFIG_HDF5_BUFFER          208
-#define CG_CONFIG_HDF5_SIEVE_BUF_SIZE  209
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Sets the  compression level for data written from HDF5. The default is no compression.
+ * Setting `value` to -1 will use the   default  compression  level of  6. The acceptable
+ * values are 0 to 9, corresponding to gzip compression levels. **This option currently
+ * does nothing, as compression has not yet been implemented.**
+*/
+#define CG_CONFIG_HDF5_COMPRESS         201
+
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Sets the MPI communicator for parallel I/O. The default is `MPI_COMM_WORLD`. The
+ * new communicator is  given by typecasting it  to   a `void  *`. This  is generally used
+ * internally - see cgp_mpi_comm() instead.
+*/
+#define CG_CONFIG_HDF5_MPI_COMM         202
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Performs I/O directly to memory and can create temporary CGNS files that never
+ * exist on permanent  storage. The memory is  written to disk depending on the state of
+ * \ref CG_CONFIG_HDF5_DISKLESS_WRITE.  CGNS will use the \p  core  file  driver in  HDF5 via
+ * `H5Pset_fapl_core`, and the  parameters associated with   \ref CG_CONFIG_HDF5_DISKLESS are
+ * associated  with that API. When  `value`  is 1, any previously defined driver mode is
+ * ignored. Setting `value` to 0 disables the diskless mode, enabling the previous mode.
+ * This configuration is  not a valid option  when accessing the memory by more than one
+ * process.
+*/
+#define CG_CONFIG_HDF5_DISKLESS         203
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief `Value`  specifies the increment by  which  allocated memory is to  be increased
+ * each  time more memory is required, in  bytes. The  default is  10MiB. Ideally, `value`
+ * should  be  set large enough  to   minimize repeated increases. The type  of `value` is
+ * `size_t` in C and `C_SIZE_T` in Fortran. Due to a bug with gfortran, it is advisable to
+ * use `C_LOC` or `C_FUNLOC` in-line of the call instead of using a variable.
+*/
+#define CG_CONFIG_HDF5_DISKLESS_INCR    204
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief `Value` indicates whether to write (`value`=1) the memory contents to disk when
+ * the file is closed. Otherwise, `value`=0 does not persist the memory to disk.
+*/
+#define CG_CONFIG_HDF5_DISKLESS_WRITE   205
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief   Configures  HDF5's `H5Pset_alignment`  and   sets  the  alignment, `value[1]`,
+ * properties of a file access property list so that any file object greater than or equal
+ * in size to a threshold,  `value[0]`,  bytes  will be aligned on an  address  which is a
+ * multiple of alignment.
+*/
+#define CG_CONFIG_HDF5_ALIGNMENT        206
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Configures HDF5's `H5Pset_meta_block_size` and sets the minimum size, `value (in
+ * bytes)`, of metadata block allocations.
+*/
+#define CG_CONFIG_HDF5_MD_BLOCK_SIZE    207
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Configures HDF5's `H5Pset_buffer` and sets the maximum size, `value (in bytes)`,
+ * for the type conversion buffer and background buffer.
+*/
+#define CG_CONFIG_HDF5_BUFFER           208
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Configures HDF5's `H5Pset_sieve_buf_size` and sets the maximum size, `value (in
+ * bytes)`, of the data sieve buffer.
+*/
+#define CG_CONFIG_HDF5_SIEVE_BUF_SIZE   209
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief Configures HDF5's `H5Pset_elink_file_cache_size` and sets the number of files,
+ * `value`, that can be held open in an external link open file cache.
+*/
+#define CG_CONFIG_HDF5_ELINK_CACHE_SIZE 210
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief `Value` returns an `int` (Fortran:`C_INT`) indicating the maximum number of
+ * allowed open and mounted files.
+*/
+#define CG_CONFIG_GET_MAXIMUM_FILES     401
+/**
+ * \ingroup CGNSInternals_FNC_CG_CONFIG
+ * \brief `Value` indicates the configuration values to reset to their default values.
+ * Currently, only  `CG_CONFIG_RESET_HDF5` is a valid  `value`  and will reset all the
+ * `CG_CONFIG_HDF5_*`    parameters,     excluding    `CG_CONFIG_HDF5_MPI_COMM`    and
+ * `CG_CONFIG_HDF5_DISKLESS`, to their default values.
+*/
 
 #define CG_CONFIG_RESET 1000
 
@@ -362,7 +542,8 @@ typedef enum {
   CGNS_ENUMV( NSLaminar ) =4,
   CGNS_ENUMV( NSTurbulent ) =5,
   CGNS_ENUMV( NSLaminarIncompressible ) =6,
-  CGNS_ENUMV( NSTurbulentIncompressible ) =7
+  CGNS_ENUMV( NSTurbulentIncompressible ) =7,
+  CGNS_ENUMV( LatticeBoltzmann ) =8
 } CGNS_ENUMT( GoverningEquationsType_t );
 
 /* Any model type will accept both ModelTypeNull and ModelTypeUserDefined.
@@ -434,11 +615,99 @@ typedef enum {
   CGNS_ENUMV( Chemistry_LinRessler ) =35
 } CGNS_ENUMT( ModelType_t );
 
-#define NofValidGoverningEquationsTypes 8
+typedef enum {
+  CGNS_ENUMV( ParticleGoverningEquationsNull ) =CG_Null,
+  CGNS_ENUMV( ParticleGoverningEquationsUserDefined ) =CG_UserDefined,
+  CGNS_ENUMV( DEM ) =2,
+  CGNS_ENUMV( DSMC ) =3,
+  CGNS_ENUMV( SPH ) =4,
+} CGNS_ENUMT( ParticleGoverningEquationsType_t );
+
+/* Any particle model type will accept both ParticleModelTypeNull and ParticleModelTypeUserDefined.
+** The following particle models will accept these values as valid...
+**
+** ParticleCollisionModelType_t: Linear, NonLinear, HardSphere, SoftSphere,
+**    LinearSpringDashpot, Pair, HertzMindlin, HertzKuwabaraKono, ORourke,
+**    Stochastic, NonStochastic, NTC
+**
+** ParticleBreakupModel_t: KelvinHelmholtz, KelvinHelmholtzACT, RayleighTaylor,
+**    KelvinHelmholtzRayleighTaylor, TAB, ETAB, LISA, SHF, PilchErdman, ReitzDiwakar
+**
+** ParticleForceModel_t: Sphere, NonShpere, Tracer, BeetstraVanDerHoefKuipers,
+**     Ergun, CliftGrace, Gidaspow, HaiderLevenspiel, PlessisMasliyah,
+**     SyamlalOBrien, SaffmanMei, TennetiGargSubramaniam, Tomiyama, Stokes,
+**     StokesCunningham, WenYu
+**
+** ParticleWallInteractionModel_t:  Linear, NonLinear, HardSphere, SoftSphere,
+**    LinearSpringDashpot, BaiGosman, Pair, HertzMindlin, HertzKuwabaraKono, Khunke,
+**    ORourke, Stochastic, NonStochastic, NTC
+**
+** ParticlePhaseChangeModel_t: Boil, Condense, Flash, Nucleate, Chiang, Frossling, uchsKnudsen
+*/
+
+typedef enum {
+  CGNS_ENUMV( ParticleModelTypeNull ) =CG_Null,
+  CGNS_ENUMV( ParticleModelTypeUserDefined ) =CG_UserDefined,
+  CGNS_ENUMV( Linear ) =2,
+  CGNS_ENUMV( NonLinear ) =3,
+  CGNS_ENUMV( HardSphere ) =4,
+  CGNS_ENUMV( SoftSphere ) =5,
+  CGNS_ENUMV( LinearSpringDashpot ) =6,
+  CGNS_ENUMV( Pair ) =7,
+  CGNS_ENUMV( HertzMindlin ) =8,
+  CGNS_ENUMV( HertzKuwabaraKono ) =9,
+  CGNS_ENUMV( ORourke ) =10,
+  CGNS_ENUMV( Stochastic ) =11,
+  CGNS_ENUMV( NonStochastic ) =12,
+  CGNS_ENUMV( NTC ) =13,
+  CGNS_ENUMV( KelvinHelmholtz ) =14,
+  CGNS_ENUMV( KelvinHelmholtzACT ) =15,
+  CGNS_ENUMV( RayleighTaylor ) =16,
+  CGNS_ENUMV( KelvinHelmholtzRayleighTaylor ) =17,
+  CGNS_ENUMV( ReitzKHRT ) = 18,
+  CGNS_ENUMV( TAB ) =19,
+  CGNS_ENUMV( ETAB ) =20,
+  CGNS_ENUMV( LISA ) =21,
+  CGNS_ENUMV( SHF ) =22,
+  CGNS_ENUMV( PilchErdman ) =23,
+  CGNS_ENUMV( ReitzDiwakar ) =24,
+  CGNS_ENUMV( Sphere ) =25,
+  CGNS_ENUMV( NonSphere ) =26,
+  CGNS_ENUMV( Tracer ) =27,
+  CGNS_ENUMV( BeetstraVanDerHoefKuipers ) =28,
+  CGNS_ENUMV( Ergun ) =29,
+  CGNS_ENUMV( CliftGrace ) =30,
+  CGNS_ENUMV( Gidaspow ) =31,
+  CGNS_ENUMV( HaiderLevenspiel ) =32,
+  CGNS_ENUMV( PlessisMasliyah ) =33,
+  CGNS_ENUMV( SyamlalOBrien ) =34,
+  CGNS_ENUMV( SaffmanMei ) =35,
+  CGNS_ENUMV( TennetiGargSubramaniam ) =36,
+  CGNS_ENUMV( Tomiyama ) =37,
+  CGNS_ENUMV( Stokes ) =38,
+  CGNS_ENUMV( StokesCunningham ) =39,
+  CGNS_ENUMV( WenYu ) =40,
+  CGNS_ENUMV( BaiGosman ) = 41,
+  CGNS_ENUMV( Khunke ) = 42,
+  CGNS_ENUMV( Boil ) =43,
+  CGNS_ENUMV( Condense ) =44,
+  CGNS_ENUMV( Flash ) =45,
+  CGNS_ENUMV( Nucleate ) =46,
+  CGNS_ENUMV( Chiang ) =47,
+  CGNS_ENUMV( Frossling ) =48,
+  CGNS_ENUMV( FuchsKnudsen ) =49,
+} CGNS_ENUMT( ParticleModelType_t);
+
+#define NofValidGoverningEquationsTypes 9
 #define NofValidModelTypes 36
+#define NofValidParticleGoverningEquationsTypes 5
+#define NofValidParticleModelTypes 50
 
 extern CGNSDLL const char * GoverningEquationsTypeName[NofValidGoverningEquationsTypes];
 extern CGNSDLL const char * ModelTypeName[NofValidModelTypes];
+extern CGNSDLL const char * ParticleGoverningEquationsTypeName[NofValidParticleGoverningEquationsTypes];
+extern CGNSDLL const char * ParticleModelTypeName[NofValidParticleModelTypes];
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  * 	Boundary Condition Types					 *
@@ -684,7 +953,6 @@ extern CGNSDLL const char * ElementTypeName[NofValidElementTypes];
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Zone types                                                       *
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
 typedef enum {
   CGNS_ENUMV( ZoneTypeNull ) =CG_Null,
   CGNS_ENUMV( ZoneTypeUserDefined ) =CG_UserDefined,
@@ -787,9 +1055,277 @@ extern CGNSDLL const char * AverageInterfaceTypeName[NofValidAverageInterfaceTyp
  *      LIBRARY FUNCTIONS						 *
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/**
+ * \defgroup ParameterAPI Parameter Object API
+ * \brief Thread-safe configuration for CGNS file operations
+ *
+ * The parameter object API provides explicit, thread-safe configuration
+ * for CGNS file operations. It replaces global state modification with
+ * immutable parameter objects passed through the call stack.
+ *
+ * \par Design Goals:
+ * - **Thread Safety**: Multiple threads can configure CGNS independently
+ * - **Explicit Configuration**: Clear parameter passing instead of globals
+ * - **Minimal API**: Only 4 functions, extensible key-value pattern
+ * - **Backward Compatible**: Existing code continues to work unchanged
+ *
+ * \par Basic Usage:
+ * \code
+ * cg_parameters_t params;
+ * cg_params_create(&params);
+ * cg_params_set(params, CG_PARAM_MIN_VERSION, CG_LIBVER_V40);
+ * cg_params_set(params, CG_PARAM_MAX_VERSION, CG_LIBVER_LATEST);
+ *
+ * int fn;
+ * cg_open_with_params("file.cgns", CG_MODE_WRITE, params, &fn);
+ * cg_base_write(fn, "Base", 3, 3, &B);
+ * cg_close(fn);
+ *
+ * cg_params_destroy(params);
+ * \endcode
+ *
+ * \par Thread Safety:
+ * Parameter objects are thread-safe when each thread uses its own object.
+ * Parameters are passed by value through the call stack, eliminating race
+ * conditions from global variable modification.
+ *
+ * \par Parallel I/O:
+ * Use cgp_open() with 4 arguments (or cgp_open_with_params() explicitly) for MPI
+ * parallel applications with the same parameter API for consistent configuration
+ * across processes.
+ *
+ * @{
+ */
+
+/**
+ * \brief Opaque handle for parameter object
+ *
+ * This opaque type encapsulates CGNS configuration parameters.
+ * Parameter objects are allocated on the heap and must be freed
+ * with cg_params_destroy().
+ */
+typedef struct cg_parameters_s *cg_parameters_t;
+
+/**
+ * \brief Sentinel value for default parameters
+ *
+ * Pass CG_PARAMS_DEFAULT to cg_open_with_params() to use legacy global configuration.
+ * This maintains backward compatibility with existing code.
+ */
+#define CG_PARAMS_DEFAULT ((cg_parameters_t)NULL)
+
+/**
+ * \brief Parameter keys for cg_params_set()
+ *
+ * These keys identify which parameter to set in the generic setter function.
+ * The enum values are intentionally spaced to allow future additions without
+ * breaking ABI compatibility.
+ */
+typedef enum {
+    CG_PARAM_FILE_TYPE     = 100,  /**< File type: CG_FILE_HDF5, CG_FILE_ADF, etc. */
+    CG_PARAM_COMPRESS      = 101,  /**< Compression level: 0 (none) to 9 (max) */
+    CG_PARAM_MIN_VERSION   = 102,  /**< Minimum CGNS version: CG_LIBVER_* */
+    CG_PARAM_MAX_VERSION   = 103,  /**< Maximum CGNS version: CG_LIBVER_* */
+    CG_PARAM_WRITE_VERSION = 104   /**< Write version: CG_LIBVER_* or CG_LIBVER_AUTO */
+} CG_PARAM_KEY;
+
+/**
+ * \ingroup ParameterAPI
+ * \brief Create a new parameter object
+ *
+ * \param[out] params Pointer to receive the parameter object handle
+ * \return CG_OK on success, CG_ERROR on failure
+ *
+ * \details Allocates and initializes a parameter object with default values:
+ * - min_version: CG_LIBVER_EARLIEST (maximum compatibility)
+ * - max_version: CG_LIBVER_LATEST (current library version)
+ * - write_version: CG_LIBVER_AUTO (automatic selection)
+ * - file_type: Current cgns_filetype global
+ * - compress: Current cgns_compress global
+ *
+ * \par Thread Safety:
+ * Version bounds use hard defaults for thread safety. File type and
+ * compression inherit from system configuration globals, which are
+ * typically set once at program startup.
+ *
+ * \par Example:
+ * \code
+ * cg_parameters_t params;
+ * if (cg_params_create(&params) != CG_OK) {
+ *     fprintf(stderr, "Error: %s\n", cg_get_error());
+ *     return 1;
+ * }
+ * \endcode
+ *
+ * \note The parameter object must be freed with cg_params_destroy()
+ * \sa cg_params_destroy, cg_params_set
+ */
+CGNSDLL int cg_params_create(cg_parameters_t *params);
+
+/**
+ * \ingroup ParameterAPI
+ * \brief Destroy a parameter object
+ *
+ * \param[in] params Parameter object to destroy
+ * \return CG_OK on success, CG_ERROR on failure (NULL pointer)
+ *
+ * \details Frees the memory allocated by cg_params_create().
+ *
+ * \par Example:
+ * \code
+ * cg_params_destroy(params);
+ * \endcode
+ *
+ * \warning Passing NULL returns CG_ERROR
+ * \sa cg_params_create
+ */
+CGNSDLL int cg_params_destroy(cg_parameters_t params);
+
+/**
+ * \ingroup ParameterAPI
+ * \brief Set a parameter value using a generic key-value interface
+ *
+ * \param[in] params Parameter object
+ * \param[in] key    Parameter key (CG_PARAM_*)
+ * \param[in] value  Integer value to set
+ * \return CG_OK on success, CG_ERROR on failure
+ *
+ * \details This generic setter follows the cg_configure() pattern, reducing
+ * API surface while maintaining extensibility. Future parameters can be added
+ * by defining new CG_PARAM_* keys without changing the function signature.
+ *
+ * \par Validation:
+ * - CG_PARAM_MIN_VERSION: Must be ≤ max_version (cross-validated)
+ * - CG_PARAM_MAX_VERSION: Must be ≥ min_version (cross-validated)
+ * - CG_PARAM_FILE_TYPE: Validated at file open time
+ * - CG_PARAM_COMPRESS: Validated by HDF5 (0-9 range)
+ * - CG_PARAM_WRITE_VERSION: No validation (any integer accepted)
+ *
+ * \par Design Rationale:
+ * Validation is intentionally deferred to the point of use (file open) for:
+ * - Forward compatibility: New HDF5 compression levels don't break old code
+ * - Defense in depth: Final validation happens where it's needed
+ * - Simplicity: No hardcoded validation macros to maintain
+ *
+ * \par Example:
+ * \code
+ * // Set version bounds for v4.0+ files
+ * cg_params_set(params, CG_PARAM_MIN_VERSION, (void *)CG_LIBVER_V40);
+ * cg_params_set(params, CG_PARAM_MAX_VERSION, (void *)CG_LIBVER_LATEST);
+ *
+ * // Enable HDF5 compression
+ * cg_params_set(params, CG_PARAM_FILE_TYPE, (void *)CG_FILE_HDF5);
+ * cg_params_set(params, CG_PARAM_COMPRESS, (void *)6);
+ * \endcode
+ *
+ * \note This function follows the same pattern as cg_configure(), using void*
+ *       for type flexibility. Currently all parameters are integers, cast via
+ *       (int)((size_t)value).
+ *
+ * \warning Passing NULL params returns CG_ERROR
+ * \sa cg_params_create, cg_open_with_params, cg_configure, CG_PARAM_KEY
+ */
+CGNSDLL int cg_params_set(cg_parameters_t params, int key, void *value);
+
+/** @} */
+
+/* File Operations */
 CGNSDLL int cg_is_cgns(const char *filename, int *file_type);
 
-CGNSDLL int cg_open(const char * filename, int mode, int *fn);
+/**
+ * \brief Open a CGNS file (legacy 3-argument version)
+ *
+ * Opens a CGNS file using global configuration state. This is the traditional
+ * API maintained for backward compatibility.
+ *
+ * \param[in] filename Name of the CGNS file
+ * \param[in] mode Access mode (CG_MODE_READ, CG_MODE_WRITE, CG_MODE_MODIFY)
+ * \param[out] fn File index number
+ * \return CG_OK on success, CG_ERROR on failure
+ *
+ * \par Example:
+ * \code
+ * int fn;
+ * cg_open("file.cgns", CG_MODE_READ, &fn);
+ * // ... use file ...
+ * cg_close(fn);
+ * \endcode
+ *
+ * \par Thread Safety:
+ * This function uses global state and is NOT thread-safe.
+ * For thread-safe operation, use cg_open() with 4 arguments (see below).
+ *
+ * \par Progressive Enhancement:
+ * cg_open() is a polymorphic macro that accepts either 3 or 4 arguments.
+ * The 4-argument form automatically calls cg_open_with_params().
+ *
+ * \sa cg_open_with_params, cg_close, cgp_open
+ */
+CGNSDLL int cg_open(const char *filename, int mode, int *fn);
+
+/**
+ * \brief Open a CGNS file with explicit parameter object (modern 4-argument version)
+ *
+ * Opens a CGNS file using an explicit parameter object for thread-safe,
+ * configurable file access. This is the recommended API for new code.
+ *
+ * \param[in] filename Name of the CGNS file
+ * \param[in] mode Access mode (CG_MODE_READ, CG_MODE_WRITE, CG_MODE_MODIFY)
+ * \param[in] params Parameter object created with cg_params_create()
+ * \param[out] fn File index number
+ * \return CG_OK on success, CG_ERROR on failure
+ *
+ * \par Example:
+ * \code
+ * cg_parameters_t params;
+ * cg_params_create(&params);
+ * cg_params_set(params, CG_PARAM_FILE_TYPE, CG_FILE_HDF5);
+ * cg_params_set(params, CG_PARAM_MIN_VERSION, CG_LIBVER_V40);
+ *
+ * int fn;
+ * cg_open_with_params("file.cgns", CG_MODE_WRITE, params, &fn);
+ * // ... use file ...
+ * cg_close(fn);
+ * cg_params_destroy(params);
+ * \endcode
+ *
+ * \par Thread Safety:
+ * This function is fully thread-safe. Each thread can have its own parameter
+ * object and call this function concurrently.
+ *
+ * \par Progressive Enhancement:
+ * You can call cg_open() with 4 arguments and it will automatically dispatch
+ * to this function, or call cg_open_with_params() explicitly.
+ *
+ * \sa cg_open, cg_params_create, cg_params_set, cgp_open_with_params
+ */
+CGNSDLL int cg_open_with_params(const char *filename, int mode,
+                                  cg_parameters_t params, int *fn);
+
+#ifndef BUILDING_CGNS
+/* Progressive Enhancement: Polymorphic cg_open() via argument counting
+ * Uses variadic macros (C99) to support both 3 and 4 argument forms.
+ * Only enabled when not building the library itself (to avoid macro conflicts).
+ *
+ * This allows calling cg_open() with either 3 or 4 arguments:
+ *   cg_open(file, mode, &fn)           // 3-arg: calls cg_open_with_params(file, mode, CG_PARAMS_DEFAULT, &fn)
+ *   cg_open(file, mode, params, &fn)   // 4-arg: calls cg_open_with_params(file, mode, params, &fn)
+ */
+
+/* Helper macros for argument counting */
+#define CG_OPEN_3(file, mode, fn) \
+    cg_open_with_params(file, mode, CG_PARAMS_DEFAULT, fn)
+#define CG_OPEN_4(file, mode, params, fn) \
+    cg_open_with_params(file, mode, params, fn)
+#define CG_OPEN_CHOOSER(_1, _2, _3, _4, NAME, ...) NAME
+#define CG_OPEN_EXPAND(x) x  /* MSVC workaround: force __VA_ARGS__ expansion */
+
+/* Redefine cg_open to dispatch based on argument count */
+#undef cg_open
+#define cg_open(...) \
+    CG_OPEN_EXPAND(CG_OPEN_CHOOSER(__VA_ARGS__, CG_OPEN_4, CG_OPEN_3)(__VA_ARGS__))
+
+#endif /* !BUILDING_CGNS */
 CGNSDLL int cg_version(int fn, float *FileVersion);
 CGNSDLL int cg_precision(int fn, int *precision);
 CGNSDLL int cg_close(int fn);
@@ -842,6 +1378,8 @@ CGNSDLL const char *cg_SimulationTypeName(CGNS_ENUMT( SimulationType_t ) type);
 CGNSDLL const char *cg_WallFunctionTypeName(CGNS_ENUMT( WallFunctionType_t ) type);
 CGNSDLL const char *cg_AreaTypeName(CGNS_ENUMT( AreaType_t ) type);
 CGNSDLL const char *cg_AverageInterfaceTypeName(CGNS_ENUMT( AverageInterfaceType_t ) type);
+CGNSDLL const char *cg_ParticleGoverningEquationsTypeName(CGNS_ENUMT( ParticleGoverningEquationsType_t ) type);
+CGNSDLL const char *cg_ParticleModelTypeName(CGNS_ENUMT( ParticleModelType_t ) type);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Read and write CGNSBase_t Nodes					 *
@@ -1332,6 +1870,13 @@ CGNSDLL int cg_ziter_read(int file_number, int B, int Z, char *zitername);
 CGNSDLL int cg_ziter_write(int file_number, int B, int Z, const char * zitername);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleIterativeData_t Node                      *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_piter_read(int file_number, int B, int P, char *pitername);
+CGNSDLL int cg_piter_write(int file_number, int B, int P, const char *pitername);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Read and write Gravity_t Nodes                                   *
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1398,7 +1943,106 @@ CGNSDLL int cg_conn_average_write(int file_number, int B, int Z, int Ii,
 CGNSDLL int cg_1to1_average_write(int file_number, int B, int Z, int Ii,
 	CGNS_ENUMT(AverageInterfaceType_t) AverageInterfaceType);
 CGNSDLL int cg_1to1_average_read(int file_number, int B, int Z, int Ii,
-	CGNS_ENUMT(AverageInterfaceType_t) *AverageInterfaceType);
+        CGNS_ENUMT(AverageInterfaceType_t) *AverageInterfaceType);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *   Read and write ParticleZone_t Nodes                                 *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_nparticle_zones(int file_number, int B, int *nparticlezones);
+CGNSDLL int cg_particle_id(int file_number, int B, int P, double *particle_id);
+CGNSDLL int cg_particle_read(int file_number, int B, int P, char *particlename, cgsize_t *size);
+CGNSDLL int cg_particle_write(int file_number, int B, const char* particlename,
+                              const cgsize_t size, int *P);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleCoordinates_t Nodes                       *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_ncoord_nodes(int file_number, int B, int P, int *ncoord_nodes);
+CGNSDLL int cg_particle_coord_node_read(int file_number, int B, int P, int C, char *name);
+CGNSDLL int cg_particle_coord_node_write(int file_number, int B, int P, const char *name, int *C);
+CGNSDLL int cg_particle_bounding_box_read(int fn, int B, int P, int C,
+                                          CGNS_ENUMT(DataType_t) datatype, void* boundingbox);
+CGNSDLL int cg_particle_bounding_box_write(int fn, int B, int P, int C,
+                                           CGNS_ENUMT(DataType_t) datatype, void* boundingbox);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleCoordinates_t/DataArray_t Nodes           *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_ncoords(int fn, int B, int P, int *ncoords);
+CGNSDLL int cg_particle_coord_info(int fn, int B, int P, int C,
+                                   CGNS_ENUMT(DataType_t) *type, char *coordname);
+CGNSDLL int cg_particle_coord_read(int fn, int B, int P, const char *coordname,
+                                   CGNS_ENUMT(DataType_t) type, const cgsize_t * rmin,
+                                   const cgsize_t * rmax, void *coord);
+CGNSDLL int cg_particle_coord_general_read(int fn, int B, int P,
+                                           const char *coordname, const cgsize_t *s_rmin, const cgsize_t *s_rmax,
+                                           CGNS_ENUMT(DataType_t) m_type, const cgsize_t *m_dimvals,
+                                           const cgsize_t *m_rmin, const cgsize_t *m_rmax, void *coord_ptr);
+CGNSDLL int cg_particle_coord_id(int fn, int B, int P, int C, double *coord_id);
+CGNSDLL int cg_particle_coord_write(int fn, int B, int P,
+                                    CGNS_ENUMT(DataType_t) type, const char *coordname,
+                                    const void *coord_ptr, int *C);
+
+CGNSDLL int cg_particle_coord_partial_write(int fn, int B, int P,
+                                            CGNS_ENUMT(DataType_t) type, const char *coordname,
+                                            const cgsize_t *rmin, const cgsize_t *rmax,
+                                            const void *coord_ptr, int *C);
+CGNSDLL int cg_particle_coord_general_write(int fn, int B, int P,
+                                            const char *coordname, CGNS_ENUMT(DataType_t) s_type,
+                                            const cgsize_t *rmin, const cgsize_t *rmax,
+                                            CGNS_ENUMT(DataType_t) m_type, const cgsize_t *m_dims,
+                                            const cgsize_t *m_rmin, const cgsize_t *m_rmax,
+                                            const void *coord_ptr, int *C);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleSolution_t Nodes                          *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_nsols(int fn, int B, int P, int *nsols);
+CGNSDLL int cg_particle_sol_info(int fn, int B, int P, int S, char *solname);
+CGNSDLL int cg_particle_sol_id(int fn, int B, int P,int S, double *sol_id);
+CGNSDLL int cg_particle_sol_write(int fn, int B, int P, const char * solname, int *S);
+CGNSDLL int cg_particle_sol_size(int fn, int B, int P, int S, cgsize_t *size);
+
+CGNSDLL int cg_particle_sol_ptset_info(int fn, int B, int P, int S,
+                                       CGNS_ENUMT(PointSetType_t) *ptset_type, cgsize_t *npnts);
+CGNSDLL int cg_particle_sol_ptset_read(int fn, int B, int P, int S, cgsize_t *pnts);
+CGNSDLL int cg_particle_sol_ptset_write(int fn, int B, int P, const char *solname,
+                                        CGNS_ENUMT(PointSetType_t) ptset_type, cgsize_t npnts,
+                                        const cgsize_t *pnts, int *S);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write particle solution DataArray_t Nodes               *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_nfields(int fn, int B, int P, int S, int *nfields);
+CGNSDLL int cg_particle_field_info(int fn,int B,int P,int S, int F,
+                                   CGNS_ENUMT(DataType_t) *type, char *fieldname);
+CGNSDLL int cg_particle_field_read(int fn, int B, int P, int S, const char *fieldname,
+                                   CGNS_ENUMT(DataType_t) type, const cgsize_t *rmin,
+                                   const cgsize_t *rmax, void *field_ptr);
+CGNSDLL int cg_particle_field_general_read(int fn, int B, int P, int S,
+                                           const char *fieldname, const cgsize_t *s_rmin, const cgsize_t *s_rmax,
+                                           CGNS_ENUMT(DataType_t) m_type, const cgsize_t *m_dimvals,
+                                           const cgsize_t *m_rmin, const cgsize_t *m_rmax, void *field_ptr);
+CGNSDLL int cg_particle_field_id(int fn, int B, int P,int S, int F, double *field_id);
+CGNSDLL int cg_particle_field_write(int fn,int B,int P,int S,
+                                    CGNS_ENUMT(DataType_t) type, const char * fieldname,
+                                    const void * field_ptr, int *F);
+
+CGNSDLL int cg_particle_field_partial_write(int fn, int B, int P, int S,
+                                            CGNS_ENUMT(DataType_t) type, const char * fieldname,
+                                            const cgsize_t *rmin, const cgsize_t *rmax,
+                                            const void * field_ptr, int *F);
+CGNSDLL int cg_particle_field_general_write(int fn, int B, int P, int S,
+                                            const char * fieldname, CGNS_ENUMT(DataType_t) s_type,
+                                            const cgsize_t *rmin, const cgsize_t *rmax,
+                                            CGNS_ENUMT(DataType_t) m_type, const cgsize_t *m_dims,
+                                            const cgsize_t *m_rmin, const cgsize_t *m_rmax,
+                                            const void *field_ptr, int *F);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Variable Argument List Functions                                 *
@@ -1443,6 +2087,16 @@ CGNSDLL int cg_equationset_elecmagn_read(int *ElecFldModelFlag,
 CGNSDLL int cg_equationset_write(int EquationDimension);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleEquationSet_t Nodes                       *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_equationset_read(int *EquationDimension,
+        int *ParticleGoverningEquationsFlag, int *CollisionModelFlag,
+        int *BreakupModelFlag,               int *ForceModelFlag,
+        int *WallInteractionModelFlag,       int *PhaseChangeModelFlag);
+CGNSDLL int cg_particle_equationset_write(int EquationDimension);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Read and write GoverningEquations_t Nodes                        *
 \* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1466,6 +2120,23 @@ CGNSDLL int cg_diffusion_write(const int * diffusion_model);
 
 CGNSDLL int cg_model_read(const char *ModelLabel, CGNS_ENUMT(ModelType_t) *ModelType);
 CGNSDLL int cg_model_write(const char * ModelLabel, CGNS_ENUMT(ModelType_t) ModelType);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleGoverningEquations_t Nodes                *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_governing_read(CGNS_ENUMT(ParticleGoverningEquationsType_t) *ParticleEquationsType);
+CGNSDLL int cg_particle_governing_write(CGNS_ENUMT(ParticleGoverningEquationsType_t) ParticleEquationstype);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
+ *      Read and write ParticleCollisionModel_t,                         *
+ *      ParticleBreakupModel_t, ParticleForceModel_t,                    *
+ *      ParticleWallInteractionModel_t and                               *
+ *      ParticlePhaseChangeModel_t Nodes                                 *
+\* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+CGNSDLL int cg_particle_model_read(const char *ModelLabel, CGNS_ENUMT(ParticleModelType_t) *ModelType);
+CGNSDLL int cg_particle_model_write(const char * ModelLabel, CGNS_ENUMT(ParticleModelType_t) ModelType);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      Read and write DataArray_t Nodes                                 *

@@ -121,7 +121,7 @@ CGEXTERN int cgio_configure (
     void *value
 );
 
-CGEXTERN void cgio_cleanup ();
+CGEXTERN void cgio_cleanup (void);
 
 CGEXTERN int cgio_check_file (
     const char *filename,
@@ -148,6 +148,16 @@ CGEXTERN int cgio_copy_dimensions (
 
 /*---------------------------------------------------------*/
 
+/* Extended internal API for thread-safe parallel I/O access mode control */
+CGEXTERN int cgio_open_file_with_mode (
+    const char *filename,
+    int file_mode,
+    int file_type,
+    int hdf5_access_mode,
+    int *cgio_num
+);
+
+/* Public API - preserved for ABI/API compatibility */
 CGEXTERN int cgio_open_file (
     const char *filename,
     int file_mode,

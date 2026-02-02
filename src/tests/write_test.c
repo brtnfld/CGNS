@@ -10,9 +10,6 @@
 #endif
 #include "cgnslib.h"
 
-#ifndef CGNSTYPES_H
-# define cgsize_t int
-#endif
 #ifndef CGNS_ENUMT
 # define CGNS_ENUMT(e) e
 # define CGNS_ENUMV(e) e
@@ -40,7 +37,6 @@
 int CellDim = 3, PhyDim = 3;
 
 int cgfile, cgbase, cgzone;
-int CellDim, PhyDim;
 cgsize_t size[9];
 
 #define NUM_SIDE 5
@@ -61,9 +57,9 @@ float *interp;
 
 char errmsg[128];
 
-void init_data();
-void write_structured(), write_unstructured();
-void write_mixed(), write_mismatched();
+void init_data(void);
+void write_structured(void), write_unstructured(void);
+void write_mixed(void), write_mismatched(void);
 
 void error_exit (char *where)
 {
@@ -281,7 +277,7 @@ void init_data()
     }
 }
 
-void write_reference ()
+void write_reference (void)
 {
     int n, i, ierr;
     cgsize_t dim = 1;
@@ -336,7 +332,7 @@ void write_reference ()
     }
 }
 
-void write_equationset ()
+void write_equationset (void)
 {
     int n, diff[6];
     cgsize_t dim = 1;
@@ -1178,7 +1174,7 @@ void write_mismatched()
     }
     if (cg_zone_write(cgfile, cgbase, "CartesianZone", size,
             CGNS_ENUMV(Structured), &cgzone))
-        error_exit("cartesion zone");
+        error_exit("cartesian zone");
     write_coords(1);
 
     /* zone 2 is cylindrical */

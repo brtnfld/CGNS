@@ -96,6 +96,9 @@ static char ADF_A_identification[] = "\300\250\243\251ADF Database Version A0201
 /***********************************************************************
     Includes
 ***********************************************************************/
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+  #define _POSIX_C_SOURCE 200112L
+#endif
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -1008,12 +1011,10 @@ void	ADF_Database_Valid(
         return;
     }
 
-    if (ACCESS(filename, F_OK)) {
-        *error_return = REQUESTED_OLD_FILE_NOT_FOUND;
-        return;
-    }
     if ((fp = fopen(filename, "rb")) == NULL) {
-        if (errno == EMFILE)
+        if (errno == ENOENT)
+            *error_return = REQUESTED_OLD_FILE_NOT_FOUND;
+        else if (errno == EMFILE)
             *error_return = TOO_MANY_ADF_FILES_OPENED;
         else
             *error_return = FILE_OPEN_ERROR;
@@ -1209,7 +1210,7 @@ else {  /** this node is NOT a link **/
    CHECK_ADF_ABORT( *error_return ) ;
 
    for( i=0; i<num_ids; i++ ) {
-      ADF_Delete( ID, ids[i], error_return ) ;  /* resursion */
+      ADF_Delete( ID, ids[i], error_return ) ;  /* recursion */
       CHECK_ADF_ABORT( *error_return ) ;
       } /* end for */
 
@@ -1596,7 +1597,7 @@ if ( lenfilename == 0 )  /** no filename **/
 {
    strcpy( name_in_file, &link_data[1] );
 }
-else if ( lenfilename > 0 && lenfilename == strlen( link_data ) )
+else if ( lenfilename == strlen( link_data ) )
 {
    strcpy( file, link_data) ;  /** no link ? **/
 }
@@ -1688,7 +1689,7 @@ if ( lenfilename == 0 )  /** no filename **/
 {
    *len_name = (int)strlen(link_data) - 1;
 }
-else if ( lenfilename > 0 && lenfilename == strlen( link_data ) )
+else if ( lenfilename == strlen( link_data ) )
 {
    *len_file = (int)lenfilename;
 }
