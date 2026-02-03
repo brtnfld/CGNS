@@ -53,6 +53,7 @@ set(test_convert_elem_FILES test_convert_elem.c)
 set(test_back_comp_FILES test_back_comp.c)
 set(test_particle_FILES test_particle.c)
 set(test_parameters_FILES test_parameters.c)
+set(test_version_bounds_FILES test_version_bounds.c)
 #set(cgiof_FILES cgiof.F90)
 #set(cgwrite_FILES cgwrite.F90)
 #set(cgread_FILES cgread.F90)
@@ -107,6 +108,7 @@ add_executable( test_convert_elem    ${test_convert_elem_FILES}    )
 add_executable( test_back_comp       ${test_back_comp_FILES}       )
 add_executable( test_particle        ${test_particle_FILES}        )
 add_executable( test_parameters      ${test_parameters_FILES}      )
+add_executable( test_version_bounds  ${test_version_bounds_FILES}  )
 
 # HDF5-specific test (conditional on HDF5 support)
 if (CGNS_ENABLE_HDF5)
@@ -144,7 +146,8 @@ set(C_TESTS_LIST
         test_convert_elem
         test_back_comp
         test_particle
-        test_parameters)
+        test_parameters
+        test_version_bounds)
 
 # Conditionally add HDF5-specific tests
 if (CGNS_ENABLE_HDF5)

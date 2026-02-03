@@ -485,15 +485,9 @@ int cgi_open(const char *filename, int mode, int open_parallel,
             /* unlink is now done in cgio_open_file */
             /* set default file type if not done */
             if (requested_file_type == CG_FILE_NONE) {
-                if (params != NULL) {
-                    /* Using explicit params - file type must be set */
-                    cgi_error("file_type in parameter object is CG_FILE_NONE");
-                    return CG_ERROR;
-                } else {
-                    /* Using global state - set default */
-                    cg_set_file_type(CG_FILE_NONE);
-                    requested_file_type = cgns_filetype;
-                }
+                /* Set default file type (HDF5 if available, else ADF) */
+                cg_set_file_type(CG_FILE_NONE);
+                requested_file_type = cgns_filetype;
             }
             break;
         default:
@@ -554,15 +548,31 @@ int cgi_open(const char *filename, int mode, int open_parallel,
     cg->deleted = 0;
     cg->added = 0;
 
+    /* Store version bounds from params (or use defaults) */
+    if (params != NULL) {
+        cg->min_version = params->min_version;
+        cg->max_version = params->max_version;
+        cg->write_version = params->write_version;
+    } else {
+        cg->min_version = CG_LIBVER_EARLIEST;
+        cg->max_version = CG_LIBVER_LATEST;
+        cg->write_version = CG_LIBVER_AUTO;
+    }
+
      /* CGNS-Library Version */
     if (mode == CG_MODE_WRITE) {
         dim_vals = 1;
-        /* FileVersion = (float) CGNS_DOTVERS; */
-        /* Jiao: Changed to use older compatible version */
+        /* Determine file version based on write_version setting */
         if (filetype == CG_FILE_ADF2) {
+            /* ADF2 format always uses compatible version */
             FileVersion = (float) CGNS_COMPATDOTVERS;
             cg->version = CGNS_COMPATVERSION;
+        } else if (cg->write_version != CG_LIBVER_AUTO && cg->write_version > 0) {
+            /* User specified a fixed version */
+            cg->version = cg->write_version;
+            FileVersion = (float) cg->version / 1000.0f;
         } else {
+            /* AUTO mode: start at library version (may be upgraded later) */
             FileVersion = (float) CGNS_DOTVERS;
             cg->version = CGNSLibVersion;
         }
@@ -575,6 +585,18 @@ int cgi_open(const char *filename, int mode, int open_parallel,
 
      /* read file version from file and set cg->version = FileVersion*1000 */
         if (cg_version(cg->file_number, &FileVersion)) return CG_ERROR;
+
+     /* Check version bounds from params */
+        if (cg->version < cg->min_version) {
+            cgi_error("File version %d is below minimum acceptable version %d",
+                      cg->version, cg->min_version);
+            return CG_ERROR;
+        }
+        if (cg->version > cg->max_version) {
+            cgi_error("File version %d exceeds maximum acceptable version %d",
+                      cg->version, cg->max_version);
+            return CG_ERROR;
+        }
 
      /* Check that the library version is at least as recent as the one used
         to create the file being read */
@@ -821,6 +843,124 @@ int cg_params_set(cg_parameters_t params, int key, void *value)
 }
 
 /**
+ * \ingroup CGNSInternals
+ *
+ * \brief Ensure file version meets minimum requirement for a feature
+ *
+ * \param[in] required_version Minimum CGNS version required (e.g., 3000 for v3.0)
+ * \return CG_OK on success, CG_ERROR if version requirement cannot be met
+ *
+ * \details This function is called internally when writing features that require
+ *          a specific CGNS version. In AUTO mode (write_version == CG_LIBVER_AUTO),
+ *          the file version is upgraded if needed. With a fixed write_version,
+ *          an error is returned if the required version exceeds the fixed version.
+ *
+ *          This enables HDF5-style version bounds: files remain compatible with
+ *          older readers until a feature requiring a newer version is used.
+ */
+int cgi_require_version(int required_version)
+{
+    if (cg == NULL) {
+        cgi_error("No file currently open");
+        return CG_ERROR;
+    }
+
+    /* Check if file is writable */
+    if (cg->mode == CG_MODE_READ) {
+        /* Reading: version requirement doesn't apply */
+        return CG_OK;
+    }
+
+    /* Check if current version already meets requirement */
+    if (cg->version >= required_version) {
+        return CG_OK;
+    }
+
+    /* Need to upgrade version */
+    if (cg->write_version == CG_LIBVER_AUTO) {
+        /* AUTO mode: upgrade the file version */
+        cg->version = required_version;
+        return CG_OK;
+    } else {
+        /* Fixed version mode: cannot upgrade, return error */
+        cgi_error("Feature requires CGNS version %d.%d but file version is fixed at %d.%d",
+                  required_version / 1000, (required_version % 1000) / 100,
+                  cg->write_version / 1000, (cg->write_version % 1000) / 100);
+        return CG_ERROR;
+    }
+}
+
+/**
+ * \ingroup CGNSInternals
+ *
+ * \brief Get the minimum CGNS version required for an element type
+ *
+ * \param[in] type Element type
+ * \return Required CGNS version (e.g., 3000 for v3.0), or 0 if no specific version required
+ *
+ * \details Returns the minimum CGNS version that introduced support for the given
+ *          element type. This is used by version bounds to automatically upgrade
+ *          the file version when high-order elements are written.
+ */
+static int cgi_element_version_required(CGNS_ENUMT(ElementType_t) type)
+{
+    switch (type) {
+        /* High-order elements introduced in CGNS 3.0 */
+        case CGNS_ENUMV(TETRA_10):
+        case CGNS_ENUMV(PYRA_14):
+        case CGNS_ENUMV(PENTA_15):
+        case CGNS_ENUMV(PENTA_18):
+        case CGNS_ENUMV(HEXA_20):
+        case CGNS_ENUMV(HEXA_27):
+            return CG_LIBVER_V30;
+
+        /* Additional high-order elements introduced in CGNS 3.2 */
+        case CGNS_ENUMV(BAR_3):
+        case CGNS_ENUMV(TRI_9):
+        case CGNS_ENUMV(TRI_10):
+        case CGNS_ENUMV(QUAD_12):
+        case CGNS_ENUMV(QUAD_16):
+        case CGNS_ENUMV(TETRA_16):
+        case CGNS_ENUMV(TETRA_20):
+        case CGNS_ENUMV(PYRA_21):
+        case CGNS_ENUMV(PYRA_29):
+        case CGNS_ENUMV(PYRA_30):
+        case CGNS_ENUMV(PENTA_24):
+        case CGNS_ENUMV(PENTA_38):
+        case CGNS_ENUMV(PENTA_40):
+        case CGNS_ENUMV(HEXA_32):
+        case CGNS_ENUMV(HEXA_56):
+        case CGNS_ENUMV(HEXA_64):
+            return CG_LIBVER_V32;
+
+        /* Cubic elements introduced in CGNS 4.0 */
+        case CGNS_ENUMV(BAR_4):
+        case CGNS_ENUMV(TRI_12):
+        case CGNS_ENUMV(TRI_15):
+        case CGNS_ENUMV(QUAD_P4_16):
+        case CGNS_ENUMV(QUAD_25):
+        case CGNS_ENUMV(TETRA_22):
+        case CGNS_ENUMV(TETRA_34):
+        case CGNS_ENUMV(TETRA_35):
+        case CGNS_ENUMV(PYRA_P4_29):
+        case CGNS_ENUMV(PYRA_50):
+        case CGNS_ENUMV(PYRA_55):
+        case CGNS_ENUMV(PENTA_33):
+        case CGNS_ENUMV(PENTA_66):
+        case CGNS_ENUMV(PENTA_75):
+        case CGNS_ENUMV(HEXA_44):
+        case CGNS_ENUMV(HEXA_98):
+        case CGNS_ENUMV(HEXA_125):
+        case CGNS_ENUMV(BAR_5):
+            return CG_LIBVER_V40;
+
+        default:
+            /* Basic elements available since earliest versions */
+            return 0;
+    }
+}
+
+/**
  * \ingroup CGNSFile
  *
  * \brief Open a CGNS file (legacy 3-argument version)
@@ -1000,6 +1140,9 @@ int cg_precision(int fn, int *precision)
  */
 int cg_close(int fn)
 {
+    int nnod;
+    double *id;
+    float FileVersion;
 
     cg = cgi_get_file(fn);
     if (cg == 0) return CG_ERROR;
@@ -1008,6 +1151,19 @@ int cg_close(int fn)
     fprintf(stderr, "CGNS MEM_DEBUG: before close:files %d/%d: memory %d/%d: calls %d/%d\n", n_open,
            cgns_file_size, cgmemnow(), cgmemmax(), cgalloccalls(), cgfreecalls());
 #endif
+
+    /* Update CGNSLibraryVersion if version was upgraded during writes (AUTO mode) */
+    if (cg->mode == CG_MODE_WRITE || cg->mode == CG_MODE_MODIFY) {
+        if (cgi_get_nodes(cg->rootid, "CGNSLibraryVersion_t", &nnod, &id) == CG_OK && nnod > 0) {
+            FileVersion = (float)cg->version / 1000.0f;
+            if (cgio_write_all_data(cg->cgio, id[0], &FileVersion)) {
+                cg_io_error("cgio_write_all_data");
+                free(id);
+                return CG_ERROR;
+            }
+            free(id);
+        }
+    }
 
     if (cgns_compress && cg->mode == CG_MODE_MODIFY &&
        (cg->deleted >= cgns_compress || cgns_compress < 0)) {
@@ -5085,6 +5241,16 @@ int cg_section_general_write(int fn, int B, int Z, const char * SectionName,
     if (INVALID_ENUM(type,NofValidElementTypes)) {
         cgi_error("Invalid element type defined for section '%s'",SectionName);
         return CG_ERROR;
+    }
+
+    /* Check if element type requires a newer CGNS version */
+    {
+        int required_version = cgi_element_version_required(type);
+        if (required_version > 0) {
+            if (cgi_require_version(required_version) != CG_OK) {
+                return CG_ERROR;
+            }
+        }
     }
 
     /* If elementDataType provided is not correct fallback to default CG_SIZE_DATATYPE */

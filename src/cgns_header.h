@@ -1060,6 +1060,10 @@ typedef struct {
     char_33 adf_lib_version;/* ADF Library Version                  */
     int nbases;             /* number of bases in the file          */
     cgns_base *base;        /* ptrs to in-memory copies of bases    */
+    /* Version bounds for this file (from cg_parameters_t or defaults) */
+    int min_version;        /* Minimum acceptable CGNS version      */
+    int max_version;        /* Maximum acceptable CGNS version      */
+    int write_version;      /* Write version mode (AUTO or fixed)   */
 } cgns_file;
 
 /* Parameter object for thread-safe configuration */
@@ -1165,6 +1169,9 @@ CGNSDLL int cgi_set_posit(int fn, int B, int n, int *index, char **label);
 CGNSDLL int cgi_posit_id(double *posit_id);
 CGNSDLL cgns_posit *cgi_get_posit(void);
 CGNSDLL int cgi_posit_index_dim(void);
+
+/* version bounds support */
+CGNSDLL int cgi_require_version(int required_version);
 
 /* retrieve memory address of multiple patch children knowing their parent label
    (posit_label) and their parent memory address (posit) */

@@ -2313,29 +2313,6 @@ void ADFH_Database_Open(const char   *name,
   H5Pset_fclose_degree(g_propfileopen, H5F_CLOSE_STRONG);
 #endif
 
-  if(getenv("LVER")) {
-    H5Pset_libver_bounds(g_propfileopen,
-                         H5F_LIBVER_EARLIEST, H5F_LIBVER_EARLIEST);
-  } else {
-    H5Pset_libver_bounds(g_propfileopen,
-                         H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-  }
-#if 0
-  /* Patch to read file created with CGNS 3.3 and hdf5 > 1.8 */
-  if (mode == ADFH_MODE_RDO) {
-      H5Pset_libver_bounds(g_propfileopen,
-          H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-  }
-  else {
-    /* Compatibility with V1.8 */
-    H5Pset_libver_bounds(g_propfileopen,
-#if H5_VERSION_GE(1,10,3)
-          H5F_LIBVER_V18, H5F_LIBVER_V18);
-#else
-          H5F_LIBVER_LATEST, H5F_LIBVER_LATEST);
-#endif
-  }
-#endif
   /* open the file */
   /* Convert format string to enum for internal use (Issue #836) */
   access_mode = (0 == strcmp(fmt, "PARALLEL")) ? CGIO_PARALLEL_MODE : CGIO_NATIVE_MODE;
