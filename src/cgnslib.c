@@ -719,8 +719,12 @@ int cgi_open(const char *filename, int mode, int open_parallel,
             }
         }
 
-        /* update version number in modify mode */
+        /* update version number in modify mode
+         * Skip when write_version == AUTO: cgi_require_version() will upgrade
+         * incrementally as version-specific features are written, preserving
+         * the minimum necessary version rather than jumping to CGNSLibVersion. */
         if (cg->version < CGNSLibVersion && mode == CG_MODE_MODIFY &&
+            cg->write_version != CG_LIBVER_AUTO &&
             (cg->filetype != CG_FILE_ADF2 || cg->version < CGNS_COMPATVERSION)) {
             /* FileVersion = (float) CGNS_DOTVERS; */
             /* Jiao: Changed to use older compatible version */

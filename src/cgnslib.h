@@ -65,6 +65,8 @@
 #define CG_LIBVER_V42      4200  /* CGNS 4.2 */
 #define CG_LIBVER_V43      4300  /* CGNS 4.3 */
 #define CG_LIBVER_V44      4400  /* CGNS 4.4 */
+#define CG_LIBVER_V45      4500  /* CGNS 4.5 - Particles (CPEX 0046) */
+#define CG_LIBVER_V50      5000  /* CGNS 5.0 - High-order (CPEX 0045) */
 #define CG_LIBVER_LATEST   5000  /* CGNS 5.0 (CGNS_VERSION) */
 #define CG_LIBVER_AUTO     -1    /* Automatic version selection */
 
@@ -368,31 +370,6 @@
  *       the option only for backwards compatibility */
 #define CG_CONFIG_RIND_ZERO (void*)0
 #define CG_CONFIG_RIND_CORE (void*)1
-
-/* Version constants for bounds (similar to HDF5's H5F_LIBVER_*)
- *
- * VERSION ENCODING: MAJOR * 1000 + MINOR * 10
- * Examples:
- *   - CGNS 2.54 -> 2 * 1000 + 54 * 10 = 2540
- *   - CGNS 5.0  -> 5 * 1000 + 0 * 10  = 5000
- *
- * This encoding allows integer comparison: version_a > version_b
- */
-#define CG_LIBVER_EARLIEST   1050   /* CGNS 1.05 - earliest supported */
-#define CG_LIBVER_V12        1200   /* CGNS 1.2 */
-#define CG_LIBVER_V20        2000   /* CGNS 2.0 */
-#define CG_LIBVER_V25        2540   /* CGNS 2.54 - ADF2 compatible */
-#define CG_LIBVER_V30        3000   /* CGNS 3.0 */
-#define CG_LIBVER_V31        3100   /* CGNS 3.1 */
-#define CG_LIBVER_V32        3200   /* CGNS 3.2 */
-#define CG_LIBVER_V34        3400   /* CGNS 3.4 */
-#define CG_LIBVER_V40        4000   /* CGNS 4.0 */
-#define CG_LIBVER_V45        4500   /* CGNS 4.5 - Particles (CPEX 0046) */
-#define CG_LIBVER_V50        5000   /* CGNS 5.0 - High-order (CPEX 0045) */
-#define CG_LIBVER_LATEST     5000   /* Current library version (CGNS 5.0) */
-
-/* Special value to auto-detect based on feature usage */
-#define CG_LIBVER_AUTO       -1
 
 #ifdef __cplusplus
 extern "C" {

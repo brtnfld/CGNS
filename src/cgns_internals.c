@@ -18124,19 +18124,47 @@ static int detect_particle_solutions(cgns_base *base) {
     return 0;
 }
 
-/* Detect CGNS 5.0+ high-order element interpolation */
+/* Detect CGNS 5.0+ high-order element interpolation (CPEX 0045)
+ * ElementInterpolation_t is a child node of Elements_t sections.
+ * It is not yet parsed into cgns_section, so we scan the raw file tree. */
 static int detect_element_interpolation(cgns_base *base) {
-    /* NOTE: ElementInterpolation_t not yet implemented in CGNS structures
-     * Return 0 for now until CPEX 0045 is fully implemented */
-    (void)base;  /* Suppress unused parameter warning */
+    int nnod, nz, ns;
+    double *id;
+
+    for (nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (ns = 0; ns < zone->nsections; ns++) {
+            cgns_section *section = &zone->section[ns];
+            if (cgi_get_nodes(section->id, "ElementInterpolation_t", &nnod, &id))
+                continue;
+            if (nnod > 0) {
+                CGNS_FREE(id);
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 
-/* Detect CGNS 5.0+ solution interpolation */
+/* Detect CGNS 5.0+ solution interpolation (CPEX 0045)
+ * SolutionInterpolation_t is a child node of FlowSolution_t nodes.
+ * It is not yet parsed into cgns_sol, so we scan the raw file tree. */
 static int detect_solution_interpolation(cgns_base *base) {
-    /* NOTE: SolutionInterpolation_t not yet implemented in CGNS structures
-     * Return 0 for now until CPEX 0045 is fully implemented */
-    (void)base;  /* Suppress unused parameter warning */
+    int nnod, nz, ns;
+    double *id;
+
+    for (nz = 0; nz < base->nzones; nz++) {
+        cgns_zone *zone = &base->zone[nz];
+        for (ns = 0; ns < zone->nsols; ns++) {
+            cgns_sol *sol = &zone->sol[ns];
+            if (cgi_get_nodes(sol->id, "SolutionInterpolation_t", &nnod, &id))
+                continue;
+            if (nnod > 0) {
+                CGNS_FREE(id);
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 

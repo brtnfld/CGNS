@@ -9143,6 +9143,53 @@ CONTAINS
 
   END SUBROUTINE cg_get_file_min_version_f
 
+  SUBROUTINE cg_set_file_version_bounds_f(fn, low_bound, high_bound, ier)
+    INTEGER, INTENT(IN) :: fn
+    INTEGER, INTENT(IN) :: low_bound
+    INTEGER, INTENT(IN) :: high_bound
+    INTEGER, INTENT(OUT) :: ier
+
+    INTERFACE
+      INTEGER(C_INT) FUNCTION cg_set_file_version_bounds(fn, low_bound, high_bound) &
+           BIND(C, NAME="cg_set_file_version_bounds")
+        IMPORT :: C_INT
+        IMPLICIT NONE
+        INTEGER(C_INT), VALUE :: fn
+        INTEGER(C_INT), VALUE :: low_bound
+        INTEGER(C_INT), VALUE :: high_bound
+      END FUNCTION cg_set_file_version_bounds
+    END INTERFACE
+
+    ier = INT(cg_set_file_version_bounds(INT(fn, C_INT), INT(low_bound, C_INT), INT(high_bound, C_INT)))
+
+  END SUBROUTINE cg_set_file_version_bounds_f
+
+  SUBROUTINE cg_get_file_version_bounds_f(fn, low_bound, high_bound, ier)
+    INTEGER, INTENT(IN) :: fn
+    INTEGER, INTENT(OUT) :: low_bound
+    INTEGER, INTENT(OUT) :: high_bound
+    INTEGER, INTENT(OUT) :: ier
+
+    INTEGER(C_INT), TARGET :: c_low_bound
+    INTEGER(C_INT), TARGET :: c_high_bound
+
+    INTERFACE
+      INTEGER(C_INT) FUNCTION cg_get_file_version_bounds(fn, low_bound, high_bound) &
+           BIND(C, NAME="cg_get_file_version_bounds")
+        IMPORT :: C_INT, C_PTR
+        IMPLICIT NONE
+        INTEGER(C_INT), VALUE :: fn
+        TYPE(C_PTR), VALUE :: low_bound
+        TYPE(C_PTR), VALUE :: high_bound
+      END FUNCTION cg_get_file_version_bounds
+    END INTERFACE
+
+    ier = INT(cg_get_file_version_bounds(INT(fn, C_INT), C_LOC(c_low_bound), C_LOC(c_high_bound)))
+    low_bound = INT(c_low_bound)
+    high_bound = INT(c_high_bound)
+
+  END SUBROUTINE cg_get_file_version_bounds_f
+
 !> @brief Wrapper for cg_open with parameter object (4-argument version)
 !> Calls C directly via ISO_C_BINDING - only handles string conversion
 !DEC$if defined(BUILD_CGNS_DLL)
