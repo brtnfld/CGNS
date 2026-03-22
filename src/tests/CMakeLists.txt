@@ -52,7 +52,9 @@ set(test_complex_FILES test_complex.c)
 set(test_convert_elem_FILES test_convert_elem.c)
 set(test_back_comp_FILES test_back_comp.c)
 set(test_particle_FILES test_particle.c)
+<<<<<<< HEAD
 set(test_version_bounds_FILES test_version_bounds.c)
+set(test_parameters_FILES test_parameters.c)
 #set(cgiof_FILES cgiof.F90)
 #set(cgwrite_FILES cgwrite.F90)
 #set(cgread_FILES cgread.F90)
@@ -68,6 +70,7 @@ set(test_family_treef_FILES test_family_treef.F90)
 set(test_bboxf_FILES test_bboxf.F90)
 set(test_complexf_FILES test_complexf.F90)
 set(test_particlef_FILES test_particlef.F90 utilsf.F90)
+set(test_params_fortran_FILES test_params_fortran.F90)
 
 # HDF5-specific tests
 set(cgioc_hdf_FILES cgioc_hdf.c)
@@ -106,6 +109,7 @@ add_executable( test_convert_elem    ${test_convert_elem_FILES}    )
 add_executable( test_back_comp       ${test_back_comp_FILES}       )
 add_executable( test_particle        ${test_particle_FILES}        )
 add_executable( test_version_bounds  ${test_version_bounds_FILES}  )
+add_executable( test_parameters      ${test_parameters_FILES}      )
 
 # HDF5-specific test (conditional on HDF5 support)
 if (CGNS_ENABLE_HDF5)
@@ -143,7 +147,8 @@ set(C_TESTS_LIST
         test_convert_elem
         test_back_comp
         test_particle
-        test_version_bounds)
+        test_version_bounds
+        test_parameters)
 
 # Conditionally add HDF5-specific tests
 if (CGNS_ENABLE_HDF5)
@@ -175,6 +180,7 @@ if (CGNS_ENABLE_FORTRAN)
 	add_executable( test_bboxf         ${test_bboxf_FILES}         )
         add_executable( test_complexf      ${test_complexf_FILES}      )
         add_executable( test_particlef     ${test_particlef_FILES}     )
+        add_executable( test_params_fortran ${test_params_fortran_FILES} )
 
 	# 64-bit Fortran tests (conditional on 64-bit support)
 	# Both test64f.F90 and test64f_f03.F90 use fixed-form syntax despite .F90 extension
@@ -184,7 +190,7 @@ if (CGNS_ENABLE_FORTRAN)
 
 	  add_executable( test64f_f03 ${test64f_f03_FILES} )
 	  set_source_files_properties(test64f_f03.F90 PROPERTIES Fortran_FORMAT FIXED)
-	endif()
+        endif()
 #	if (NOT CGNS_ENABLE_64BIT)
 # Don't build the F77 source because they will fail if ENABLE_64BIT is used
 #	  add_executable( cgiof       ${cgiof_FILES}  )
@@ -193,17 +199,18 @@ if (CGNS_ENABLE_FORTRAN)
 #	  add_executable( cgzconn      ${cgzconn_FILES}  )
 #	  add_executable( cgsubreg     ${cgsubreg_FILES}  )
 #	endif (NOT CGNS_ENABLE_64BIT)
-	set(FORTRAN_TESTS_LIST
+        set(FORTRAN_TESTS_LIST
 	cgiof_f03          
 	cgwrite_f03        
 	cgread_f03         
 	cgzconn_f03        
 	cgsubreg_f03       
 	test_general_rindf 
-	test_family_treef  
+        test_family_treef
 	test_bboxf
         test_complexf
         test_particlef
+        test_params_fortran
         )
 
 	# Conditionally add 64-bit Fortran tests
