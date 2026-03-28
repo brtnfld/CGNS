@@ -17910,6 +17910,19 @@ int cgi_AverageInterfaceType(char *Name, CGNS_ENUMT(AverageInterfaceType_t) *typ
  *          Version Bounds Feature Detection System                    *
 \***********************************************************************/
 
+/* Explicit bit-position constants for _CGNS_FeatureMask (I8 attribute) */
+#define CGNS_FEATURE_BIT_EXTENDED_ELEMENTS     0
+#define CGNS_FEATURE_BIT_REORDERED_ELEMENTS    1
+#define CGNS_FEATURE_BIT_NGON_V32              2
+#define CGNS_FEATURE_BIT_ELEMENT_START_OFFSET  3
+#define CGNS_FEATURE_BIT_PARTICLE_ZONE         4
+#define CGNS_FEATURE_BIT_PARTICLE_COORDS       5
+#define CGNS_FEATURE_BIT_PARTICLE_SOLUTION     6
+#define CGNS_FEATURE_BIT_ELEMENT_INTERP        7
+#define CGNS_FEATURE_BIT_SOLUTION_INTERP       8
+#define CGNS_FEATURE_BIT_HIGH_ORDER_ELEMENTS   9
+#define CGNS_FEATURE_BIT_UNKNOWN_MODERN       10
+
 /* Forward declarations for detector functions */
 static int detect_extended_elements(cgns_base *base);
 static int detect_reordered_elements(cgns_base *base);
@@ -17921,7 +17934,7 @@ static int detect_particle_solutions(cgns_base *base);
 static int detect_element_interpolation(cgns_base *base);
 static int detect_solution_interpolation(cgns_base *base);
 static int detect_high_order_elements(cgns_base *base);
-static int detect_unknown_modern_elements(cgns_base *base);
+static int detect_unknown_modern_features(cgns_base *base);
 
 typedef struct {
     const char *feature_name;
@@ -17953,9 +17966,9 @@ static const cgns_feature_version feature_table[] = {
     {"HighOrder_ElementTypes", 5000, detect_high_order_elements},
 
     /* FAIL-SAFE: Must be LAST detector before NULL terminator
-     * Catches any unknown element types > HEXA_125 that weren't caught by
-     * specific detectors above. Defaults to LATEST to prevent corruption. */
-    {"Unknown_Modern_ElementTypes", CG_LIBVER_LATEST, detect_unknown_modern_elements},
+     * Catches any unknown features not covered by specific detectors above.
+     * Defaults to LATEST to prevent corruption. */
+    {"Unknown_Modern_Features", CG_LIBVER_LATEST, detect_unknown_modern_features},
 
     {NULL, 0, NULL}
 };
@@ -18055,14 +18068,14 @@ static int detect_high_order_elements(cgns_base *base) {
     return 0;
 }
 
-/* FAIL-SAFE: Detect unknown modern element types beyond last known type
- * This ensures that if a new element type is added to the header but the
- * feature table is not updated, we default to CG_LIBVER_LATEST rather than
- * an outdated version. This prevents silent data corruption.
+/* FAIL-SAFE: Detect unknown modern features beyond what specific detectors cover.
+ * This ensures that if a new feature is added but the feature table is not
+ * updated, we default to CG_LIBVER_LATEST rather than an outdated version.
+ * This prevents silent data corruption.
  *
- * NOTE: This only triggers for types BEYOND the highest known type (HEXA_125=56).
+ * Currently checks for element types BEYOND the highest known type (HEXA_125=56).
  * Types 24-56 are already handled by detect_high_order_elements(). */
-static int detect_unknown_modern_elements(cgns_base *base) {
+static int detect_unknown_modern_features(cgns_base *base) {
     for (int nz = 0; nz < base->nzones; nz++) {
         cgns_zone *zone = &base->zone[nz];
         if (zone == NULL || zone->section == NULL) continue;
@@ -18255,8 +18268,8 @@ int cgi_require_version(cgns_file *file, int required_version) {
         return CG_OK;  /* Already at or above required version */
     }
 
-    /* Handle version upgrade based on write_version mode */
-    if (file->write_version == CG_LIBVER_AUTO) {
+    /* Handle version upgrade based on low bound mode */
+    if (file->low == CG_LIBVER_AUTO) {
         /* PARALLEL SAFETY CHECK: Auto-upgrading in parallel mode is dangerous.
          * Multiple MPI ranks simultaneously writing to the CGNSLibraryVersion
          * node creates a race condition that can corrupt the version metadata.
@@ -18265,8 +18278,8 @@ int cgi_require_version(cgns_file *file, int required_version) {
             cgi_error("AUTO version upgrade not supported in parallel mode. "
                 "Feature requires CGNS version %.2f but file is at %.2f. "
                 "Before parallel writes, call:\n"
-                "  cg_configure(CG_CONFIG_WRITE_VERSION, (void*)CG_LIBVER_Vxx)\n"
-                "or use cg_set_file_version_bounds() to set an explicit version "
+                "  cg_configure(CG_CONFIG_LIBVER_LOW, (void*)CG_LIBVER_Vxx)\n"
+                "or use cg_set_libver_bounds() to set an explicit version "
                 "that covers all features you will write.",
                 required_version / 1000.0, file->effective_version / 1000.0);
             return CG_ERROR;
@@ -18302,10 +18315,10 @@ int cgi_require_version(cgns_file *file, int required_version) {
             }
         }
     } else {
-        /* Explicit version mode: Error if required version exceeds configured version */
-        cgi_error("Feature requires CGNS version %.2f but file is configured for %.2f. "
-            "Use cg_set_write_version(CG_LIBVER_AUTO) or specify higher version.",
-            required_version / 1000.0, file->write_version / 1000.0);
+        /* Explicit low bound: error if required version exceeds it */
+        cgi_error("Feature requires CGNS version %.2f but low bound is %.2f. "
+            "Use CG_LIBVER_AUTO or raise the lower bound.",
+            required_version / 1000.0, file->low / 1000.0);
         return CG_ERROR;
     }
 

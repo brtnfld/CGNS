@@ -102,15 +102,15 @@ void test_generic_setter(void)
     cg_params_create(&params);
 
     /* Set version bounds */
-    result = cg_params_set(params, CG_PARAM_MIN_VERSION, (void *)CG_LIBVER_V30);
-    TEST_CHECK(result == CG_OK, "Set MIN_VERSION succeeds");
+    result = cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_V30);
+    TEST_CHECK(result == CG_OK, "Set LIBVER_LOW succeeds");
 
-    result = cg_params_set(params, CG_PARAM_MAX_VERSION, (void *)CG_LIBVER_V40);
-    TEST_CHECK(result == CG_OK, "Set MAX_VERSION succeeds");
+    result = cg_params_set(params, CG_PARAM_LIBVER_HIGH, (void *)CG_LIBVER_V40);
+    TEST_CHECK(result == CG_OK, "Set LIBVER_HIGH succeeds");
 
-    /* Test invalid bounds (min > max) */
-    result = cg_params_set(params, CG_PARAM_MIN_VERSION, (void *)(CG_LIBVER_V40 + 100));
-    TEST_CHECK(result == CG_ERROR, "Invalid MIN_VERSION (> MAX) returns error");
+    /* Test invalid bounds (low > high) */
+    result = cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)(CG_LIBVER_V40 + 100));
+    TEST_CHECK(result == CG_ERROR, "Invalid LIBVER_LOW (> HIGH) returns error");
 
     /* Test NULL parameter handling */
     result = cg_params_set(NULL, CG_PARAM_FILE_TYPE, (void *)CG_FILE_HDF5);
@@ -123,28 +123,28 @@ void test_generic_setter(void)
     cg_params_destroy(params);
 }
 
-/* Test 3: Write version configuration */
+/* Test 3: Low bound (write version) configuration */
 void test_write_version(void)
 {
     cg_parameters_t params = NULL;
     int result;
 
-    TEST_START("Write Version Configuration");
+    TEST_START("Low Bound (Write Version) Configuration");
 
     /* Create parameter object */
     cg_params_create(&params);
 
-    /* Set write version to AUTO */
-    result = cg_params_set(params, CG_PARAM_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
-    TEST_CHECK(result == CG_OK, "Set write version to AUTO");
+    /* Set low to AUTO */
+    result = cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_AUTO);
+    TEST_CHECK(result == CG_OK, "Set LIBVER_LOW to AUTO");
 
-    /* Set explicit write version */
-    result = cg_params_set(params, CG_PARAM_WRITE_VERSION, (void *)CG_LIBVER_V40);
-    TEST_CHECK(result == CG_OK, "Set write version to v4.0");
+    /* Set explicit low bound */
+    result = cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_V40);
+    TEST_CHECK(result == CG_OK, "Set LIBVER_LOW to v4.0");
 
     /* Test NULL parameter handling */
-    result = cg_params_set(NULL, CG_PARAM_WRITE_VERSION, (void *)CG_LIBVER_V40);
-    TEST_CHECK(result == CG_ERROR, "Set write version with NULL params returns error");
+    result = cg_params_set(NULL, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_V40);
+    TEST_CHECK(result == CG_ERROR, "Set LIBVER_LOW with NULL params returns error");
 
     cg_params_destroy(params);
 }
@@ -215,9 +215,8 @@ void test_open_ex_custom(void)
 
     /* Create custom parameter object */
     cg_params_create(&params);
-    cg_params_set(params, CG_PARAM_MIN_VERSION, (void *)CG_LIBVER_V40);
-    cg_params_set(params, CG_PARAM_MAX_VERSION, (void *)CG_LIBVER_LATEST);
-    cg_params_set(params, CG_PARAM_WRITE_VERSION, (void *)CG_LIBVER_V40);
+    cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_V40);
+    cg_params_set(params, CG_PARAM_LIBVER_HIGH, (void *)CG_LIBVER_LATEST);
 
     /* Open file with custom parameters using polymorphic cg_open()
      * The macro uses C99 variadic macros to count arguments and dispatch accordingly.

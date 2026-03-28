@@ -51,24 +51,26 @@
 #define CGNS_COMPATVERSION 2540
 #define CGNS_COMPATDOTVERS 2.54
 
-/* Version bounds constants for cg_parameters_t */
-#define CG_LIBVER_EARLIEST 1050  /* CGNS 1.05 (read compatibility) */
-#define CG_LIBVER_V12      1200  /* CGNS 1.2 */
-#define CG_LIBVER_V20      2000  /* CGNS 2.0 */
-#define CG_LIBVER_V25      2540  /* CGNS 2.54 (COMPATVERSION) */
-#define CG_LIBVER_V30      3000  /* CGNS 3.0 */
-#define CG_LIBVER_V31      3100  /* CGNS 3.1 */
-#define CG_LIBVER_V32      3200  /* CGNS 3.2 */
-#define CG_LIBVER_V33      3300  /* CGNS 3.3 */
-#define CG_LIBVER_V40      4000  /* CGNS 4.0 */
-#define CG_LIBVER_V41      4100  /* CGNS 4.1 */
-#define CG_LIBVER_V42      4200  /* CGNS 4.2 */
-#define CG_LIBVER_V43      4300  /* CGNS 4.3 */
-#define CG_LIBVER_V44      4400  /* CGNS 4.4 */
-#define CG_LIBVER_V45      4500  /* CGNS 4.5 - Particles (CPEX 0046) */
-#define CG_LIBVER_V50      5000  /* CGNS 5.0 - High-order (CPEX 0045) */
-#define CG_LIBVER_LATEST   5000  /* CGNS 5.0 (CGNS_VERSION) */
-#define CG_LIBVER_AUTO     -1    /* Automatic version selection */
+/* Compatibility version constants.
+ * Named constants are defined only for versions where a SIDS change
+ * was introduced that requires version tracking in the write path
+ * (cgi_require_version) or a feature detector in the registry.
+ * Intermediate releases with no SIDS changes (e.g., 3.3, 4.1-4.4)
+ * are omitted; use the raw integer encoding for those if needed:
+ *   MAJOR * 1000 + MINOR * 100  (e.g., 4400 for CGNS 4.4)
+ */
+#define CG_LIBVER_EARLIEST 1050  /* CGNS 1.05 - oldest supported library version */
+#define CG_LIBVER_V12      1200  /* CGNS 1.2  - CGNSBase_t gained CellDimension
+                                  *             and PhysicalDimension; used in
+                                  *             write-path version bump */
+#define CG_LIBVER_V30      3000  /* CGNS 3.0  - extended element types */
+#define CG_LIBVER_V31      3100  /* CGNS 3.1  - reordered element types */
+#define CG_LIBVER_V32      3200  /* CGNS 3.2  - NGON/NFACE v3.2 format */
+#define CG_LIBVER_V40      4000  /* CGNS 4.0  - ElementStartOffset */
+#define CG_LIBVER_V45      4500  /* CGNS 4.5  - Particles (CPEX 0046) */
+#define CG_LIBVER_V50      5000  /* CGNS 5.0  - High-order elements (CPEX 0045) */
+#define CG_LIBVER_LATEST   5000  /* current library version (CGNS_VERSION) */
+#define CG_LIBVER_AUTO     -1    /* automatic write-version selection */
 
 #include "cgnstypes.h"
 
@@ -234,38 +236,36 @@
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
- * \brief Set version bounds for file compatibility. The `value` parameter should be a pointer
- * to an integer array of size 2: `int bounds[2] = {low_bound, high_bound}` where low_bound
- * and high_bound are `CG_LIBVER_*` constants. This controls which CGNS versions are accepted
- * when reading files and which features are allowed when writing. Files are validated based
- * on actual feature usage, not just version numbers. Similar to HDF5's `H5Pset_libver_bounds()`.
+ * \brief Set the global lower version bound (write-version floor).
+ * The `value` parameter is a `CG_LIBVER_*` constant or `CG_LIBVER_AUTO`,
+ * cast through `(void *)(intptr_t)`.  Controls the minimum SIDS version
+ * produced on write; has no effect on read.
  */
-#define CG_CONFIG_SET_VERSION_BOUNDS    10
+#define CG_CONFIG_LIBVER_LOW            10
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
- * \brief Get current version bounds. The `value` parameter should be a pointer to an integer
- * array of size 2 where the bounds will be stored: `int bounds[2]`. After the call,
- * `bounds[0]` contains the low bound and `bounds[1]` contains the high bound.
+ * \brief Set the global upper version bound (read/write ceiling).
+ * The `value` parameter is a `CG_LIBVER_*` constant cast through
+ * `(void *)(intptr_t)`.  On read, files containing features introduced
+ * after this version are rejected.  On write, the library will not
+ * produce features beyond this version.
  */
-#define CG_CONFIG_GET_VERSION_BOUNDS    11
+#define CG_CONFIG_LIBVER_HIGH           11
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
- * \brief Set the version number to write in new/modified files. The `value` parameter should
- * be a `CG_LIBVER_*` constant or `CG_LIBVER_AUTO`. When set to `CG_LIBVER_AUTO` (default),
- * the library automatically selects the minimum version based on features used, ensuring
- * maximum compatibility. When set to a specific version, the file is labeled with that version
- * and attempts to write incompatible features will produce errors.
+ * \brief Query the current global lower version bound.
+ * The `value` parameter should be a pointer to int.
  */
-#define CG_CONFIG_WRITE_VERSION         12
+#define CG_CONFIG_GET_LIBVER_LOW        12
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
- * \brief Get the version number that will be written to files. The `value` parameter should
- * be a pointer to an integer where the write version will be stored.
+ * \brief Query the current global upper version bound.
+ * The `value` parameter should be a pointer to int.
  */
-#define CG_CONFIG_GET_WRITE_VERSION     13
+#define CG_CONFIG_GET_LIBVER_HIGH       13
 
 /**
  * \ingroup CGNSInternals_FNC_CG_CONFIG
@@ -869,8 +869,8 @@ typedef enum {
   CGNS_ENUMV( HEXA_125 )=56  /* IMPORTANT: HEXA_125 is the last defined element type.
                                * If you add new element types after this (e.g., HEXA_216),
                                * you MUST update the fail-safe detector in cgns_internals.c
-                               * (detect_unknown_modern_elements function) which uses
-                               * "type > HEXA_125" to detect unknown future element types. */
+                               * (detect_unknown_modern_features function) which uses
+                               * "type > HEXA_125" to detect unknown future types. */
 } CGNS_ENUMT( ElementType_t );
 
 #define NofValidElementTypes 57  /* Update this count when adding new element types */
@@ -1114,8 +1114,8 @@ extern CGNSDLL const char * AverageInterfaceTypeName[NofValidAverageInterfaceTyp
  * \code
  * cg_parameters_t params;
  * cg_params_create(&params);
- * cg_params_set(params, CG_PARAM_MIN_VERSION, CG_LIBVER_V40);
- * cg_params_set(params, CG_PARAM_MAX_VERSION, CG_LIBVER_LATEST);
+ * cg_params_set(params, CG_PARAM_LIBVER_LOW, CG_LIBVER_V40);
+ * cg_params_set(params, CG_PARAM_LIBVER_HIGH, CG_LIBVER_LATEST);
  *
  * int fn;
  * cg_open_with_params("file.cgns", CG_MODE_WRITE, params, &fn);
@@ -1165,9 +1165,8 @@ typedef struct cg_parameters_s *cg_parameters_t;
 typedef enum {
     CG_PARAM_FILE_TYPE     = 100,  /**< File type: CG_FILE_HDF5, CG_FILE_ADF, etc. */
     CG_PARAM_COMPRESS      = 101,  /**< Compression level: 0 (none) to 9 (max) */
-    CG_PARAM_MIN_VERSION   = 102,  /**< Minimum CGNS version: CG_LIBVER_* */
-    CG_PARAM_MAX_VERSION   = 103,  /**< Maximum CGNS version: CG_LIBVER_* */
-    CG_PARAM_WRITE_VERSION = 104   /**< Write version: CG_LIBVER_* or CG_LIBVER_AUTO */
+    CG_PARAM_LIBVER_LOW    = 102,  /**< Lower bound: CG_LIBVER_AUTO or CG_LIBVER_* */
+    CG_PARAM_LIBVER_HIGH   = 103   /**< Upper bound: CG_LIBVER_* ceiling */
 } CG_PARAM_KEY;
 
 /**
@@ -1178,9 +1177,8 @@ typedef enum {
  * \return CG_OK on success, CG_ERROR on failure
  *
  * \details Allocates and initializes a parameter object with default values:
- * - min_version: CG_LIBVER_EARLIEST (maximum compatibility)
- * - max_version: CG_LIBVER_LATEST (current library version)
- * - write_version: CG_LIBVER_AUTO (automatic selection)
+ * - low: CG_LIBVER_AUTO (automatic version selection)
+ * - high: CG_LIBVER_LATEST (current library version ceiling)
  * - file_type: Current cgns_filetype global
  * - compress: Current cgns_compress global
  *
@@ -1236,11 +1234,10 @@ CGNSDLL int cg_params_destroy(cg_parameters_t params);
  * by defining new CG_PARAM_* keys without changing the function signature.
  *
  * \par Validation:
- * - CG_PARAM_MIN_VERSION: Must be ≤ max_version (cross-validated)
- * - CG_PARAM_MAX_VERSION: Must be ≥ min_version (cross-validated)
+ * - CG_PARAM_LIBVER_LOW: Lower bound (CG_LIBVER_AUTO or CG_LIBVER_*)
+ * - CG_PARAM_LIBVER_HIGH: Upper bound (CG_LIBVER_* ceiling)
  * - CG_PARAM_FILE_TYPE: Validated at file open time
  * - CG_PARAM_COMPRESS: Validated by HDF5 (0-9 range)
- * - CG_PARAM_WRITE_VERSION: No validation (any integer accepted)
  *
  * \par Design Rationale:
  * Validation is intentionally deferred to the point of use (file open) for:
@@ -1251,8 +1248,8 @@ CGNSDLL int cg_params_destroy(cg_parameters_t params);
  * \par Example:
  * \code
  * // Set version bounds for v4.0+ files
- * cg_params_set(params, CG_PARAM_MIN_VERSION, (void *)CG_LIBVER_V40);
- * cg_params_set(params, CG_PARAM_MAX_VERSION, (void *)CG_LIBVER_LATEST);
+ * cg_params_set(params, CG_PARAM_LIBVER_LOW, (void *)CG_LIBVER_V40);
+ * cg_params_set(params, CG_PARAM_LIBVER_HIGH, (void *)CG_LIBVER_LATEST);
  *
  * // Enable HDF5 compression
  * cg_params_set(params, CG_PARAM_FILE_TYPE, (void *)CG_FILE_HDF5);
@@ -1321,7 +1318,7 @@ CGNSDLL int cg_open(const char *filename, int mode, int *fn);
  * cg_parameters_t params;
  * cg_params_create(&params);
  * cg_params_set(params, CG_PARAM_FILE_TYPE, CG_FILE_HDF5);
- * cg_params_set(params, CG_PARAM_MIN_VERSION, CG_LIBVER_V40);
+ * cg_params_set(params, CG_PARAM_LIBVER_LOW, CG_LIBVER_V40);
  *
  * int fn;
  * cg_open_with_params("file.cgns", CG_MODE_WRITE, params, &fn);
@@ -1343,7 +1340,7 @@ CGNSDLL int cg_open(const char *filename, int mode, int *fn);
 CGNSDLL int cg_open_with_params(const char *filename, int mode,
                                   cg_parameters_t params, int *fn);
 
-#ifndef BUILDING_CGNS
+#if !defined(BUILDING_CGNS) && !defined(CGNS_NO_MACROS)
 /* Progressive Enhancement: Polymorphic cg_open() via argument counting
  * Uses variadic macros (C99) to support both 3 and 4 argument forms.
  * Only enabled when not building the library itself (to avoid macro conflicts).
@@ -1366,7 +1363,7 @@ CGNSDLL int cg_open_with_params(const char *filename, int mode,
 #define cg_open(...) \
     CG_OPEN_EXPAND(CG_OPEN_CHOOSER(__VA_ARGS__, CG_OPEN_4, CG_OPEN_3)(__VA_ARGS__))
 
-#endif /* !BUILDING_CGNS */
+#endif /* !BUILDING_CGNS && !CGNS_NO_MACROS */
 CGNSDLL int cg_version(int fn, float *FileVersion);
 CGNSDLL int cg_precision(int fn, int *precision);
 CGNSDLL int cg_close(int fn);
@@ -1386,40 +1383,22 @@ CGNSDLL int cg_get_compress(int *compress);
 CGNSDLL int cg_set_path(const char *path);
 CGNSDLL int cg_add_path(const char *path);
 
-/* Version bounds API - HDF5-style version compatibility control
+/* Library version bounds API
  *
- * Global configuration (affects subsequent cg_open calls):
- * - cg_set_version_bounds(): Set default read/write version compatibility range
+ * Global configuration via cg_configure():
+ *   cg_configure(CG_CONFIG_LIBVER_LOW,  (void *)(intptr_t)CG_LIBVER_AUTO);
+ *   cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(intptr_t)CG_LIBVER_V40);
  *
- * Per-file configuration (thread-safe, overrides global state):
- * - cg_set_file_version_bounds(): Set bounds for specific file handle
- * - cg_get_file_version_bounds(): Query bounds for specific file handle
- * - cg_get_file_min_version(): Analyze file features for minimum version
+ * Per-file configuration (thread-safe):
+ * - cg_set_libver_bounds(): Set version bounds for an open file
+ * - cg_get_libver_bounds(): Query bounds and/or minimum required version
  *
- * THREAD SAFETY: Global functions (cg_set_version_bounds, cg_configure) are
- * NOT thread-safe. For multi-threaded code, use per-file functions immediately
- * after cg_open() to override global state with thread-local configuration.
- *
- * MPI/PARALLEL SAFETY: All MPI ranks must use identical version bounds.
- * Call cg_set_version_bounds() or cg_set_file_version_bounds() identically
- * on all ranks before parallel file operations.
- *
- * PERFORMANCE IMPACT: Setting restrictive read version bounds (max_read_version
- * < CG_LIBVER_LATEST) causes cg_open() to validate ALL sections in ALL zones
- * to detect incompatible features. For large files (thousands of zones/sections),
- * this transforms cg_open() from an O(N_bases) operation to an O(N_zones × N_sections)
- * operation, potentially introducing significant latency. Default behavior
- * (CG_LIBVER_LATEST) skips this validation for optimal performance.
- *
- * For advanced control (rare use cases):
- * - Get global bounds: cg_configure(CG_CONFIG_GET_VERSION_BOUNDS, bounds)
- * - Force write version: cg_configure(CG_CONFIG_WRITE_VERSION, version)
- * - Get write version: cg_configure(CG_CONFIG_GET_WRITE_VERSION, &version)
+ * Any output pointer in cg_get_libver_bounds may be NULL.  The O(N) feature
+ * scan runs only when min_version is non-NULL (cached after first call).
  */
-CGNSDLL int cg_set_version_bounds(int low_bound, int high_bound);
-CGNSDLL int cg_set_file_version_bounds(int fn, int low_bound, int high_bound);
-CGNSDLL int cg_get_file_version_bounds(int fn, int *low_bound, int *high_bound);
-CGNSDLL int cg_get_file_min_version(int fn, int *min_version);
+CGNSDLL int cg_set_libver_bounds(int fn, int low, int high);
+CGNSDLL int cg_get_libver_bounds(int fn, int *low, int *high,
+                                 int *min_version);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *\
  *      typedef names                   				 *

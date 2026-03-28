@@ -1,0 +1,1845 @@
+\documentclass[11pt,letterpaper]{article}
+
+%% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{parskip}
+\usepackage{microtype}             % Subtly adjusts character spacing to fix margins
+\usepackage[htt]{hyphenat}         % Enables hyphenation inside \texttt{} blocks
+\setlength{\emergencystretch}{3em} % Gives LaTeX more breathing room to space out words
+\usepackage{needspace}
+\usepackage[right,running]{lineno}
+
+%% ── Suppress lineno inside code listings ────────────────────────────────
+\makeatletter
+\let\cgns@orig@lstlisting\lstlisting
+\let\cgns@endorig@lstlisting\endlstlisting
+\renewenvironment{lstlisting}
+  {\par\needspace{5\baselineskip}\nolinenumbers\cgns@orig@lstlisting}
+  {\cgns@endorig@lstlisting\par\linenumbers}
+\makeatother
+
+%% ── Color palette ───────────────────────────────────────────────────────
+\definecolor{cgnsblue}{HTML}{1F4E79}   % dark navy — headings, rules
+\definecolor{cgnsteal}{HTML}{2E7D8C}   % muted teal — subheadings
+\definecolor{cgnslight}{HTML}{D6EAF0}  % pale blue — table row shading, boxes
+\definecolor{cgnsgold}{HTML}{C78C1C}   % accent gold — header rule, highlights
+
+%% ── Hyperlink style ──────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=cgnsblue,
+  urlcolor=cgnsteal,
+  citecolor=cgnsblue,
+}
+
+%% ── Code listing style ──────────────────────────────────────────────────
+\lstset{
+  basicstyle=\scriptsize\ttfamily,
+  keywordstyle=\bfseries\color{cgnsblue},
+  commentstyle=\itshape\color{cgnsteal},
+  stringstyle=\color{red!60!black},
+  breaklines=true,
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{cgnsblue!40},
+  backgroundcolor=\color{cgnslight!30},
+  numbers=left,
+  numberstyle=\tiny\color{cgnsblue!50},
+  numbersep=6pt,
+  showstringspaces=false,
+  xleftmargin=1em,
+  xrightmargin=1em,
+  aboveskip=1em,
+  belowskip=1em,
+  tabsize=4,
+}
+
+%% ── SIDS-style node definition environment ──────────────────────────────
+\newenvironment{sidsnode}[1]{%
+  \par\vspace{0.8em}%
+  \noindent\colorbox{cgnslight!50}{\makebox[\dimexpr\linewidth-2\fboxsep][l]{%
+    \texttt{\textbf{\color{cgnsblue}#1}}}}\\[0.3em]%
+  \begin{quote}\ttfamily
+}{%
+  \end{quote}\vspace{0.4em}%
+}
+
+%% ── Header / Footer ────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{cgnsblue} CPEX 0049 --- CGNS Compatibility Version Control}
+\fancyhead[R]{\small\color{cgnsblue} Version 1.0}
+\fancyfoot[C]{\small\color{cgnsblue}\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{cgnsgold}\leaders\hrule height\headrulewidth\hfill}}
+\renewcommand{\footrulewidth}{0pt}
+
+%% ── Title Formatting ───────────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries\color{cgnsblue}}{\thesection}{0.6em}{}[\vspace{0.2em}{\color{cgnsgold}\titlerule[0.8pt]}]
+\titleformat{\subsection}{\large\bfseries\color{cgnsblue!85}}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{cgnsteal}}{\thesubsubsection}{0.6em}{}
+
+%% =====================================================================
+\begin{document}
+\linenumbers
+
+%% ── Title Block ─────────────────────────────────────────────────────────
+\begin{center}
+  \includegraphics[width=0.25\textwidth]{CGNS_logo_1.png}\\[1.2em]
+  {\LARGE\bfseries\color{cgnsblue} CGNS Proposal for Extension 0049}\\[0.6em]
+  {\Large\color{cgnsteal} CGNS Compatibility Version Control}\\[0.4em]
+  {\color{cgnsgold}\rule{0.4\textwidth}{0.8pt}}\\[0.6em]
+  {\large Version 1.0}\\[0.6em]
+  \today
+\end{center}
+
+\vspace{1em}
+
+%% ── Metadata Table ──────────────────────────────────────────────────────
+\noindent
+\rowcolors{2}{cgnslight!30}{white}
+\begin{tabular}{@{} >{\bfseries\color{cgnsblue}}l l @{}}
+\toprule
+CPEX\#           & 0049 \\
+Scope            & Compatibility version control for improved interoperability \\
+Champion         & M.\ Scot Breitenfeld \\
+Organization     & The HDF Group \\
+E-mail           & \href{mailto:brtnfld@hdfgroup.org}{brtnfld@hdfgroup.org} \\
+GitHub Issue     & \url{https://github.com/CGNS/CGNS/issues/915} \\
+Reference Impl.  & \url{https://github.com/brtnfld/CGNS/tree/915} \\
+Target Release   & CGNS v5.0.0 \\
+Date First Posted & \today \\
+SIDS Status      & proposed \\
+Filemap Status   & proposed \\
+MLL Status       & proposed \\
+\bottomrule
+\end{tabular}
+
+\vspace{1.5em}
+
+\tableofcontents
+\newpage
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Abstract}
+%% ═════════════════════════════════════════════════════════════════════════
+
+This CPEX proposes a compatibility version control mechanism for the CGNS
+Mid-Level Library (MLL), inspired by the HDF5 library's
+\texttt{H5Pset\_libver\_bounds} facility.  The current CGNS library
+rejects files whose recorded \texttt{CGNSLibraryVersion\_t} exceeds the
+running library version, even when the file contains no
+version-specific features that would prevent correct interpretation.
+This unnecessarily breaks interoperability between tools compiled
+against different CGNS library releases.
+
+The extension introduces API functions and configuration options that
+allow applications to specify version constraints for reading and
+writing, and shifts read-time version enforcement from a simple
+numeric comparison to a feature-aware compatibility check.  A
+accompanying \emph{automatic write-version} mode selects the minimum
+necessary version based on the features actually written, maximizing
+compatibility without requiring applications to hard-code version
+numbers.
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Motivation and Rationale}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\subsection{Problem Statement}
+
+When opening a CGNS file, the library currently enforces the following
+logic in \texttt{cg\_open}:
+
+\begin{lstlisting}[language=C]
+if (cg->version > CGNSLibVersion) {
+    /* Reject if major version of file > major version of library */
+    if ((cg->version / 1000) > (CGNSLibVersion / 1000)) {
+        cgi_error("A more recent version of the CGNS library "
+                  "created the file. Therefore, the CGNS library "
+                  "needs updating before reading the file '%s'.",
+                  filename);
+        return CG_ERROR;
+    }
+    /* Warn only if different in second digit */
+    if ((cg->version / 100) > (CGNSLibVersion / 100)) {
+        cgi_warning("The file being read is more recent "
+                    "that the CGNS library used");
+    }
+}
+\end{lstlisting}
+
+This version-number-only check creates several practical problems:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{False rejections.}
+  A file written by CGNS 5.0 that uses only features present since
+  CGNS 4.x will be rejected by a CGNS 4.x library, even though it
+  could be read correctly.
+
+\item \textbf{Blocked tool chains.}
+  Widely-used post-processing tools (Tecplot, ParaView, VisIt) may
+  ship with an older embedded CGNS library.  Users who generate files
+  with a newer library version cannot visualize their own data without
+  recompiling or downgrading.
+
+\item \textbf{Hindrance to incremental adoption.}
+  Organizations running mixed CGNS library versions across production
+  codes, mesh generators, and post-processors are forced into
+  synchronized upgrades---an unrealistic constraint in large
+  multi-team environments.
+\end{enumerate}
+
+\subsection{Precedent: HDF5 Library Version Bounds}
+
+HDF5 solved an analogous problem with the
+\texttt{H5Pset\_libver\_bounds(fapl, low, high)} API, which lets
+applications declare the range of HDF5 library versions whose on-disk
+representations they are willing to produce or consume.  This approach:
+
+\begin{itemize}[leftmargin=2em]
+\item Decouples the \emph{library version} from the \emph{SIDS
+  version}.
+\item Allows older libraries to read newer files when no incompatible
+  features are present.
+\item Gives applications explicit control over the compatibility
+  vs.\ feature trade-off.
+\end{itemize}
+
+The present CPEX adapts this design for CGNS.
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Detailed Description}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\subsection{Design Overview}
+
+The implementation introduces three accompanying changes to the CGNS
+Mid-Level Library:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Version milestone constants} (\texttt{CG\_LIBVER\_*})
+  encoding recognized CGNS version milestones as plain integer macros.
+\item \textbf{New API functions} for setting and querying
+  compatibility version bounds (lower and upper) on both a global and
+  per-file basis, plus a parameter-object API for thread-safe per-open
+  configuration.
+\item \textbf{Feature-aware open and write logic} in \texttt{cg\_open}
+  that replaces the current numeric-only version check with a
+  feature-compatibility assessment, and an automatic write-version
+  mode that records the minimum version required by the features
+  actually written.
+\end{enumerate}
+
+\subsection{File Format Alternatives}
+\label{sec:file-format-alts}
+\label{sec:format-alternatives}
+
+This CPEX must record two pieces of information that do not currently
+exist in the file: (a)~the minimum CGNS version required to read the
+file, and (b)~a diagnostic bitmask indicating which version-specific
+features are present.  Two file-format approaches are presented below.
+\textbf{Alternative~B is strongly recommended} because it preserves
+data provenance---a fundamental requirement for CFD archival
+formats.  Alternative~A is included for completeness so the committee
+can evaluate both approaches, but its semantic overloading of
+\texttt{CGNSLibraryVersion\_t} makes it unsuitable for production use.
+
+\subsubsection{Alternative A: Overload \texttt{CGNSLibraryVersion\_t}}
+
+Under this approach, no new nodes are introduced.  Instead, the
+existing \texttt{CGNSLibraryVersion\_t} node is redefined:
+
+\begin{itemize}[leftmargin=2em]
+\item When the library automatically determines the minimum version
+  needed (see Section~\ref{sec:write-mode}), it stamps
+  \texttt{CGNSLibraryVersion\_t} with the \emph{minimum required
+  version} instead of the writing library's version.  A file written
+  by CGNS 5.0 that uses only V3.2 features will carry
+  \texttt{CGNSLibraryVersion\_t = 3200}.
+\item A hidden diagnostic bitmask attribute
+  (\texttt{\_CGNS\_FeatureMask}, described in
+  Section~\ref{sec:feature-mask}) is stored on
+  \texttt{CGNSLibraryVersion\_t}.
+\item The SIDS must redefine the node's semantics from ``the library
+  that created this file'' to ``the minimum library required to read
+  it.''
+\end{itemize}
+
+\textbf{Advantages:}  No new nodes; no file-mapping additions beyond
+one hidden attribute; maximum structural simplicity.
+
+\textbf{Disadvantages:}  Provenance information (which library wrote
+the file) is lost when automatic versioning is used; requires a
+semantic redefinition of a long-established SIDS node; tools or
+workflows that depend on \texttt{CGNSLibraryVersion\_t} for
+debugging, auditing, or compliance will break.  Additionally, when an
+older file is opened and the AUTO write mode determines a minimum
+version lower than what \texttt{CGNSLibraryVersion\_t} currently
+records, the node value would be silently overwritten---modifying the
+file's metadata without any user action or awareness.
+
+\subsubsection{Alternative B: New \texttt{CGNSMinRequiredVersion\_t}
+  node (recommended)}
+
+Under this approach, \texttt{CGNSLibraryVersion\_t} retains its
+original meaning and a new sibling node is introduced:
+
+\begin{sidsnode}{CGNSMinRequiredVersion\_t}
+CGNSMinRequiredVersion\_t := ``CGNSMinRequiredVersion'' \\
+  Label = ``CGNSMinRequiredVersion\_t'' \\
+  Data-Type = ``R4'' \\
+  Dimension = 1, Dimension-Value = 1 \\
+  Data = CGNSMinRequiredVersion
+\end{sidsnode}
+\noindent The node is a child of the file root node, at the same level as
+\texttt{CGNSLibraryVersion\_t} and \texttt{CGNSBase\_t}.  Its value
+is an \texttt{R4} real number using the same decimal convention as
+\texttt{CGNSLibraryVersion\_t} (e.g., \texttt{3.200} for CGNS~3.2,
+\texttt{5.000} for CGNS~5.0).
+The diagnostic bitmask (\texttt{\_CGNS\_FeatureMask},
+Section~\ref{sec:feature-mask}) is placed on this new node.
+
+\begin{itemize}[leftmargin=2em]
+\item \texttt{CGNSLibraryVersion\_t} is \textbf{always} written as
+  the current library version (existing behavior, unchanged).
+\item \texttt{CGNSMinRequiredVersion\_t} receives the minimum
+  version required to read the file (determined automatically or set
+  explicitly by the application).
+\item Old libraries silently ignore the new node (standard CGNS
+  convention for unknown nodes).
+\end{itemize}
+
+\textbf{Advantages:}
+\begin{itemize}[leftmargin=2em]
+\item No semantic redefinition of any existing SIDS node;
+  \texttt{CGNSLibraryVersion\_t} is entirely unchanged in both
+  meaning and structure.
+\item Provenance preserved: \texttt{CGNSLibraryVersion\_t} always
+  identifies the writing library.
+\item The MODIFY-mode logic is simplified:
+  \texttt{CGNSLibraryVersion\_t} is always upgraded to the current
+  library version (existing behavior); only
+  \texttt{CGNSMinRequiredVersion\_t} uses the automatic version
+  mechanism.
+\item Debugging and compliance workflows continue to work---the
+  question ``which library wrote this?'' has a definitive answer.
+\end{itemize}
+
+\textbf{Disadvantages:}
+\begin{itemize}[leftmargin=2em]
+\item Requires a SIDS addition (new node type) and a corresponding
+  file-mapping update; in particular, the root-node schema in
+  SIDS Section~2 must be formally amended.
+\item Introduces one additional small node per file.
+\end{itemize}
+
+\subsubsection{Comparison}
+
+\begin{center}
+\rowcolors{2}{cgnslight!30}{white}
+\begin{tabular}{l c c}
+\toprule
+\rowcolor{cgnsblue!15}
+ & \textbf{Alt.\ A (overload)} & \textbf{Alt.\ B (new node)} \\
+\midrule
+New SIDS nodes                  & 0                  & 1 \\
+SIDS semantic changes           & 1 (redefinition)   & 0 \\
+Provenance preserved            & $\times$           & \checkmark \\
+MODIFY-mode logic               & Special case       & Existing behavior \\
+Old library reads new file      & Works              & Works (ignores new node) \\
+New library reads old file      & Falls back to scan & Falls back to scan \\
+Hidden attributes               & 1                  & 1 (on new node) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Alternative~B is recommended.  Adding a new SIDS node is less
+disruptive than redefining the semantics of an established one,
+and preserving provenance is valuable for the long-lived CFD files
+that are the primary motivation for this CPEX.
+
+\subsubsection{Alternative B: Node Placement---Root Sibling vs.\ Child of \texttt{CGNSLibraryVersion\_t}}
+\label{sec:alt-b-placement}
+
+Within Alternative~B, a secondary design question arises: should
+\texttt{CGNSMinRequiredVersion\_t} be placed as a \emph{sibling} of
+\texttt{CGNSLibraryVersion\_t} at the file root, or as a
+\emph{child} of \texttt{CGNSLibraryVersion\_t}?
+
+\textbf{Child of \texttt{CGNSLibraryVersion\_t}}
+
+\textit{Advantages:}
+\begin{itemize}[leftmargin=2em]
+\item All version metadata is co-located under one existing node;
+  readers that need both values traverse a single subtree.
+\item The root namespace does not grow.
+\item The SIDS amendment is scoped to an existing node type rather
+  than the root-node schema.
+\end{itemize}
+
+\textit{Disadvantages:}
+\begin{itemize}[leftmargin=2em]
+\item \texttt{CGNSLibraryVersion\_t} is no longer structurally
+  unchanged---its SIDS definition must be amended to allow an
+  optional child, negating one of Alt.~B's stated advantages over
+  Alt.~A.
+\item \texttt{CGNSLibraryVersion\_t} is currently defined as a
+  scalar leaf node; promoting it to a container changes its
+  character in the SIDS type system.
+\end{itemize}
+
+\textbf{Root sibling (recommended)}
+
+\textit{Advantages:}
+\begin{itemize}[leftmargin=2em]
+\item Clean semantic separation: ``written by version~$X$''
+  (\texttt{CGNSLibraryVersion\_t}) and ``requires at least
+  version~$Y$'' (\texttt{CGNSMinRequiredVersion\_t}) are independent
+  facts that need not be physically nested.
+\item \texttt{CGNSLibraryVersion\_t} is truly unchanged in both
+  semantics and structure, preserving Alt.~B's core advantage.
+\item Consistent with all existing root-level CGNS metadata nodes,
+  which are siblings rather than children of one another.
+\item The root-schema amendment (SIDS Section~2) is no more invasive
+  than a \texttt{CGNSLibraryVersion\_t} structural amendment would be.
+\end{itemize}
+
+\textit{Disadvantages:}
+\begin{itemize}[leftmargin=2em]
+\item Root namespace grows by one node type; strict validators that
+  enumerate expected root children may warn until updated.
+\item Readers that need both version values must visit two sibling
+  nodes rather than one parent.
+\end{itemize}
+
+Root sibling placement is adopted in this proposal.
+
+\subsection{Version Constants: \texttt{CG\_LIBVER\_*}}
+\label{sec:version-constants}
+
+Version milestone constants are defined in \texttt{cgnslib.h} as
+plain integer macros using the encoding
+$\mathrm{MAJOR} \times 1000 + \mathrm{MINOR} \times 100$
+(matching the existing \texttt{CGNSLibraryVersion\_t} node format):
+
+\begin{lstlisting}[language=C]
+/* Named constants are defined only for versions where a SIDS change
+ * was introduced that requires version tracking in the write path
+ * (cgi_require_version) or a feature detector in the registry.
+ * Intermediate releases with no SIDS changes (e.g., 3.3, 4.1-4.4)
+ * are omitted; use the raw integer encoding for those if needed:
+ *   MAJOR * 1000 + MINOR * 100  (e.g., 4400 for CGNS 4.4)
+ */
+#define CG_LIBVER_EARLIEST  1050  /* CGNS 1.05 (oldest library version) */
+#define CG_LIBVER_V12       1200  /* CGNS 1.2  - CGNSBase_t gained CellDimension
+                                   *             and PhysicalDimension fields;
+                                   *             used in write-path version bump */
+#define CG_LIBVER_V30       3000  /* CGNS 3.0  - Extended element types */
+#define CG_LIBVER_V31       3100  /* CGNS 3.1  - Reordered element types */
+#define CG_LIBVER_V32       3200  /* CGNS 3.2  - NGON/NFACE v3.2 format */
+#define CG_LIBVER_V40       4000  /* CGNS 4.0  - ElementStartOffset */
+#define CG_LIBVER_V45       4500  /* CGNS 4.5  - Particles (CPEX 0046) */
+#define CG_LIBVER_V50       5000  /* CGNS 5.0  - High-order elements (CPEX 0045) */
+#define CG_LIBVER_LATEST    5000  /* Current library version */
+#define CG_LIBVER_AUTO        -1  /* Automatic write-version selection */
+\end{lstlisting}
+
+\texttt{CG\_LIBVER\_EARLIEST} denotes the oldest CGNS library
+version.  \texttt{CG\_LIBVER\_LATEST} is an alias for
+the current library version at compile time.
+\texttt{CG\_LIBVER\_AUTO} is a special sentinel directing the library
+to choose the minimum write version automatically (see
+Section~\ref{sec:write-mode}).
+The internal feature name and detector associated with each constant
+are catalogued in the registry table in
+Section~\ref{sec:feature-registry}.
+
+\subsection{New MLL Functions}
+
+\subsubsection{Global Bounds via \texttt{cg\_configure}}
+
+The global version bounds are set and queried through the existing
+\texttt{cg\_configure} interface using the following new tokens:
+
+\begin{lstlisting}[language=C]
+#define CG_CONFIG_LIBVER_LOW       10  /* Set lower bound */
+#define CG_CONFIG_LIBVER_HIGH      11  /* Set upper bound */
+#define CG_CONFIG_GET_LIBVER_LOW   12  /* Query lower bound */
+#define CG_CONFIG_GET_LIBVER_HIGH  13  /* Query upper bound */
+\end{lstlisting}
+
+\noindent These values (10--13) are the next available after the
+existing \texttt{cg\_configure} tokens (1--9 are currently assigned).
+
+\textbf{Defaults:} \texttt{low~=~CG\_LIBVER\_AUTO},
+\texttt{high~=~CG\_LIBVER\_LATEST}.
+
+\begin{lstlisting}[language=C]
+/* Set lower bound (write-version floor) */
+cg_configure(CG_CONFIG_LIBVER_LOW,
+             (void *)(intptr_t)CG_LIBVER_AUTO);
+
+/* Set upper bound (read/write ceiling) */
+cg_configure(CG_CONFIG_LIBVER_HIGH,
+             (void *)(intptr_t)CG_LIBVER_V40);
+
+/* Query current bounds */
+int lo, hi;
+cg_configure(CG_CONFIG_GET_LIBVER_LOW,  &lo);
+cg_configure(CG_CONFIG_GET_LIBVER_HIGH, &hi);
+\end{lstlisting}
+
+\textbf{Scope:}  Global---applies to all subsequent \texttt{cg\_open}
+calls until changed.  Not thread-safe; use the parameter-object API
+(Section~\ref{sec:params-api}) for thread-safe per-file configuration.
+
+\subsubsection{Library Version Bounds Functions}
+
+The following functions provide per-file control---including post-open
+adjustment and thread-safe multi-file scenarios:
+
+\begin{lstlisting}[language=C]
+int cg_set_libver_bounds(int fn,
+                               int low, int high);
+
+int cg_get_libver_bounds(int fn,
+                               int *low, int *high,
+                               int *min_version);
+\end{lstlisting}
+
+\texttt{cg\_get\_libver\_bounds} retrieves version information
+for an open file.  Any output pointer may be \texttt{NULL} to skip
+that value:
+
+\begin{description}[leftmargin=2em, font=\normalfont\ttfamily]
+\item[low] Current configured lower bound ($O(1)$).  Pass
+  \texttt{NULL} to skip.
+\item[high] Current configured upper bound ($O(1)$).  Pass
+  \texttt{NULL} to skip.
+\item[min\_version] Minimum CGNS version required by the features
+  actually present in the file.  \textbf{Only computed when
+  non-\texttt{NULL}}; incurs an
+  $O(N_{\mathrm{zones}} \times N_{\mathrm{sections}})$ feature scan
+  on the first call (cached for subsequent calls).  Pass \texttt{NULL}
+  to avoid the scan entirely.
+\end{description}
+
+\textbf{Terminology note.}  The three output parameters serve distinct
+purposes and should not be confused:
+\begin{itemize}[leftmargin=2em]
+\item \texttt{low} is the \emph{configured lower bound}---the minimum
+  SIDS version produced on write.  When set to
+  \texttt{CG\_LIBVER\_AUTO}, the library determines this automatically
+  from the features written.  It is a policy setting, not a file
+  property.
+\item \texttt{high} is the \emph{configured upper bound}---the maximum
+  feature level the application is willing to encounter.  It is also
+  a policy setting.
+\item \texttt{min\_version} is the \emph{floor the file requires}---the
+  oldest library version capable of reading the features actually
+  present.  It is derived from the file's content, not from any user
+  setting.
+\end{itemize}
+
+This NULL-gated design keeps the API surface small while preserving
+full cost control: applications that only need the configured bounds
+pass \texttt{NULL} for \texttt{min\_version} and pay $O(1)$;
+applications that need the computed minimum version pay the scan cost
+exactly once.
+
+\textbf{Behavior of \texttt{min\_version} in write mode.}
+When called on a file opened with \texttt{CG\_MODE\_WRITE} or
+\texttt{CG\_MODE\_MODIFY} before any nodes have been written (or
+after a node deletion), \texttt{min\_version} returns the current
+\emph{effective write version}: the library version that will be
+recorded in \texttt{CGNSLibraryVersion\_t} when the file is closed.
+When \texttt{low} is \texttt{CG\_LIBVER\_AUTO}, this begins at
+\texttt{CG\_LIBVER\_EARLIEST} and increments as features are
+written; when \texttt{low} is an explicit constant, it returns at
+least that value.  It does \emph{not} return
+\texttt{CG\_LIBVER\_AUTO} regardless of the \texttt{low} setting.
+
+By contrast, HDF5's \texttt{H5Pget\_libver\_bounds} retrieves only
+the configured policy (\texttt{low}, \texttt{high}); HDF5 provides no
+equivalent of the \texttt{min\_version} output.  The ability to query
+the minimum version actually required by file content is a capability
+unique to this CGNS extension.
+
+\subsubsection{Parameter Object API}
+\label{sec:params-api}
+
+For per-open configuration---including version bounds,
+file type, and compression---a parameter object type
+\texttt{cg\_parameters\_t} is provided.  This is an opaque pointer;
+all operations go through the API.
+
+\textbf{Thread-safety note.}  The parameter object makes
+\emph{configuration} per-call and race-free, but the MLL itself is
+not fully thread-safe: \texttt{cg\_open} still accesses the global
+file table (\texttt{cg\_files[]} array).  Applications that open
+different files from concurrent threads must serialize their
+\texttt{cg\_open}/\texttt{cg\_close} calls or use external locking.
+
+\begin{lstlisting}[language=C]
+/* Opaque handle (NULL == use global configuration) */
+#define CG_PARAMS_DEFAULT ((cg_parameters_t)NULL)
+
+/* Parameter keys */
+typedef enum {
+    CG_PARAM_FILE_TYPE    = 100, /* CG_FILE_HDF5, CG_FILE_ADF, etc. */
+    CG_PARAM_COMPRESS     = 101, /* Compression level: 0 (none) to 9 */
+    CG_PARAM_LIBVER_LOW   = 102, /* Lower bound: CG_LIBVER_AUTO or
+                                  * explicit CG_LIBVER_* constant */
+    CG_PARAM_LIBVER_HIGH  = 103  /* Upper bound: CG_LIBVER_* ceiling */
+} CG_PARAM_KEY;
+
+/* Lifecycle */
+int cg_params_create(cg_parameters_t *params);
+int cg_params_destroy(cg_parameters_t  params);
+
+/* Generic setter (follows cg_configure pattern) */
+int cg_params_set(cg_parameters_t params, int key, void *value);
+\end{lstlisting}
+
+Default values when a parameter object is created with
+\texttt{cg\_params\_create}:
+
+\begin{itemize}[leftmargin=2em]
+\item \texttt{CG\_PARAM\_LIBVER\_LOW}: \texttt{CG\_LIBVER\_AUTO}
+\item \texttt{CG\_PARAM\_LIBVER\_HIGH}: \texttt{CG\_LIBVER\_LATEST}
+\item \texttt{CG\_PARAM\_FILE\_TYPE}: current \texttt{cgns\_filetype} global
+\item \texttt{CG\_PARAM\_COMPRESS}: current \texttt{cgns\_compress} global
+\end{itemize}
+
+A parameter object is passed to the 4-argument form of
+\texttt{cg\_open\_with\_params}:
+
+\begin{lstlisting}[language=C]
+int cg_open_with_params(const char     *filename,
+                        int             mode,
+                        cg_parameters_t params,
+                        int            *fn);
+\end{lstlisting}
+
+For source-level backward compatibility \texttt{cg\_open} is defined
+as a polymorphic macro dispatching on argument count:
+
+\begin{lstlisting}[language=C]
+/* 3-argument (legacy): uses global configuration */
+cg_open(filename, mode, &fn);
+
+/* 4-argument: uses supplied parameter object */
+cg_open(filename, mode, params, &fn);
+\end{lstlisting}
+
+Passing \texttt{CG\_PARAMS\_DEFAULT} as the \texttt{params} argument
+is equivalent to the 3-argument call.
+
+\paragraph{Design rationale: parameter object vs.\ extra arguments.}
+Four API patterns were considered for passing per-open configuration
+to \texttt{cg\_open}:
+
+\begin{enumerate}[leftmargin=2em]
+
+\item \textbf{Extra positional arguments.}
+\begin{lstlisting}[language=C]
+/* Hypothetical: direct extra args (low, high) */
+cg_open(file, mode, &fn,
+        CG_LIBVER_V40, CG_LIBVER_LATEST);
+\end{lstlisting}
+Simple for a fixed parameter set, but every new configuration option
+requires a new function signature or a new overloaded variant.  The
+polymorphic \texttt{cg\_open} macro already uses the 4-argument slot
+for the params object; adding further positional arguments would
+exhaust this approach quickly.
+
+\item \textbf{Options struct with named fields.}
+\begin{lstlisting}[language=C]
+/* Hypothetical: named-field struct */
+cg_open_opts opts = {
+    .low       = CG_LIBVER_V40,
+    .high      = CG_LIBVER_LATEST,
+    .file_type = CG_FILE_HDF5,
+};
+cg_open_ex(file, mode, &opts, &fn);
+\end{lstlisting}
+More discoverable---fields are visible in the struct definition---but
+not ABI-stable.  Adding a new field changes the struct layout for all
+callers, requiring either a versioned struct (with a \texttt{size}
+sentinel as used in POSIX's \texttt{struct addrinfo}) or a full API
+break.
+
+\item \textbf{Variadic key--value pairs.}
+\begin{lstlisting}[language=C]
+/* Hypothetical: key-value varargs (as used by cg_goto) */
+cg_open_ex(file, mode, &fn,
+           CG_PARAM_LIBVER_LOW,  CG_LIBVER_V40,
+           CG_PARAM_LIBVER_HIGH, CG_LIBVER_LATEST,
+           CG_PARAM_END);
+\end{lstlisting}
+CGNS already uses this pattern in \texttt{cg\_goto}, which takes
+variadic \texttt{(label, index)} pairs terminated by a sentinel.
+The approach is familiar within the library, requires no heap
+allocation, and avoids a separate create/destroy lifecycle.  However,
+it is not type-safe---all values must be passed as \texttt{int} or
+cast through a common type---and it cannot be passed as a single
+opaque handle to a downstream function without reconstructing the
+argument list.  It also cannot hold non-integer parameters (e.g.,
+future string-valued options) without a type-tag convention.
+
+\item \textbf{Property object / opaque handle (chosen design).}
+\begin{lstlisting}[language=C]
+cg_params_create(&params);
+cg_params_set(params, CG_PARAM_LIBVER_LOW,
+              (void *)(intptr_t)CG_LIBVER_V40);
+cg_params_set(params, CG_PARAM_LIBVER_HIGH,
+              (void *)(intptr_t)CG_LIBVER_LATEST);
+cg_open(file, mode, params, &fn);
+cg_params_destroy(params);
+\end{lstlisting}
+More verbose for simple cases, but ABI-stable: new parameters are
+added as new \texttt{CG\_PARAM\_*} keys with no change to any
+function signature or struct layout.  It also directly mirrors HDF5's
+File Access Property List pattern
+(\texttt{H5Pcreate}/\texttt{H5Pset\_*}/\texttt{H5Fopen}), which is
+already familiar to the scientific computing community.
+
+\end{enumerate}
+
+The property object was chosen because CGNS library releases are
+infrequent, ABI compatibility across releases is important to users,
+and the \texttt{cg\_open} macro preserves the original 3-argument
+call for the common case so that existing code requires no changes.
+
+\paragraph{Known limitation: macro overloading.}
+The polymorphic \texttt{cg\_open} macro is implemented via C99
+variadic macro argument counting.  Some vendor preprocessors do not
+support the \texttt{\_\_VA\_ARGS\_\_} counting trick reliably.
+
+The reference implementation provides
+\texttt{cg\_open\_with\_params} as the explicit 4-argument entry
+point, alongside the original \texttt{cg\_open}:
+
+\begin{lstlisting}[language=C]
+/* Existing API: strict 3-argument function */
+CGNSDLL int cg_open(const char *filename, int mode, int *fn);
+
+/* Explicit 4-argument API for per-open configuration */
+CGNSDLL int cg_open_with_params(const char *filename, int mode,
+                                cg_parameters_t params, int *fn);
+\end{lstlisting}
+
+Both symbols are exported from the shared library.
+Language bindings that use \texttt{dlsym} or FFI (Python
+\texttt{ctypes}, Java JNI, etc.)\ resolve these symbols directly;
+the macro is not involved.
+
+The polymorphic convenience macro is active only for compiled C
+code and can be suppressed by defining \texttt{CGNS\_NO\_MACROS}:
+
+\begin{lstlisting}[language=C]
+#ifndef CGNS_NO_MACROS
+  /* Macro overload: 3-arg -> cg_open_with_params(f,m,DEFAULT,fn)
+     4-arg -> cg_open_with_params(f,m,p,fn) */
+  #define cg_open(...) /* variadic dispatch */
+#endif
+\end{lstlisting}
+
+\subsection{Modified \texttt{cg\_open} Behavior}
+
+When a file is opened for reading (\texttt{CG\_MODE\_READ} or
+\texttt{CG\_MODE\_MODIFY}), the revised \texttt{cg\_open} performs
+the following checks in order:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Read} the \texttt{CGNSLibraryVersion\_t} node, which
+  records the library version that wrote the file, denoted
+  $V_{\mathrm{file}}$.
+\item \textbf{Major version safety check.}  If the major version of
+  $V_{\mathrm{file}}$ exceeds the major version of the running library
+  ($\lfloor V_{\mathrm{file}} / 1000 \rfloor >
+   \lfloor V_{\mathrm{lib}} / 1000 \rfloor$),
+  return \texttt{CG\_ERROR} immediately.  This is a
+  \emph{crash-prevention guard}, not a compatibility check: a major
+  version increment may indicate fundamentally different internal data
+  layouts that would corrupt memory if the library attempted to parse
+  them.  It must therefore run \emph{before} Step~3 reads the full
+  file structure.  It is distinct from the feature compatibility check
+  in Step~4, which operates on already-parsed in-memory structures and
+  cannot substitute for this guard.
+\item \textbf{Read file structure} via \texttt{cgi\_read()}.
+\item \textbf{Enforce upper bound.}  If the user has set
+  $V_{\mathrm{high}} < \texttt{CG\_LIBVER\_LATEST}$ and
+  $V_{\mathrm{file}} > V_{\mathrm{high}}$, return
+  \texttt{CG\_ERROR} immediately.  When the user explicitly requests
+  a ceiling, that ceiling is \emph{strict}: the library cannot
+  guarantee the absence of unknown features beyond registry coverage,
+  so it must reject rather than silently accept.  This step is
+  skipped when $V_{\mathrm{high}} = \texttt{CG\_LIBVER\_LATEST}$
+  (the default), allowing feature-aware acceptance in Step~5.
+\item \textbf{Check feature compatibility.}  If
+  $V_{\mathrm{file}} > V_{\mathrm{lib}}$, check the file's
+  metadata for features introduced after the running library's
+  version.  If an incompatible feature is detected, return
+  \texttt{CG\_ERROR} with a diagnostic naming the feature and the
+  required minimum library version.
+\item \textbf{Accept.}  If no incompatibility is found, open the file
+  successfully.
+\item \textbf{Warn if appropriate.}  If $V_{\mathrm{file}} >
+  V_{\mathrm{lib}}$ but the file was accepted, issue a
+  \texttt{cgi\_warning} so that the application can log the condition.
+\end{enumerate}
+
+\textbf{Note on the lower bound and reads.}  The lower bound
+(\texttt{low}) controls write behavior only; it does not cause
+rejection of files on read.  Because CGNS maintains full backward
+compatibility, a newer library can always read files written by older
+versions.  Older files are always readable regardless of the
+\texttt{low} setting.
+
+\textbf{Performance note.}  For files written by a CPEX-0049-aware
+library, Step~5 is resolved in $O(1)$ using the
+\texttt{CGNSMinRequiredVersion\_t} node or \texttt{\_CGNS\_FeatureMask}
+attribute (see Sections~\ref{sec:format-alternatives}
+and~\ref{sec:feature-mask}).  The $O(N_{\mathrm{zones}} \times
+N_{\mathrm{sections}})$ feature scan is only required as a fallback
+for legacy files that lack these metadata.  Even then, the scan is
+skipped when $V_{\mathrm{high}} \geq \texttt{CG\_LIBVER\_LATEST}$
+and $V_{\mathrm{file}} \leq V_{\mathrm{lib}}$---the common case for
+default-configured applications.
+
+\subsection{Write-Mode Version Selection}
+\label{sec:write-mode}
+
+The write version is the value recorded in the file's
+\texttt{CGNSLibraryVersion\_t} node.  It is governed by the lower
+bound (\texttt{low}).  Two modes are supported:
+
+\begin{description}[leftmargin=2em]
+\item[\texttt{low~=~CG\_LIBVER\_AUTO} (default).]
+  For new files (\texttt{CG\_MODE\_WRITE}), the library begins with an
+  effective version of \texttt{CG\_LIBVER\_EARLIEST} and upgrades
+  incrementally via an internal \texttt{cgi\_require\_version()} call
+  each time an API function writes a version-specific feature.  For
+  existing files (\texttt{CG\_MODE\_MODIFY}), the effective version is
+  initialized to $\max(\text{existing~\texttt{CGNSMinRequiredVersion\_t}},\;
+  \texttt{CG\_LIBVER\_EARLIEST})$ and the in-memory feature mask is
+  loaded from the existing \texttt{\_CGNS\_FeatureMask} (or populated
+  via fallback scan for legacy files).  In both cases, the file is
+  stamped with the minimum version required by the features actually
+  present, maximizing compatibility with older readers.
+
+  \textbf{Maintenance requirement.}  The AUTO mechanism is only
+  correct if \emph{every} write path that introduces a version-specific
+  feature calls \texttt{cgi\_require\_version()} before writing.  A
+  maintainer who implements a new CPEX and omits this call will
+  silently produce a file whose version header is too low, breaking
+  readers that rely on the header to detect the new feature.  To guard
+  against this, a CI test must write every known node type to a fresh
+  file in AUTO mode and assert that the resulting
+  \texttt{CGNSLibraryVersion\_t} equals the expected minimum version
+  for that node type.
+
+\item[\texttt{low~=} explicit version constant.]
+  Setting \texttt{low} (via \texttt{CG\_PARAM\_LIBVER\_LOW} or
+  \texttt{CG\_CONFIG\_LIBVER\_LOW}) to a specific
+  \texttt{CG\_LIBVER\_*} constant forces at least that version to be
+  written.  Any attempt to write a feature whose required version
+  exceeds \texttt{high} returns \texttt{CG\_ERROR}.
+
+\item[\texttt{CG\_MODE\_MODIFY} handling.]
+  When opening an existing file for modification, the two version
+  nodes are treated differently:
+  \begin{itemize}[leftmargin=1.5em]
+  \item \texttt{CGNSLibraryVersion\_t} is \textbf{always} upgraded to
+    the current library version $V_{\mathrm{lib}}$, regardless of the
+    \texttt{low} setting.  This preserves its SIDS semantics: ``the
+    version of the library that last wrote the file.''
+  \item \texttt{CGNSMinRequiredVersion\_t} (Alternative~B) uses the
+    AUTO incremental-upgrade mechanism: the effective version is
+    initialized to the existing node's value (or the result of the
+    fallback feature scan for legacy files) and only increases as new
+    features are written.  This ensures monotonicity without
+    recomputing from scratch.
+  \end{itemize}
+\end{description}
+
+\textbf{Parallel safety.}  In parallel I/O mode, each rank may write
+different features and therefore arrive at a different effective
+version.  Because the \texttt{CGNSLibraryVersion} node is a single
+shared object, all ranks must agree on its final value.
+
+The recommended approach is \emph{sync-at-close}: during
+\texttt{cgp\_close}, the library performs an
+\texttt{MPI\_Allreduce(MPI\_MAX)} on each rank's locally tracked
+effective version before writing the version node and closing the
+file.
+
+\textbf{Note: this \texttt{MPI\_Allreduce} is new.}  In the current
+implementation, \texttt{cgp\_close} is a one-line wrapper that simply
+calls \texttt{cg\_close}; it performs no MPI collective of its own.
+The proposed reduction is therefore a genuine addition to the close
+path.  It is feasible because \texttt{cgp\_close} is already required
+to be called collectively---\texttt{cg\_close} calls
+\texttt{H5Fclose}, which is a collective operation in parallel HDF5.
+The \texttt{MPI\_Allreduce} does not change the collectivity contract
+of \texttt{cgp\_close}, but it does add a new synchronisation point
+that implementations must account for.
+
+The sequence for parallel AUTO mode is:
+
+\begin{enumerate}[leftmargin=2em]
+\item Each rank opens the file via \texttt{cgp\_open} with
+  \texttt{low~=~CG\_LIBVER\_AUTO}.  The effective version starts at
+  \texttt{CG\_LIBVER\_EARLIEST}.
+\item As each rank writes features, \texttt{cgi\_require\_version()}
+  bumps that rank's effective version locally---no file metadata is
+  written and no error is returned.
+\item At \texttt{cgp\_close} time, before flushing metadata, the
+  library performs a single collective reduction using a custom
+  \texttt{MPI\_Op}.  Both values are packed into a two-element
+  \texttt{int64\_t} buffer and reduced in one call:
+\begin{lstlisting}[language=C]
+int64_t buf[2] = { effective_version, current_feature_mask };
+MPI_Allreduce(MPI_IN_PLACE, buf, 2, MPI_INT64_T,
+              cgp_version_mask_op, comm);
+effective_version    = buf[0];
+current_feature_mask = buf[1];
+\end{lstlisting}
+  The custom operator \texttt{cgp\_version\_mask\_op} applies
+  \texttt{MAX} to element~0 (version) and bitwise-\texttt{OR} to
+  element~1 (mask):
+\begin{lstlisting}[language=C]
+static void cgp_version_mask_reduce(
+        void *in, void *inout, int *len, MPI_Datatype *dt)
+{
+    int64_t *a = (int64_t *)in;
+    int64_t *b = (int64_t *)inout;
+    for (int i = 0; i < *len; i += 2) {
+        b[i]   = a[i]   > b[i] ? a[i] : b[i]; /* MAX: version */
+        b[i+1] = a[i+1] | b[i+1];              /* OR:  mask   */
+    }
+}
+\end{lstlisting}
+  This operator is registered once at library initialisation via
+  \texttt{MPI\_Op\_create}.
+\item The collective maximum version and merged bitmask are written to
+  \texttt{CGNSLibraryVersion\_t}, \texttt{CGNSMinRequiredVersion\_t}
+  (Alternative~B), and \texttt{\_CGNS\_FeatureMask}, and the file is
+  closed normally.
+\end{enumerate}
+
+If an application sets an explicit \texttt{low} bound instead of
+AUTO, that version applies identically on all ranks and no reduction
+is needed.  If a rank attempts to write a feature whose minimum
+version exceeds the configured \texttt{high} bound, the library
+returns \texttt{CG\_ERROR} immediately on that rank.
+
+\subsection{Feature-Version Registry}
+\label{sec:feature-registry}
+
+The library maintains an internal, statically-compiled registry
+mapping CGNS features to the version in which they were introduced.
+Each entry has the form:
+
+\begin{lstlisting}[language=C]
+typedef struct {
+    const char *feature_name;     /* e.g. "ParticleZone_t" */
+    int         min_version;      /* CG_LIBVER_* constant  */
+    int (*detector)(cgns_base *); /* returns 1 if feature present */
+} cgns_feature_version;
+\end{lstlisting}
+
+The current registry (in \texttt{src/cgns\_internals.c}):
+
+\begin{center}
+\rowcolors{2}{cgnslight!30}{white}
+\begin{tabular}{l r l}
+\toprule
+\rowcolor{cgnsblue!15}
+\textbf{Feature} & \textbf{Min Version} & \textbf{Constant (§\ref{sec:version-constants})} \\
+\midrule
+\texttt{Extended\_ElementTypes}       & 3000 & \texttt{CG\_LIBVER\_V30} \\
+\texttt{Reordered\_ElementTypes}      & 3100 & \texttt{CG\_LIBVER\_V31} \\
+\texttt{NGON\_NFACE\_V32}             & 3200 & \texttt{CG\_LIBVER\_V32} \\
+\texttt{ElementStartOffset}           & 4000 & \texttt{CG\_LIBVER\_V40} \\
+\texttt{ParticleZone\_t}              & 4500 & \texttt{CG\_LIBVER\_V45} (CPEX 0046) \\
+\texttt{ParticleCoordinates\_t}       & 4500 & \texttt{CG\_LIBVER\_V45} (CPEX 0046) \\
+\texttt{ParticleSolution\_t}          & 4500 & \texttt{CG\_LIBVER\_V45} (CPEX 0046) \\
+\texttt{ElementInterpolation\_t}      & 5000 & \texttt{CG\_LIBVER\_V50} (CPEX 0045) \\
+\texttt{SolutionInterpolation\_t}     & 5000 & \texttt{CG\_LIBVER\_V50} (CPEX 0045) \\
+\texttt{HighOrder\_ElementTypes}      & 5000 & \texttt{CG\_LIBVER\_V50} (CPEX 0045) \\
+\texttt{Unknown\_Modern\_Features} & \texttt{CG\_LIBVER\_LATEST} & Fail-safe \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Note on \texttt{CG\_LIBVER\_V12}.}  The constant
+\texttt{CG\_LIBVER\_V12} (1200) is used in the write-path version
+bump (\texttt{cgi\_require\_version}) when writing
+\texttt{CGNSBase\_t} nodes, but has no corresponding registry entry or
+detector.  This is intentional: every modern CGNS file contains the
+V1.2 base structure (with \texttt{CellDimension} and
+\texttt{PhysicalDimension}), so a detector would always return true
+and serve no diagnostic purpose.
+
+The fail-safe entry \texttt{Unknown\_Modern\_Features} catches any
+features not recognized by the library (currently, element types
+beyond \texttt{HEXA\_125}), preventing silent data corruption when
+reading files written with future CGNS versions.
+
+\textbf{Hard guard: modifying files that trigger the fail-safe.}
+When a file containing unknown element types is opened in
+\texttt{CG\_MODE\_MODIFY}, the library cannot safely \emph{preserve}
+unknown data structures during a partial rewrite.  For example,
+if a CGNS~5.0 library opens a CGNS~6.0 file containing
+\texttt{HEXA\_216} elements and then modifies an unrelated zone, the
+write path has no knowledge of how to serialize the unknown element
+data back to disk.  The result would be a corrupted or truncated file.
+Therefore, \texttt{cg\_open} \textbf{must return \texttt{CG\_ERROR}}
+when \texttt{Unknown\_Modern\_Features} is detected and the mode is
+\texttt{CG\_MODE\_MODIFY}.  The error message must identify the
+unrecognized features so the user can decide whether to upgrade the
+library or open the file in \texttt{CG\_MODE\_READ} instead.
+Opening the same file in \texttt{CG\_MODE\_READ} remains permitted;
+only write-capable modes are rejected.
+
+During the feature-compatibility scan, each detector function examines
+the CGNS tree for the relevant node types.  Detectors that operate on
+nodes not yet parsed into MLL data structures
+(e.g.\ \texttt{ElementInterpolation\_t}) use
+\texttt{cgi\_get\_nodes()} to scan the raw file tree directly.
+
+\textbf{Known limitation: low-level write bypasses.}
+The AUTO version-tracking mechanism relies on \texttt{cgi\_require\_version()}
+being called from the MLL write path.  Applications that write
+version-specific nodes via low-level escapes---such as
+\texttt{cg\_user\_data\_write}, direct \texttt{cgio\_*} calls, or
+external HDF5/ADF tools---bypass the MLL entirely and will not
+trigger \texttt{cgi\_require\_version()}.  The library version node
+and \texttt{\_CGNS\_FeatureMask} will then under-report the features
+present.  Users who write SIDS nodes through low-level interfaces are
+responsible for calling \texttt{cg\_configure(CG\_CONFIG\_LIBVER\_LOW,
+...)} to set the version explicitly, or for accepting that the
+resulting file may be misidentified as compatible by
+compatibility-checking readers.
+
+\subsection{Eliminating the $O(N)$ Feature Scan}
+\label{sec:feature-mask}
+
+The $O(N_{\mathrm{zones}} \times N_{\mathrm{sections}})$ feature scan
+is unacceptable for production HPC files, which routinely contain
+100\,000 or more unstructured blocks.
+
+Under Alternative~B (Section~\ref{sec:format-alternatives}), the
+\texttt{CGNSMinRequiredVersion\_t} node already eliminates this cost
+for the primary use case: the open-time compatibility check reads a
+single integer from the new node and compares it against the
+configured compatibility version in $O(1)$.  \textbf{No feature scan is required}
+when the node is present.  The $O(N)$ scan is only needed as a
+fallback for legacy files that lack the node.
+
+The \texttt{\_CGNS\_FeatureMask} attribute provides an additional
+\textbf{diagnostic} benefit: when a file is rejected, the bitmask
+identifies \emph{which} features caused the incompatibility, enabling
+precise error messages (e.g., ``file requires CGNS $\geq$ 4.5 for
+\texttt{ParticleZone\_t}'') without performing a full scan.  It is
+therefore specified as a recommended attribute, not a strict
+requirement for the $O(1)$ check.
+
+Under Alternative~A, where there is no
+\texttt{CGNSMinRequiredVersion\_t} node, the feature mask is the
+\emph{only} $O(1)$ mechanism and is therefore a core requirement.
+
+The reference implementation does not yet include this attribute; it
+should be added before the CPEX is finalized.
+
+\subsubsection{Specification}
+
+When a CPEX-0049-aware library closes a writable file, it writes a
+hidden attribute named \texttt{\_CGNS\_FeatureMask}.  Under
+Alternative~A (Section~\ref{sec:format-alternatives}), the attribute
+is placed on the existing \texttt{CGNSLibraryVersion\_t} node; under
+Alternative~B (recommended), it is placed on the new
+\texttt{CGNSMinRequiredVersion\_t} node.  The attribute is stored as a
+\textbf{signed 64-bit integer} (\texttt{I8} in SIDS
+\texttt{DataType\_t} terms).  In the HDF5 backend this maps to
+\texttt{H5T\_NATIVE\_INT64}; in the legacy ADF backend, to
+\texttt{I8}.  Using the SIDS-compliant \texttt{I8} type ensures that
+generic tree-walking utilities (\texttt{cgnscheck},
+\texttt{cg\_array\_info}, custom scripts) can query the attribute
+without encountering an undefined data type.  Although \texttt{I8} is
+signed, bit-level operations are well-defined in C for non-negative
+values, and the implementation should cast to \texttt{uint64\_t}
+internally for bitwise manipulation.  Each bit position is assigned
+via an explicit constant, not by array order:
+
+\begin{lstlisting}[language=C]
+#define CGNS_FEATURE_BIT_EXTENDED_ELEMENTS     0
+#define CGNS_FEATURE_BIT_REORDERED_ELEMENTS    1
+#define CGNS_FEATURE_BIT_NGON_V32              2
+#define CGNS_FEATURE_BIT_ELEMENT_START_OFFSET  3
+#define CGNS_FEATURE_BIT_PARTICLE_ZONE         4
+#define CGNS_FEATURE_BIT_PARTICLE_COORDS       5
+#define CGNS_FEATURE_BIT_PARTICLE_SOLUTION     6
+#define CGNS_FEATURE_BIT_ELEMENT_INTERP        7
+#define CGNS_FEATURE_BIT_SOLUTION_INTERP       8
+#define CGNS_FEATURE_BIT_HIGH_ORDER_ELEMENTS   9
+#define CGNS_FEATURE_BIT_UNKNOWN_MODERN       10
+\end{lstlisting}
+
+A set bit indicates the corresponding feature is present in the file.
+Bit assignments are permanent: once assigned to a feature, a bit
+position must never be reused, even if the feature is deprecated.
+Using explicit constants (rather than implicit array ordering) ensures
+that source-code refactoring of the registry table cannot silently
+change bit assignments and break backward compatibility.
+
+Using a 64-bit type provides 64 feature slots.  With the current
+registry at 11 entries and CGNS adding roughly one to two
+version-breaking features per major release, this provides ample
+runway without the overhead of a variable-length representation.
+If the registry ever approaches 64 entries, a follow-on CPEX can
+introduce \texttt{\_CGNS\_FeatureMask2} for the overflow bits,
+maintaining backward compatibility.
+
+Future CPEXs that introduce version-breaking features must allocate
+the next available bit position and add the corresponding
+\texttt{CGNS\_FEATURE\_BIT\_*} constant.  Retired entries should be
+marked as reserved in the source.
+
+\subsubsection{Open-time use}
+
+On \texttt{cg\_open()}, compatibility checking proceeds as follows:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{\texttt{CGNSMinRequiredVersion\_t} present}
+  (Alternative~B, CPEX-0049 file): read the node value in $O(1)$
+  and compare against the configured compatibility version.  If the file is
+  rejected and \texttt{\_CGNS\_FeatureMask} is also present, use
+  the bitmask to identify the specific incompatible feature for the
+  error message.  No tree walk is performed in either case.
+\item \textbf{\texttt{\_CGNS\_FeatureMask} only}
+  (Alternative~A, CPEX-0049 file): read the bitmask in $O(1)$
+  and determine the minimum required version by finding the
+  highest-version bit that is set.  No tree walk.
+\item \textbf{Neither present} (legacy file):
+  fall back to the $O(N)$ tree walk.  This ensures full backward
+  compatibility with all pre-CPEX-0049 files.
+\end{enumerate}
+
+\textbf{Performance of the legacy fallback.}  The $O(N)$ tree walk
+only runs for legacy files \emph{when the application has set
+restrictive version bounds} (i.e., \texttt{high} $<$
+\texttt{CG\_LIBVER\_LATEST}).  Under default settings---which is the
+common case---no feature scan is performed at all, even for legacy
+files.  Furthermore, the scan walks in-memory data structures that
+\texttt{cgi\_read()} has already parsed; it does not issue additional
+I/O.  The short-circuit checker (\texttt{cgi\_check\_version\_limit})
+stops on the first incompatible feature, so the full $O(N)$ cost is
+only incurred when the file is \emph{compatible} and every detector
+must confirm absence of violations.  Finally, opening a legacy file
+in \texttt{CG\_MODE\_MODIFY} triggers a one-time scan whose result
+is written to the file at close (see ``Legacy file healing'' below),
+converting all subsequent opens to $O(1)$.
+
+\subsubsection{Maintenance}
+
+The mask is maintained in memory throughout the file's open lifespan
+via a \texttt{int64\_t current\_feature\_mask} field added to the
+internal \texttt{cgns\_file} struct.  This makes \texttt{cg\_close()}
+an $O(1)$ operation---it simply flushes the in-memory value to the
+\texttt{\_CGNS\_FeatureMask} attribute.
+
+The lifecycle is:
+
+\begin{enumerate}[leftmargin=2em]
+\item \textbf{Open (CPEX-0049 file):} read \texttt{\_CGNS\_FeatureMask}
+  into \texttt{current\_feature\_mask} in $O(1)$.
+\item \textbf{Open (legacy file):} perform the $O(N)$ tree walk once
+  to populate \texttt{current\_feature\_mask}.
+\item \textbf{Write path:} whenever \texttt{cgi\_require\_version()}
+  is called for a version-specific feature, simultaneously bitwise-OR
+  the corresponding registry bit into \texttt{current\_feature\_mask}.
+  No additional work is required.
+\item \textbf{Close:} flush \texttt{current\_feature\_mask} to
+  \texttt{\_CGNS\_FeatureMask} in $O(1)$.  Skipped for
+  \texttt{CG\_MODE\_READ} opens.
+\end{enumerate}
+
+\textbf{Crash and abort safety.}  Because the feature mask is held in
+memory and only flushed at \texttt{cg\_close()}, an application crash
+or \texttt{MPI\_Abort()} mid-write will leave the file without an
+updated \texttt{\_CGNS\_FeatureMask}.  This is by design: the file is
+likely truncated or inconsistent in that case, and if it is
+recoverable, the absent or stale mask simply causes the next reader
+to fall back to the $O(N)$ tree walk---failing safely rather than
+silently.  No data corruption or false acceptance results from a
+missing mask.
+
+\textbf{Legacy file healing.}  When a legacy file (no mask attribute)
+is opened in \texttt{CG\_MODE\_MODIFY}, the $O(N)$ scan runs once at
+open time to populate the in-memory mask.  On close, the mask is
+written to the file.  All \emph{subsequent} opens of that file by
+any CPEX-0049-aware library will find the attribute and skip the scan
+entirely.  This automatic upgrade is a useful side-effect: modifying
+any node in a legacy file, even a trivial coordinate update,
+permanently converts it to $O(1)$ compatibility checking for future
+readers without any explicit user action.
+
+\subsection{SIDS Impact}
+
+The impact depends on the file-format alternative selected:
+
+\begin{description}[leftmargin=2em]
+\item[Alternative A.]  The SIDS definition of
+  \texttt{CGNSLibraryVersion\_t} must be amended from ``the version
+  of the library that created the file'' to ``the minimum library
+  version required to read the file.''  The existing node structure
+  is unchanged.
+
+\item[Alternative B (recommended).]  One new node type,
+  \texttt{CGNSMinRequiredVersion\_t}, is added to the SIDS as a
+  child of the root (same level as
+  \texttt{CGNSLibraryVersion\_t}).  The definition of
+  \texttt{CGNSLibraryVersion\_t} is \textbf{unchanged}.
+
+  \medskip
+  \noindent\fcolorbox{cgnsgold}{cgnsgold!10}{\parbox{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}{%
+  \textbf{SIDS amendment required.}  The SIDS root-node schema
+  (Section~2 of the SIDS document) strictly defines the allowed
+  children.  This addition requires a \textbf{formal amendment to
+  SIDS Section~2} adding \texttt{CGNSMinRequiredVersion\_t} to the
+  root-level node list.  A corresponding file-mapping update
+  (Section~\ref{sec:file-mapping}) must also be published.}}
+  \medskip
+\end{description}
+
+Under both alternatives, the \texttt{\_CGNS\_FeatureMask} attribute
+must be documented in the SIDS file mapping as a hidden \texttt{I8}
+attribute.
+
+\subsection{File Mapping Impact}
+\label{sec:file-mapping}
+
+\begin{description}[leftmargin=2em]
+\item[Alternative A.]  One hidden attribute
+  (\texttt{\_CGNS\_FeatureMask}) is added to the existing
+  \texttt{CGNSLibraryVersion\_t} node.  No new nodes.
+
+\item[Alternative B (recommended).]  One new node
+  (\texttt{CGNSMinRequiredVersion\_t}) is added at the root level.
+  The \texttt{\_CGNS\_FeatureMask} attribute is placed on this new
+  node.  \texttt{CGNSLibraryVersion\_t} is unchanged.
+\end{description}
+
+Under both alternatives, implementations that do not recognize the
+new node or attribute must silently ignore them.
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Backward Compatibility}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{Existing files:}  No change.  Files written by any
+  prior CGNS version remain readable.
+\item \textbf{Existing applications (3-argument \texttt{cg\_open}):}
+  The 3-argument \texttt{cg\_open} call continues to work unchanged.
+  It now expands to \texttt{cg\_open\_with\_params(file, mode,
+  CG\_PARAMS\_DEFAULT, \&fn)}, using global defaults.
+\item \textbf{Default bounds}
+  \texttt{(low~=~CG\_LIBVER\_AUTO, high~=~CG\_LIBVER\_LATEST)}:
+  Applications that do not call the new API functions inherit these
+  defaults, which reproduce the current behavior---but with a
+  feature-aware check instead of a version-number-only check.  The
+  sole behavioral change for existing code is that files from a
+  \emph{newer} library version that use no incompatible features will
+  now be accepted instead of rejected.
+\item \textbf{File format additions} (see
+  Section~\ref{sec:format-alternatives}): Under Alternative~A, the
+  SIDS definition of \texttt{CGNSLibraryVersion\_t} is amended and
+  one hidden attribute is added.  Under Alternative~B (recommended),
+  one new node (\texttt{CGNSMinRequiredVersion\_t}) is added and
+  \texttt{CGNSLibraryVersion\_t} is unchanged.  In both cases, old
+  libraries silently ignore what they do not recognize.
+\end{itemize}
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Fortran Bindings}
+%% ═════════════════════════════════════════════════════════════════════════
+
+The following Fortran subroutines are provided in the \texttt{cgns}
+module (\texttt{src/cgns\_f.F90}):
+
+\begin{lstlisting}[language=Fortran]
+subroutine cg_set_libver_bounds_f(fn, low, high, ier)
+    integer, intent(in)  :: fn, low, high
+    integer, intent(out) :: ier
+
+! Query bounds and/or minimum version.
+! min_version is OPTIONAL: omitting it skips the O(N) feature scan.
+subroutine cg_get_libver_bounds_f(fn, low, high, &
+                                        min_version, ier)
+    use iso_c_binding, only: C_NULL_PTR, C_LOC
+    integer,           intent(in)            :: fn
+    integer,           intent(out)           :: low, high, ier
+    integer,           intent(out), optional :: min_version
+
+! Parameter object open (4-argument form)
+subroutine cg_open_params_f(filename, mode, params, fn, ier)
+    character(*),     intent(in)  :: filename
+    integer,          intent(in)  :: mode
+    type(C_PTR),      intent(in)  :: params
+    integer,          intent(out) :: fn, ier
+\end{lstlisting}
+
+The \texttt{cg\_open} interface in the \texttt{cgns} module is
+overloaded to accept either 3 arguments (\texttt{cg\_open\_f}, legacy)
+or 4 arguments (\texttt{cg\_open\_params\_f}, with params).
+
+For parallel applications, \texttt{cgp\_open\_params\_f} is provided
+with the same signature as \texttt{cg\_open\_params\_f}.
+
+\textbf{Note on \texttt{min\_version} cost control.}
+Fortran~2003 \texttt{OPTIONAL} dummy arguments provide the same
+NULL-pointer gating as the C API.  The wrapper implementation checks
+\texttt{PRESENT(min\_version)}: if absent, it passes
+\texttt{C\_NULL\_PTR} to the C function, skipping the $O(N)$ feature
+scan entirely; if present, it passes \texttt{C\_LOC(min\_version)},
+triggering the scan.  This mirrors the C semantics without requiring
+a separate entry point.
+
+The \texttt{CG\_LIBVER\_*} integer constants are exported from the
+\texttt{cgns} module and may be used directly in Fortran code.
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Examples}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\subsection{Example 1: Default Behavior (No API Call)}
+
+An application compiled against CGNS 4.4 opens a file written by
+CGNS 5.0 that contains only structured zones, coordinates, and
+flow solutions---all features present since CGNS 2.x.  Under the
+current library this fails; under this CPEX it succeeds (with an
+optional warning).
+
+\begin{lstlisting}[language=C]
+/* No compatibility version call -- defaults apply */
+int fn;
+if (cg_open("output_from_v5.cgns", CG_MODE_READ, &fn)
+        != CG_OK) {
+    /* Under current library: fails with version error.
+       Under this CPEX: succeeds because no v5-only
+       features are present. */
+    cg_error_print();
+}
+/* ... read data as usual ... */
+cg_close(fn);
+\end{lstlisting}
+
+\subsection{Example 2: Restricting to a Known-Compatible Range}
+
+A production solver sets the version bounds so that written files are
+compatible with a certified post-processing tool chain that only
+supports up to CGNS 4.0:
+
+\begin{lstlisting}[language=C]
+/* Lock version bounds globally:
+   low  = AUTO (write minimum needed),
+   high = V40  (reject features beyond 4.0) */
+cg_configure(CG_CONFIG_LIBVER_LOW,  (void *)(intptr_t)CG_LIBVER_AUTO);
+cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(intptr_t)CG_LIBVER_V40);
+
+int fn;
+cg_open("solver_output.cgns", CG_MODE_WRITE, &fn);
+/* AUTO write mode records the minimum version needed,
+   capped by high (4000). */
+/* ... write grid, solution, BCs ... */
+cg_close(fn);
+\end{lstlisting}
+
+\subsection{Example 3: Thread-Safe Per-File Configuration}
+
+Different threads open files with different version requirements:
+
+\begin{lstlisting}[language=C]
+cg_parameters_t params;
+cg_params_create(&params);
+cg_params_set(params, CG_PARAM_LIBVER_LOW,
+              (void *)(intptr_t)CG_LIBVER_V40);
+cg_params_set(params, CG_PARAM_LIBVER_HIGH,
+              (void *)(intptr_t)CG_LIBVER_LATEST);
+
+int fn;
+cg_open("myfile.cgns", CG_MODE_WRITE, params, &fn);
+/* ... use file ... */
+cg_close(fn);
+cg_params_destroy(params);
+\end{lstlisting}
+
+\subsection{Example 4: Analyzing Minimum Required Version}
+
+After writing a file, query the minimum version required by the
+features actually present:
+
+\begin{lstlisting}[language=C]
+int fn, min_ver;
+cg_open("output.cgns", CG_MODE_READ, &fn);
+/* Pass NULL for low and high; only compute min_version */
+cg_get_libver_bounds(fn, NULL, NULL, &min_ver);
+printf("File requires CGNS >= %d.%d\n",
+       min_ver / 1000, (min_ver % 1000) / 10);
+cg_close(fn);
+\end{lstlisting}
+
+\subsection{Example 5: Using \texttt{cg\_configure}}
+
+\begin{lstlisting}[language=C]
+#include <stdint.h>
+
+/* Set bounds: AUTO lower, CGNS 4.0 upper */
+cg_configure(CG_CONFIG_LIBVER_LOW,
+             (void *)(intptr_t)CG_LIBVER_AUTO);
+cg_configure(CG_CONFIG_LIBVER_HIGH,
+             (void *)(intptr_t)CG_LIBVER_V40);
+
+int fn;
+cg_open("constrained.cgns", CG_MODE_WRITE, &fn);
+/* ... */
+cg_close(fn);
+\end{lstlisting}
+
+\subsection{Example 6: Fortran Usage}
+
+\begin{lstlisting}[language=Fortran]
+program libver_bounds_example
+  use cgns
+  implicit none
+  integer :: ier, fn, lo, hi, min_ver
+
+  ! Set global bounds: AUTO lower, CGNS 4.0 upper
+  call cg_configure_f(CG_CONFIG_LIBVER_LOW,  CG_LIBVER_AUTO, ier)
+  if (ier .ne. CG_OK) stop 'Error setting lower bound'
+  call cg_configure_f(CG_CONFIG_LIBVER_HIGH, CG_LIBVER_V40,  ier)
+  if (ier .ne. CG_OK) stop 'Error setting upper bound'
+
+  call cg_open_f('test.cgns', CG_MODE_READ, fn, ier)
+  if (ier .ne. CG_OK) then
+     call cg_error_print_f()
+     stop 'Open failed'
+  end if
+
+  call cg_get_libver_bounds_f(fn, lo, hi, min_ver, ier)
+  write(*,*) 'Min version required:', min_ver
+
+  call cg_close_f(fn, ier)
+end program
+\end{lstlisting}
+
+\subsection{Example 7: Detecting Incompatible Features}
+
+A CGNS 4.4 library opens a file written by CGNS 5.0 that contains
+a \texttt{ParticleZone\_t} node (introduced in CGNS 4.5 via
+CPEX~0046).  The feature-compatibility scan detects this node and
+returns an error:
+
+\begin{lstlisting}[language=C]
+int fn;
+if (cg_open("particles_v5.cgns", CG_MODE_READ, &fn)
+        != CG_OK) {
+    /* Error message indicates which feature requires
+       a newer library. */
+    printf("%s\n", cg_get_error());
+}
+\end{lstlisting}
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Reference Implementation}
+%% ═════════════════════════════════════════════════════════════════════════
+
+A working implementation is available on the feature branch:
+
+\begin{center}
+\url{https://github.com/brtnfld/CGNS/tree/915}
+\end{center}
+
+Key changes in the reference implementation:
+
+\begin{itemize}[leftmargin=2em]
+\item \textbf{\texttt{src/cgnslib.h}} --- Defines the
+  \texttt{CG\_LIBVER\_*} integer constants,
+  \texttt{CG\_CONFIG\_LIBVER\_LOW} through
+  \texttt{CG\_CONFIG\_GET\_LIBVER\_HIGH} tokens,
+  \texttt{CG\_PARAM\_KEY} enum, \texttt{cg\_parameters\_t} type,
+  and all new API prototypes.
+\item \textbf{\texttt{src/cgnslib.c}} --- Implements
+  \texttt{cg\_set\_libver\_bounds},
+  \texttt{cg\_get\_libver\_bounds},
+  \texttt{cg\_params\_create}/\texttt{destroy}/\texttt{set},
+  \texttt{cg\_open\_with\_params}, and the revised open/write logic.
+\item \textbf{\texttt{src/cgns\_internals.c}} --- Feature-version
+  registry with detector functions; \texttt{cgi\_require\_version}
+  for AUTO write-version tracking;
+  \texttt{cgi\_check\_version\_limit} for fast-path validation.
+\item \textbf{\texttt{src/cgns\_f.F90}} --- Fortran module wrappers
+  for all new functions and the overloaded \texttt{cg\_open}
+  interface.
+\item \textbf{\texttt{src/tests/test\_version\_bounds.c}} ---
+  Eight test cases covering AUTO write mode, explicit version
+  locking, compatibility enforcement on read, compatibility
+  inheritance by MODIFY mode, feature-mismatch error reporting,
+  and per-file compatibility versions.
+\item \textbf{\texttt{src/tests/test\_parameters.c}} ---
+  Seven test cases for the parameter object lifecycle and the
+  polymorphic \texttt{cg\_open} macro.
+\end{itemize}
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Edge Cases and Limitations}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\subsection{External Links}
+
+CGNS supports linked nodes that reference data in external files.
+Compatibility checking for external links works correctly without
+user intervention, but the underlying mechanism exposes a
+pre-existing architectural concern that deserves acknowledgment.
+
+\paragraph{Current behavior.}
+Both the HDF5 (ADFH) and ADF backends resolve external links
+transparently at the I/O layer.  More critically, \texttt{cgi\_read()}
+--- which is called \emph{before} the feature scan during
+\texttt{cg\_open()} --- reads the entire file tree eagerly, following
+all external links and opening all linked files at startup.  The
+feature scan therefore walks already-populated structs; it adds no
+additional file opens beyond what \texttt{cgi\_read()} already
+performed.  External link content is fully visible to all detectors.
+
+\paragraph{The HPC I/O storm concern.}
+On parallel file systems such as Lustre or GPFS, opening and parsing
+dozens of external linked files during \texttt{cg\_open()} of a
+master file can cause severe metadata latency---an ``I/O storm.''
+This is a pre-existing concern with CGNS's eager \texttt{cgi\_read()}
+architecture and is not introduced by this CPEX.  However, the
+addition of compatibility checking makes it more important to resolve,
+since applications may now call \texttt{cg\_open()} with restrictive
+compatibility versions specifically to validate linked content, amplifying the
+existing performance problem.
+
+\paragraph{Three architectural strategies for future resolution.}
+The following strategies address both the I/O storm and version
+checking for external links.  They are presented as candidates for
+a follow-on CPEX or as input to an architectural review; they are
+not required for the initial implementation of CPEX~0049.
+
+\begin{description}[leftmargin=2em]
+
+\item[Strategy 1: Deferred just-in-time validation (recommended).]
+  Make \texttt{cgi\_read()} lazy: defer reading a linked node until
+  the application first traverses into it (e.g., via
+  \texttt{cg\_goto}).  The compatibility check for that node is
+  performed at the same moment, deep in the traversal path rather
+  than at startup.  This eliminates the I/O storm entirely and gives
+  the application a \texttt{CG\_ERROR} at the exact point of
+  incompatibility.  The trade-off is that error detection moves from
+  \texttt{cg\_open()} to the first traversal call, requiring
+  consistent \texttt{CG\_ERROR} checking throughout read loops.
+  This strategy requires significant refactoring of the CGNS read
+  path and is a larger effort than CPEX~0049 alone.
+
+\item[Strategy 2: Embedded link version metadata.]
+  When \texttt{cg\_link\_write()} creates a link to an external file,
+  the library briefly opens the target, computes its minimum required
+  version, and stores the result as a hidden attribute
+  (e.g., \texttt{\_CGNS\_LinkMinVersion}) on the link node in the
+  parent file.  Subsequent \texttt{cg\_open()} calls can read this
+  $O(1)$ attribute without opening the external file.  The limitation
+  is staleness: if the external file is modified after the link is
+  created, the cached attribute becomes incorrect.  This strategy
+  requires a file-format change (new hidden attribute) and a
+  corresponding SIDS/file mapping update.
+
+\item[Strategy 3: Write-time cascading version inheritance.]
+  When \texttt{cg\_link\_write()} creates a link in AUTO write-version
+  mode, the library opens the target file, calls
+  \texttt{cgi\_require\_version()} with the linked file's minimum
+  version, and thereby bumps the parent file's effective version to
+  cover the union of both files' feature requirements.  A downstream
+  reader opening the parent file will then see a version header that
+  reflects the highest-version feature reachable via any link, and
+  can reject the file immediately based on that header alone without
+  opening any linked file.  This strategy is the most compatible
+  with the current CPEX~0049 design and requires no structural
+  changes to \texttt{cg\_open()}.
+
+\end{description}
+
+\paragraph{Which strategy is best?}
+
+The answer depends on which problem is being solved.  A precise
+comparison requires distinguishing two cases: a \emph{reject} (the
+version check fails and the file is refused) and an \emph{accept}
+(the check passes and the file is opened normally).
+
+\begin{center}
+\rowcolors{2}{cgnslight!30}{white}
+\begin{tabular}{l c c c}
+\toprule
+\rowcolor{cgnsblue!15}
+ & \textbf{Strategy 1} & \textbf{Strategy 2} & \textbf{Strategy 3} \\
+\midrule
+Eliminates I/O storm on reject      & \checkmark & \checkmark & \checkmark \\
+Eliminates I/O storm on accept      & \checkmark & $\times$   & $\times$   \\
+Requires file format change         & $\times$   & \checkmark & $\times$   \\
+Staleness risk                      & $\times$   & \checkmark & \checkmark \\
+Scope compatible with CPEX 0049     & $\times$   & $\times$   & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A critical observation: Strategies~2 and~3 only improve the
+\emph{reject} path.  In the \emph{accept} path, \texttt{cgi\_read()}
+still runs and still opens every linked file regardless of which
+strategy is in place.  The I/O storm in the accept case is
+eliminated \emph{only} by Strategy~1 (lazy \texttt{cgi\_read()}).
+
+Strategy~2 is strictly inferior to Strategy~3 within the scope of
+this CPEX: it requires a file-format change and a SIDS update,
+carries the same staleness risk, provides the same fast-reject
+benefit, and adds no advantage in the accept case.
+
+Strategy~1 is architecturally the correct long-term solution---it
+is the only strategy that eliminates the I/O storm in both the
+accept and reject paths---but it requires refactoring the entire
+CGNS read path into a lazy model, which is a substantially larger
+effort than this CPEX and warrants its own proposal.
+
+\textbf{Recommendation:} Implement Strategy~3 in this CPEX as the
+lowest-risk, highest-compatibility improvement.  File a separate
+architectural proposal for Strategy~1 (lazy \texttt{cgi\_read()})
+as a follow-on effort that would benefit all CGNS users on HPC
+file systems, not only those using compatibility version checking.
+
+\textbf{Out-of-band update risk (Strategy~3).}
+Strategy~3 is vulnerable to external file modifications that occur
+\emph{after} the link is established.  If File~A links to File~B
+when both require CGNS~3.0, and File~B is later modified out-of-band
+to include a \texttt{ParticleZone\_t} node (requiring CGNS~4.5),
+File~A's version header is not updated automatically.  A CGNS~3.0
+reader opening File~A will pass the header check and then encounter
+an incompatible node upon traversing the link, producing a delayed
+error instead of a clean rejection at open time.  This limitation is
+inherent to any write-time caching approach (including Strategy~2)
+and must be documented clearly in the MLL reference manual.  Users
+who modify external files after linking should reopen the parent file
+in \texttt{CG\_MODE\_MODIFY} and close it immediately; this
+recomputes the version header and \texttt{\_CGNS\_FeatureMask}
+attribute.  Under Alternative~B this workaround is straightforward:
+only \texttt{CGNSMinRequiredVersion\_t} is updated, while
+\texttt{CGNSLibraryVersion\_t} simply records the current library
+version---provenance is preserved throughout.
+
+\subsection{Version Downgrades on Node Deletion}
+
+The AUTO write-version mechanism is strictly \emph{incremental}: the
+effective version only increases as version-specific features are
+written.  If a user opens a file in \texttt{CG\_MODE\_MODIFY},
+deletes the only node that required a high version (e.g., removes the
+last \texttt{ParticleZone\_t}), and closes the file, the minimum
+version recorded in the file is \emph{not} downgraded.  The file will
+continue to declare the higher version even though the feature is no
+longer present.
+
+A full downgrade would require re-scanning the entire file on every
+close, which is prohibitively expensive.  The current behavior is
+therefore conservative: the version header may over-state the minimum
+required version after deletions, but it will never under-state it.
+
+\textbf{Impact of Alternative~B.}  Under Alternative~B, this
+limitation is less severe.  The over-stated version resides in
+\texttt{CGNSMinRequiredVersion\_t}, while
+\texttt{CGNSLibraryVersion\_t} continues to report the true writing
+library version.  Provenance is preserved, and tools that rely on
+``which library wrote this file?'' remain correct.  The only
+consequence is that an older reader that \emph{could} read the file
+(because the deleted feature is gone) will be incorrectly told it
+cannot---a conservative false rejection, not a silent
+misinterpretation.  Under Alternative~A, the same over-statement
+would also lose provenance information, compounding the problem.
+
+\subsection{Partial Parallel Writes and Version Agreement}
+
+In an MPI-IO scenario where different ranks write different features
+concurrently, the final library version recorded in the file must cover the union of all
+features written across all ranks.
+
+\textbf{AUTO mode (sync-at-close).}  When parallel AUTO is used,
+each rank tracks its effective version locally as features are
+written.  At \texttt{cgp\_close} the library performs an
+\texttt{MPI\_Allreduce(MPI\_MAX)} to compute the collective maximum
+and writes that value to the version node.  No application-level
+coordination is required---the library handles version agreement
+transparently.
+
+\textbf{Explicit \texttt{low} bound.}  When an explicit lower bound
+is configured, all ranks must set the same value before calling
+\texttt{cgp\_open}.  If any rank attempts to write a feature whose
+minimum version exceeds the configured \texttt{high} bound, the
+library returns \texttt{CG\_ERROR} on that rank.  This error is
+rank-local; other ranks are not automatically notified.  Applications
+must treat a per-rank \texttt{CG\_ERROR} from a write call as a
+collective failure requiring abort or coordinated recovery.
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Open Questions}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=2em]
+
+\item \textbf{Alternative A vs.\ Alternative B.}
+  This proposal recommends Alternative~B (new
+  \texttt{CGNSMinRequiredVersion\_t} node) over Alternative~A
+  (overload \texttt{CGNSLibraryVersion\_t}).  The CGNS committee
+  must decide which alternative to adopt before the implementation
+  is merged.
+
+  \textit{Arguments for Alternative~A:} no new SIDS nodes, no
+  file-mapping additions beyond one hidden attribute, maximum
+  structural simplicity.
+
+  \textit{Arguments for Alternative~B:} preserves provenance
+  (\texttt{CGNSLibraryVersion\_t} continues to record the writing
+  library version), no semantic redefinition of an established SIDS
+  node, and cleaner MODIFY-mode logic.
+
+  See Section~\ref{sec:file-format-alts} for the full comparison.
+
+\item \textbf{Alternative B node placement: root sibling vs.\
+  child of \texttt{CGNSLibraryVersion\_t}.}
+  If Alternative~B is adopted, the committee must decide whether
+  \texttt{CGNSMinRequiredVersion\_t} is placed at the file root
+  (sibling of \texttt{CGNSLibraryVersion\_t}) or as a child of
+  \texttt{CGNSLibraryVersion\_t}.
+
+  \textit{Arguments for child placement:} all version metadata
+  co-located under one existing node; root namespace does not grow.
+
+  \textit{Arguments for root sibling (recommended):} clean semantic
+  separation between ``written by'' and ``requires at least'';
+  \texttt{CGNSLibraryVersion\_t} remains structurally unchanged,
+  preserving Alt.~B's core advantage; consistent with existing
+  root-level CGNS metadata nodes.
+
+  See Section~\ref{sec:alt-b-placement} for the full comparison.
+
+\item \textbf{Polymorphic \texttt{cg\_open}: variadic macro vs.\
+  explicit 4-argument API.}
+  The proposal currently offers both: a polymorphic
+  \texttt{cg\_open} macro (C99 variadic argument counting) that
+  dispatches to either the 3-argument legacy form or the
+  4-argument \texttt{cg\_open\_with\_params}, alongside
+  \texttt{cg\_open\_with\_params} as a stable explicit entry point.
+
+  \textit{Arguments for the variadic macro:} transparent to
+  existing code---no source changes required for the 3-argument
+  case.
+
+  \textit{Arguments against the variadic macro:} C99
+  \texttt{\_\_VA\_ARGS\_\_} counting is not reliable on all vendor
+  preprocessors; the macro can be suppressed by
+  \texttt{\#define CGNS\_NO\_MACROS} if it causes problems.
+
+  \textit{Arguments for dropping the macro entirely:} simpler
+  specification and ABI; users call \texttt{cg\_open\_with\_params}
+  explicitly for the 4-argument form and \texttt{cg\_open}
+  remains the unchanged 3-argument function.  Existing code
+  requires no changes since \texttt{cg\_open} is untouched.
+
+  The committee should decide whether the polymorphic macro is
+  worth the preprocessor portability risk, or whether
+  \texttt{cg\_open\_with\_params} alone is sufficient.
+
+\end{enumerate}
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{Summary of API Additions}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\begin{center}
+\begin{longtable}{l p{8.5cm}}
+\toprule
+\textbf{Symbol} & \textbf{Description} \\
+\midrule
+\endhead
+\texttt{CG\_LIBVER\_EARLIEST}   & Oldest CGNS library version (1050). \\
+\texttt{CG\_LIBVER\_LATEST}     & Current library version (5000). \\
+\texttt{CG\_LIBVER\_AUTO}       & Sentinel: automatic write-version selection. \\
+\texttt{CG\_LIBVER\_V30}\ldots\texttt{CG\_LIBVER\_V50} & Specific version milestone constants. \\
+\texttt{CG\_CONFIG\_LIBVER\_LOW}       & \texttt{cg\_configure} token: set global lower bound. \\
+\texttt{CG\_CONFIG\_LIBVER\_HIGH}      & \texttt{cg\_configure} token: set global upper bound. \\
+\texttt{CG\_CONFIG\_GET\_LIBVER\_LOW}  & \texttt{cg\_configure} token: query global lower bound. \\
+\texttt{CG\_CONFIG\_GET\_LIBVER\_HIGH} & \texttt{cg\_configure} token: query global upper bound. \\
+\texttt{CGNS\_FEATURE\_BIT\_*}  & Explicit bit-position constants for \texttt{\_CGNS\_FeatureMask} (0--10). \\
+\texttt{CG\_PARAM\_KEY}         & Enum of parameter keys (100--103). \\
+\texttt{cg\_parameters\_t}      & Opaque parameter object type. \\
+\texttt{CG\_PARAMS\_DEFAULT}    & NULL sentinel: use global configuration. \\
+\texttt{cg\_set\_libver\_bounds} & Set per-file version bounds (\texttt{fn}, \texttt{low}, \texttt{high}). \\
+\texttt{cg\_get\_libver\_bounds} & Query per-file bounds and/or minimum required version.  Any output pointer may be \texttt{NULL}; the $O(N)$ feature scan runs only when \texttt{min\_version} is non-\texttt{NULL}. \\
+\texttt{cg\_params\_create}     & Allocate parameter object with defaults. \\
+\texttt{cg\_params\_destroy}    & Free parameter object. \\
+\texttt{cg\_params\_set}        & Set a parameter by key/value. \\
+\texttt{cg\_open\_with\_params} & Open file with explicit parameter object (standard name). \\
+\texttt{CGNS\_NO\_MACROS}      & Preprocessor guard: when defined, suppresses the polymorphic \texttt{cg\_open} macro so \texttt{cg\_open} resolves to the real 3-argument function. \\
+\texttt{cg\_open} (macro)       & Polymorphic: 3-arg (legacy) or 4-arg (with params); suppressed by \texttt{\#define CGNS\_NO\_MACROS}. \\
+\texttt{CGNSMinRequiredVersion\_t} & \emph{Alt.~B:} new SIDS node recording the minimum CGNS version required to read the file.  Preserves \texttt{CGNSLibraryVersion\_t} semantics. \\
+\texttt{\_CGNS\_FeatureMask}   & Hidden \texttt{I8} attribute (HDF5: \texttt{H5T\_NATIVE\_INT64}; ADF: \texttt{I8}): bitmask of features present; enables $O(1)$ version check on open. Placed on \texttt{CGNSMinRequiredVersion\_t} (Alt.~B) or \texttt{CGNSLibraryVersion\_t} (Alt.~A). \\
+\texttt{cg\_set\_libver\_bounds\_f} & Fortran: set per-file version bounds (\texttt{fn}, \texttt{low}, \texttt{high}). \\
+\texttt{cg\_get\_libver\_bounds\_f} & Fortran: query per-file bounds and (optionally) minimum required version.  \texttt{min\_version} is an \texttt{OPTIONAL} dummy argument (F2003); when absent, \texttt{C\_NULL\_PTR} is passed to the C layer, skipping the $O(N)$ scan. \\
+\texttt{cg\_open\_params\_f}    & Fortran: 4-argument open with params. \\
+\texttt{cgp\_open\_params\_f}   & Fortran (parallel): 4-argument open with params. \\
+\bottomrule
+\end{longtable}
+\end{center}
+
+%% ═════════════════════════════════════════════════════════════════════════
+\section{References}
+%% ═════════════════════════════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=2em]
+\item CGNS GitHub Issue \#915, ``Add CGNS version bounds control,''\\
+  \url{https://github.com/CGNS/CGNS/issues/915}
+
+\item CGNS GitHub Issue \#670, ``Buffer overflow in \texttt{cgi\_error}
+  using v3.31 thru v4.2'' (related version-check code),\\
+  \url{https://github.com/CGNS/CGNS/issues/670}
+
+\item CGNS Confluence, ``Resolve issue with release's 3.4.0 version
+  compatibility, the 4.0.0 release, and forward compatibility,''\\
+  \url{https://cgnsorg.atlassian.net/wiki/spaces/CGNS/pages/220463122/}
+
+\item HDF5 Reference Manual, \texttt{H5Pset\_libver\_bounds},\\
+  \url{https://docs.hdfgroup.org/hdf5/v1_14/group___F_A_P_L.html}
+
+\item CGNS Standard Interface Data Structures (SIDS),\\
+  \url{https://cgns.org/standard/SIDS/CGNS_SIDS.html}
+
+\item CGNS Mid-Level Library---File Operations,\\
+  \url{https://cgns.org/standard/MLL/api/c_api.html}
+\end{enumerate}
+
+\end{document}

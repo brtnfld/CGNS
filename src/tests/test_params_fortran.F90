@@ -30,12 +30,12 @@ PROGRAM test_params_fortran
   END IF
   PRINT *, "  PASSED: cg_params_set FILE_TYPE =", CG_FILE_HDF5
 
-  ier = cg_params_set(params, CG_PARAM_MIN_VERSION, TRANSFER(CG_LIBVER_V40, C_NULL_PTR))
+  ier = cg_params_set(params, CG_PARAM_LIBVER_LOW, TRANSFER(CG_LIBVER_V40, C_NULL_PTR))
   IF (ier /= CG_OK) THEN
-     PRINT *, "FAILED: cg_params_set MIN_VERSION"
+     PRINT *, "FAILED: cg_params_set LIBVER_LOW"
      STOP 1
   END IF
-  PRINT *, "  PASSED: cg_params_set MIN_VERSION =", CG_LIBVER_V40
+  PRINT *, "  PASSED: cg_params_set LIBVER_LOW =", CG_LIBVER_V40
 
   ier = cg_params_set(params, CG_PARAM_COMPRESS, TRANSFER(6, C_NULL_PTR))
   IF (ier /= CG_OK) THEN

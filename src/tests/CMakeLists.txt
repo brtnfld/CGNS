@@ -52,7 +52,6 @@ set(test_complex_FILES test_complex.c)
 set(test_convert_elem_FILES test_convert_elem.c)
 set(test_back_comp_FILES test_back_comp.c)
 set(test_particle_FILES test_particle.c)
-<<<<<<< HEAD
 set(test_version_bounds_FILES test_version_bounds.c)
 set(test_parameters_FILES test_parameters.c)
 #set(cgiof_FILES cgiof.F90)

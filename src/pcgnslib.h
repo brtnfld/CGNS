@@ -113,7 +113,7 @@ CGNSDLL int cgp_open(const char *filename, int mode, int *fn);
  * cg_parameters_t params;
  * cg_params_create(&params);
  * cg_params_set_int(params, CG_PARAM_FILE_TYPE, CG_FILE_HDF5);
- * cg_params_set_int(params, CG_PARAM_MIN_VERSION, CG_LIBVER_V40);
+ * cg_params_set_int(params, CG_PARAM_LIBVER_LOW, CG_LIBVER_V40);
  *
  * int fn;
  * cgp_open_with_params("parallel.cgns", CG_MODE_WRITE, params, &fn);

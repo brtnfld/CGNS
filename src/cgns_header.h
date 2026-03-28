@@ -1049,9 +1049,8 @@ typedef struct {
     int filetype;           /* type of file                         */
     int version;            /* version of the CGNS file * 1000      */
     int effective_version;  /* Version based on actual features used */
-    int min_read_version;   /* Minimum version we'll accept (user-set) */
-    int max_read_version;   /* Maximum version we'll accept (user-set) */
-    int write_version;      /* Version to write (CG_LIBVER_AUTO or specific) */
+    int low;                /* Lower bound: CG_LIBVER_AUTO or CG_LIBVER_* */
+    int high;               /* Upper bound: CG_LIBVER_* ceiling */
     int parallel_mode;      /* 1 if opened via cgp_open, 0 otherwise */
     int cgio;               /* index of I/O control                 */
     double rootid;          /* root ID of file                      */
@@ -1069,12 +1068,10 @@ typedef struct {
 
 /* Parameter object for thread-safe configuration */
 typedef struct cg_parameters_s {
-    int min_version;        /* Minimum acceptable CGNS version */
-    int max_version;        /* Maximum acceptable CGNS version */
-    int write_version;      /* Version to write (or CG_LIBVER_AUTO) */
+    int low;                /* Lower bound: CG_LIBVER_AUTO or CG_LIBVER_* */
+    int high;               /* Upper bound: CG_LIBVER_* ceiling */
     int file_type;          /* File type (HDF5, ADF, etc.) */
     int compress;           /* Compression level (0=none, 1-9) */
-    /* Extensible: Future parameters can be added here without breaking ABI */
 } cg_parameters_s;
 
 typedef struct {

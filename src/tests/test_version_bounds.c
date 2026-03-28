@@ -69,6 +69,12 @@ static int test_failed = 0;
         cg_error_print(); /* Print and continue */ \
     } while(0)
 
+/* Helper: set global bounds via cg_configure (replaces old cg_set_version_bounds global) */
+static void set_global_bounds(int low, int high) {
+    cg_configure(CG_CONFIG_LIBVER_LOW, (void *)(long)low);
+    cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(long)high);
+}
+
 /* Helper function to create a simple base and zone */
 static int create_base_and_zone(int fn, int *B, int *Z) {
     cgsize_t size[3] = {125, 1, 0}; /* 125 nodes, 1 cell, 0 for unstructured */
@@ -101,7 +107,7 @@ static int write_coordinates(int fn, int B, int Z) {
     return CG_OK;
 }
 
-/* Test 1: Create file with CG_LIBVER_EARLIEST and write high-order element */
+/* Test 1: Create file with CG_LIBVER_AUTO and write high-order element */
 static void test_auto_upgrade_with_high_order_element(void) {
     int fn, B, Z, S;
     float version_read;
@@ -112,9 +118,8 @@ static void test_auto_upgrade_with_high_order_element(void) {
 
     unlink(TEST_FILE_AUTO);
 
-    /* Set write version to AUTO and bounds to EARLIEST..LATEST */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
+    /* Set low=AUTO (start at EARLIEST, auto-upgrade), high=LATEST (no ceiling) */
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
 
     /* Create file - should start at EARLIEST version */
     ASSERT_OK(cg_open(TEST_FILE_AUTO, CG_MODE_WRITE, &fn), "Failed to create file");
@@ -153,8 +158,7 @@ static void test_detect_hexa20_requires_v30(void) {
 
     unlink(TEST_FILE_V30);
 
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
 
     ASSERT_OK(cg_open(TEST_FILE_V30, CG_MODE_WRITE, &fn), "Failed to create file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
@@ -207,8 +211,7 @@ static void test_all_v30_element_types(void) {
         sprintf(filename, "test_v30_%s.cgns", type_names[t]);
         unlink(filename);
 
-        cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-        cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
+        set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
 
         if (cg_open(filename, CG_MODE_WRITE, &fn) != CG_OK) {
             char msg[256];
@@ -270,16 +273,15 @@ static void test_feature_based_version_checking(void) {
 
     unlink(TEST_FILE_V40);
 
-    /* Create a file with V4.0 header but only V2.0 features */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_V40);
+    /* Create a file with V4.0 low (writes V4.0 header) but only V2.0 features */
+    set_global_bounds(CG_LIBVER_V40, CG_LIBVER_LATEST);
     ASSERT_OK(cg_open(TEST_FILE_V40, CG_MODE_WRITE, &fn), "Failed to create file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
     ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
     ASSERT_OK(cg_close(fn), "Failed to close file");
 
-    /* Try to open with bounds that exclude V4.0 header version */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_V30);
+    /* Try to open with high=V3.0 ceiling */
+    cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(long)CG_LIBVER_V30);
 
     /* This SHOULD SUCCEED because version checking is feature-based, not header-based.
      * The file has a V4.0 header but contains only V2.0-compatible features
@@ -294,7 +296,7 @@ static void test_feature_based_version_checking(void) {
     }
 
     /* Reset bounds */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
 
     unlink(TEST_FILE_V40);
 }
@@ -305,13 +307,12 @@ static void test_bounds_reject_incompatible_features(void) {
     cgsize_t elements[20];
     int i;
 
-    TEST_START("Bounds reject file with V3.0 features when max=V2.0");
+    TEST_START("Bounds reject file with V3.0 features when high=V2.0");
 
     unlink(TEST_FILE_V30);
 
     /* Create a valid file containing HEXA_20 (a V3.0 feature) */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
     ASSERT_OK(cg_open(TEST_FILE_V30, CG_MODE_WRITE, &fn), "Failed to create V3.0 file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
     ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
@@ -320,15 +321,15 @@ static void test_bounds_reject_incompatible_features(void) {
                                 1, 1, 0, elements, &S), "Failed to write HEXA_20");
     ASSERT_OK(cg_close(fn), "Failed to close file");
 
-    /* Try to open with max_version=V2.0 - should fail because HEXA_20 needs V3.0 */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_V20);
+    /* Try to open with high=V2.0 - should fail because HEXA_20 needs V3.0 */
+    cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(long)2000 /* CGNS 2.0 */);
     if (cg_open(TEST_FILE_V30, CG_MODE_READ, &fn) == CG_OK) {
         cg_close(fn);
-        cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-        TEST_FAIL("Opening V3.0-feature file with max=V2.0 should have failed");
+        set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
+        TEST_FAIL("Opening V3.0-feature file with high=V2.0 should have failed");
     } else {
         cg_error_print(); /* Print the expected error and continue */
-        cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
+        set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
         TEST_PASS();
     }
 
@@ -359,23 +360,23 @@ static void test_read_bounds_accept_valid_file(void) {
 
     unlink(TEST_FILE_V30);
 
-    /* Create a V3.0 file */
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_V30);
+    /* Create a V3.0 file (low=V3.0 writes V3.0 header) */
+    cg_configure(CG_CONFIG_LIBVER_LOW, (void *)(long)CG_LIBVER_V30);
     ASSERT_OK(cg_open(TEST_FILE_V30, CG_MODE_WRITE, &fn), "Failed to create V3.0 file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
     ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
     ASSERT_OK(cg_close(fn), "Failed to close V3.0 file");
 
-    /* Set bounds to V3.0..V4.0 */
-    cg_set_version_bounds(CG_LIBVER_V30, CG_LIBVER_V40);
+    /* Set high=V4.0 ceiling - V3.0 file should pass */
+    cg_configure(CG_CONFIG_LIBVER_HIGH, (void *)(long)CG_LIBVER_V40);
 
     /* This should succeed */
     ASSERT_OK(cg_open(TEST_FILE_V30, CG_MODE_READ, &fn),
-              "Opening V3.0 file with V3.0-V4.0 bounds should succeed");
+              "Opening V3.0 file with V4.0 ceiling should succeed");
     ASSERT_OK(cg_close(fn), "Failed to close file");
 
     /* Reset bounds */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
 
     TEST_PASS();
     unlink(TEST_FILE_V30);
@@ -392,15 +393,15 @@ static void test_require_version_in_modify_mode(void) {
 
     unlink(TEST_FILE_AUTO);
 
-    /* Create a basic V2.0 file */
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_V20);
+    /* Create a basic V2.0 file (low=2000 writes V2.0 header) */
+    cg_configure(CG_CONFIG_LIBVER_LOW, (void *)(long)2000 /* CGNS 2.0 */);
     ASSERT_OK(cg_open(TEST_FILE_AUTO, CG_MODE_WRITE, &fn), "Failed to create file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
     ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
     ASSERT_OK(cg_close(fn), "Failed to close file");
 
     /* Reopen in MODIFY mode with AUTO versioning */
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_AUTO);
+    cg_configure(CG_CONFIG_LIBVER_LOW, (void *)(long)CG_LIBVER_AUTO);
     ASSERT_OK(cg_open(TEST_FILE_AUTO, CG_MODE_MODIFY, &fn), "Failed to open in MODIFY mode");
 
     /* Add HEXA_20 element - should upgrade to V3.0 */
@@ -434,9 +435,8 @@ static void test_error_on_version_mismatch(void) {
 
     unlink(TEST_FILE_AUTO);
 
-    /* Set fixed V2.0 version (not AUTO) */
-    cg_set_version_bounds(CG_LIBVER_EARLIEST, CG_LIBVER_LATEST);
-    cg_configure(CG_CONFIG_WRITE_VERSION, (void *)CG_LIBVER_V20);
+    /* Set fixed low=V2.0 (not AUTO) - writing V3.0 features should fail */
+    set_global_bounds(2000 /* CGNS 2.0 */, CG_LIBVER_LATEST);
     ASSERT_OK(cg_open(TEST_FILE_AUTO, CG_MODE_WRITE, &fn), "Failed to create file");
     ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
     ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");

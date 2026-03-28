@@ -226,29 +226,25 @@ MODULE cgns
 !*     Version constants (found in cgnslib.h)                          *
 !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
 ! Version encoding: MAJOR * 1000 + MINOR * 10
+! Only versions with feature detectors are defined.
+! For other versions use the raw integer (e.g. 4400 for CGNS 4.4).
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_EARLIEST = 1050  ! CGNS 1.05
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V12      = 1200
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V20      = 2000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V25      = 2540  ! ADF2 compatible
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V12      = 1200  ! CGNS 1.2 - CGNSBase_t CellDim/PhysDim
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_V30      = 3000
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_V31      = 3100
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_V32      = 3200
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V34      = 3400
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_V40      = 4000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V45      = 4500  ! Particles
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V50      = 5000  ! High-order
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V45      = 4500  ! Particles (CPEX 0046)
+  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V50      = 5000  ! High-order (CPEX 0045)
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_LATEST   = 5000
   INTEGER(C_INT), PARAMETER :: CG_LIBVER_AUTO     = -1
 
 !DEC$if defined(BUILD_CGNS_DLL)
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_EARLIEST
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V12
-!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V20
-!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V25
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V30
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V31
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V32
-!DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V34
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V40
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V45
 !DEC$ATTRIBUTES DLLEXPORT :: CG_LIBVER_V50
@@ -265,10 +261,10 @@ MODULE cgns
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_ADD_PATH   = 4
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_FILE_TYPE  = 5
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_RIND_INDEX = 6
-  INTEGER(C_INT), PARAMETER :: CG_CONFIG_SET_VERSION_BOUNDS = 10
-  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_VERSION_BOUNDS = 11
-  INTEGER(C_INT), PARAMETER :: CG_CONFIG_WRITE_VERSION      = 12
-  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_WRITE_VERSION  = 13
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_LIBVER_LOW      = 10
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_LIBVER_HIGH     = 11
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_LIBVER_LOW  = 12
+  INTEGER(C_INT), PARAMETER :: CG_CONFIG_GET_LIBVER_HIGH = 13
 
 ! Fortran length of names for variables is limited to 31 characters
   INTEGER(C_INT), PARAMETER :: CG_CONFIG_HDF5_COMPRESS         = 201
@@ -293,26 +289,10 @@ MODULE cgns
 ! Parameter API Keys (cg_params_set)
   INTEGER(C_INT), PARAMETER :: CG_PARAM_FILE_TYPE     = 100
   INTEGER(C_INT), PARAMETER :: CG_PARAM_COMPRESS      = 101
-  INTEGER(C_INT), PARAMETER :: CG_PARAM_MIN_VERSION   = 102
-  INTEGER(C_INT), PARAMETER :: CG_PARAM_MAX_VERSION   = 103
-  INTEGER(C_INT), PARAMETER :: CG_PARAM_WRITE_VERSION = 104
+  INTEGER(C_INT), PARAMETER :: CG_PARAM_LIBVER_LOW    = 102
+  INTEGER(C_INT), PARAMETER :: CG_PARAM_LIBVER_HIGH   = 103
 
-! CGNS Library Version Constants
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_EARLIEST = 1050
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V12      = 1200
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V20      = 2000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V25      = 2540
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V30      = 3000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V31      = 3100
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V32      = 3200
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V33      = 3300
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V40      = 4000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V41      = 4100
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V42      = 4200
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V43      = 4300
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_V44      = 4400
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_LATEST   = 5000
-  INTEGER(C_INT), PARAMETER :: CG_LIBVER_AUTO     = -1
+! CGNS Library Version Constants (authoritative block is above, line ~229)
 
 !DEC$if defined(BUILD_CGNS_DLL)
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_ERROR
@@ -321,10 +301,10 @@ MODULE cgns
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_ADD_PATH
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_FILE_TYPE
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_RIND_INDEX
-!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_SET_VERSION_BOUNDS
-!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_VERSION_BOUNDS
-!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_WRITE_VERSION
-!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_WRITE_VERSION
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_LIBVER_LOW
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_LIBVER_HIGH
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_LIBVER_LOW
+!DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_GET_LIBVER_HIGH
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_COMPRESS
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_MPI_COMM
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_HDF5_DISKLESS
@@ -342,6 +322,11 @@ MODULE cgns
 
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_RIND_ZERO
 !DEC$ATTRIBUTES DLLEXPORT :: CG_CONFIG_RIND_CORE
+
+!DEC$ATTRIBUTES DLLEXPORT :: CG_PARAM_FILE_TYPE
+!DEC$ATTRIBUTES DLLEXPORT :: CG_PARAM_COMPRESS
+!DEC$ATTRIBUTES DLLEXPORT :: CG_PARAM_LIBVER_LOW
+!DEC$ATTRIBUTES DLLEXPORT :: CG_PARAM_LIBVER_HIGH
 !DEC$endif
 
   !* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - *
@@ -9092,103 +9077,69 @@ CONTAINS
 
 #endif
 
-! *** Version Bounds API (Minimal Design) ***
-! This API provides two essential functions:
-! 1. cg_set_version_bounds_f() - Set read/write version compatibility range
-! 2. cg_get_file_min_version_f() - Analyze file features for minimum version
+! *** Version Bounds API ***
+! Per-file version bounds:
+! 1. cg_set_libver_bounds_f(fn, low, high) - Set per-file version bounds
+! 2. cg_get_libver_bounds_f(fn, low, high, min_version) - Get per-file bounds and min version
 !
-! For advanced control (rare use cases), use cg_configure_f() with:
-! - CG_CONFIG_GET_VERSION_BOUNDS - Get current bounds
-! - CG_CONFIG_WRITE_VERSION - Force specific write version
-! - CG_CONFIG_GET_WRITE_VERSION - Get write version setting
+! Global bounds are set via cg_configure_f() with:
+! - CG_CONFIG_LIBVER_LOW  - Set lower bound (CG_LIBVER_AUTO or CG_LIBVER_*)
+! - CG_CONFIG_LIBVER_HIGH - Set upper bound (CG_LIBVER_* ceiling)
 
-  SUBROUTINE cg_set_version_bounds_f(low_bound, high_bound, ier)
-    INTEGER, INTENT(IN) :: low_bound
-    INTEGER, INTENT(IN) :: high_bound
+  SUBROUTINE cg_set_libver_bounds_f(fn, low, high, ier)
+    INTEGER, INTENT(IN) :: fn
+    INTEGER, INTENT(IN) :: low
+    INTEGER, INTENT(IN) :: high
     INTEGER, INTENT(OUT) :: ier
 
     INTERFACE
-      INTEGER(C_INT) FUNCTION cg_set_version_bounds(low_bound, high_bound) &
-           BIND(C, NAME="cg_set_version_bounds")
+      INTEGER(C_INT) FUNCTION cg_set_libver_bounds(fn, low, high) &
+           BIND(C, NAME="cg_set_libver_bounds")
         IMPORT :: C_INT
         IMPLICIT NONE
-        INTEGER(C_INT), VALUE :: low_bound
-        INTEGER(C_INT), VALUE :: high_bound
-      END FUNCTION cg_set_version_bounds
+        INTEGER(C_INT), VALUE :: fn
+        INTEGER(C_INT), VALUE :: low
+        INTEGER(C_INT), VALUE :: high
+      END FUNCTION cg_set_libver_bounds
     END INTERFACE
 
-    ier = INT(cg_set_version_bounds(INT(low_bound, C_INT), INT(high_bound, C_INT)))
+    ier = INT(cg_set_libver_bounds(INT(fn, C_INT), INT(low, C_INT), INT(high, C_INT)))
 
-  END SUBROUTINE cg_set_version_bounds_f
+  END SUBROUTINE cg_set_libver_bounds_f
 
-  SUBROUTINE cg_get_file_min_version_f(fn, min_version, ier)
+  SUBROUTINE cg_get_libver_bounds_f(fn, low, high, min_version, ier)
     INTEGER, INTENT(IN) :: fn
-    INTEGER, INTENT(OUT) :: min_version
+    INTEGER, INTENT(OUT) :: low
+    INTEGER, INTENT(OUT) :: high
+    INTEGER, INTENT(OUT), OPTIONAL :: min_version
     INTEGER, INTENT(OUT) :: ier
 
+    INTEGER(C_INT), TARGET :: c_low
+    INTEGER(C_INT), TARGET :: c_high
     INTEGER(C_INT), TARGET :: c_min_version
 
     INTERFACE
-      INTEGER(C_INT) FUNCTION cg_get_file_min_version(fn, min_version) &
-           BIND(C, NAME="cg_get_file_min_version")
+      INTEGER(C_INT) FUNCTION cg_get_libver_bounds(fn, low, high, min_version) &
+           BIND(C, NAME="cg_get_libver_bounds")
         IMPORT :: C_INT, C_PTR
         IMPLICIT NONE
         INTEGER(C_INT), VALUE :: fn
+        TYPE(C_PTR), VALUE :: low
+        TYPE(C_PTR), VALUE :: high
         TYPE(C_PTR), VALUE :: min_version
-      END FUNCTION cg_get_file_min_version
+      END FUNCTION cg_get_libver_bounds
     END INTERFACE
 
-    ier = INT(cg_get_file_min_version(INT(fn, C_INT), C_LOC(c_min_version)))
-    min_version = INT(c_min_version)
+    IF (PRESENT(min_version)) THEN
+      ier = INT(cg_get_libver_bounds(INT(fn, C_INT), C_LOC(c_low), C_LOC(c_high), C_LOC(c_min_version)))
+      min_version = INT(c_min_version)
+    ELSE
+      ier = INT(cg_get_libver_bounds(INT(fn, C_INT), C_LOC(c_low), C_LOC(c_high), C_NULL_PTR))
+    END IF
+    low = INT(c_low)
+    high = INT(c_high)
 
-  END SUBROUTINE cg_get_file_min_version_f
-
-  SUBROUTINE cg_set_file_version_bounds_f(fn, low_bound, high_bound, ier)
-    INTEGER, INTENT(IN) :: fn
-    INTEGER, INTENT(IN) :: low_bound
-    INTEGER, INTENT(IN) :: high_bound
-    INTEGER, INTENT(OUT) :: ier
-
-    INTERFACE
-      INTEGER(C_INT) FUNCTION cg_set_file_version_bounds(fn, low_bound, high_bound) &
-           BIND(C, NAME="cg_set_file_version_bounds")
-        IMPORT :: C_INT
-        IMPLICIT NONE
-        INTEGER(C_INT), VALUE :: fn
-        INTEGER(C_INT), VALUE :: low_bound
-        INTEGER(C_INT), VALUE :: high_bound
-      END FUNCTION cg_set_file_version_bounds
-    END INTERFACE
-
-    ier = INT(cg_set_file_version_bounds(INT(fn, C_INT), INT(low_bound, C_INT), INT(high_bound, C_INT)))
-
-  END SUBROUTINE cg_set_file_version_bounds_f
-
-  SUBROUTINE cg_get_file_version_bounds_f(fn, low_bound, high_bound, ier)
-    INTEGER, INTENT(IN) :: fn
-    INTEGER, INTENT(OUT) :: low_bound
-    INTEGER, INTENT(OUT) :: high_bound
-    INTEGER, INTENT(OUT) :: ier
-
-    INTEGER(C_INT), TARGET :: c_low_bound
-    INTEGER(C_INT), TARGET :: c_high_bound
-
-    INTERFACE
-      INTEGER(C_INT) FUNCTION cg_get_file_version_bounds(fn, low_bound, high_bound) &
-           BIND(C, NAME="cg_get_file_version_bounds")
-        IMPORT :: C_INT, C_PTR
-        IMPLICIT NONE
-        INTEGER(C_INT), VALUE :: fn
-        TYPE(C_PTR), VALUE :: low_bound
-        TYPE(C_PTR), VALUE :: high_bound
-      END FUNCTION cg_get_file_version_bounds
-    END INTERFACE
-
-    ier = INT(cg_get_file_version_bounds(INT(fn, C_INT), C_LOC(c_low_bound), C_LOC(c_high_bound)))
-    low_bound = INT(c_low_bound)
-    high_bound = INT(c_high_bound)
-
-  END SUBROUTINE cg_get_file_version_bounds_f
+  END SUBROUTINE cg_get_libver_bounds_f
 
 !> @brief Wrapper for cg_open with parameter object (4-argument version)
 !> Calls C directly via ISO_C_BINDING - only handles string conversion
