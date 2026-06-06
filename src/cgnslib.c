@@ -674,6 +674,11 @@ int cgi_open(const char *filename, int mode, int open_parallel,
         double *id;
         if (cgi_read()) return CG_ERROR;
 
+     /* Read CGNSMinRequiredVersion_t node for O(1) compatibility check.
+      * Sets cg->effective_version from the stored value when present;
+      * leaves it 0 for legacy files so the lazy O(N) scan still works. */
+        if (cgi_read_min_version_node(cg)) return CG_ERROR;
+
      /* Step 4: Feature-based compatibility checking (now safe after reading)
       * PERFORMANCE: Only check features if user has set restrictive bounds.
       * For the common case (high == LATEST), skip entirely. */
@@ -1097,6 +1102,13 @@ int cg_close(int fn)
     fprintf(stderr, "CGNS MEM_DEBUG: before close:files %d/%d: memory %d/%d: calls %d/%d\n", n_open,
            cgns_file_size, cgmemnow(), cgmemmax(), cgalloccalls(), cgfreecalls());
 #endif
+
+    /* Write CGNSMinRequiredVersion_t node for WRITE and MODIFY modes.
+     * Encodes the minimum library version needed to read this file and
+     * a _CGNS_FeatureMask diagnostic attribute (HDF5 only). */
+    if (cg->mode == CG_MODE_WRITE || cg->mode == CG_MODE_MODIFY) {
+        if (cgi_write_min_version_node(cg)) return CG_ERROR;
+    }
 
     if (cgns_compress && cg->mode == CG_MODE_MODIFY &&
        (cg->deleted >= cgns_compress || cgns_compress < 0)) {
@@ -1865,12 +1877,14 @@ int cg_base_write(int fn, const char * basename, int cell_dim,
     }
     (*B) = index+1;
 
-     /* Version check: CGNSBase_t with CellDimension and PhysicalDimension
-      * was introduced in CGNS 1.2 (before that, base node had different structure)
-      * This ensures we don't write v1.2+ format into a v1.05 file */
-    if (cgi_require_version(cg, CG_LIBVER_V12) != CG_OK) {
-        return CG_ERROR;
-    }
+     /* CGNSBase_t with CellDimension and PhysicalDimension was introduced in
+      * CGNS 1.2 (before that, base node had only one value).  The library always
+      * writes the two-value V1.2+ format.  Additionally, connectivity must be
+      * written without intermediate StructuredDonor_t nodes (the V1.1-V1.2
+      * convention), so the file version must be above the [1100,1200] range.
+      * CG_LIBVER_V20 (2000) satisfies both constraints without requiring any
+      * element-specific features. */
+    if (cgi_require_version(cg, CG_LIBVER_V20) != CG_OK) return CG_ERROR;
 
      /* save data in memory and initialize base data structure */
     memset(base, 0, sizeof(cgns_base));
@@ -5332,12 +5346,21 @@ int cg_section_general_write(int fn, int B, int Z, const char * SectionName,
     if (zone==0) return CG_ERROR;
 
     /* Check version requirements for element type */
-    if (type == CGNS_ENUMV(TETRA_10) || type == CGNS_ENUMV(PYRA_14) ||
-        type == CGNS_ENUMV(PENTA_15) || type == CGNS_ENUMV(PENTA_18) ||
-        type == CGNS_ENUMV(HEXA_20) || type == CGNS_ENUMV(HEXA_27)) {
+    if (type == CGNS_ENUMV(TETRA_10)) {
+        /* TETRA_10 was introduced in V3.0 and its enum value is below PYRA_5,
+         * so it is unaffected by the V3.1 element renumbering. */
         if (cgi_require_version(cg, CG_LIBVER_V30) != CG_OK) return CG_ERROR;
     }
-    else if (type == CGNS_ENUMV(PYRA_13)) {
+    else if (type == CGNS_ENUMV(PENTA_6)  || type == CGNS_ENUMV(PYRA_14) ||
+             type == CGNS_ENUMV(PENTA_15) || type == CGNS_ENUMV(PENTA_18) ||
+             type == CGNS_ENUMV(HEXA_8)   || type == CGNS_ENUMV(HEXA_20) ||
+             type == CGNS_ENUMV(HEXA_27)  || type == CGNS_ENUMV(MIXED) ||
+             type == CGNS_ENUMV(PYRA_13)) {
+        /* All element types with enum value in (PYRA_5, NGON_n) were renumbered
+         * when PYRA_13 was repositioned in V3.1.  A V3.0 reader applies a
+         * decrement migration to elements in that range, so writing any of them
+         * using the current (V3.1+) enum values into a file labeled < V3.1
+         * produces incorrect results on read-back.  Require at least V3.1. */
         if (cgi_require_version(cg, CG_LIBVER_V31) != CG_OK) return CG_ERROR;
     }
     else if (type == CGNS_ENUMV(NGON_n) || type == CGNS_ENUMV(NFACE_n)) {
@@ -5453,11 +5476,16 @@ int cg_section_general_write(int fn, int B, int Z, const char * SectionName,
     if (cgi_new_node(section->id, "ElementRange", "IndexRange_t",
         &dummy_id, data_type, 1, &dim_vals, prange)) return CG_ERROR;
 
-    /* ElementStartOffset */
-    if (section->connect_offset &&
-        cgi_new_node(section->id, section->connect_offset->name, "DataArray_t",
+    /* ElementStartOffset (V4.0 format) — must bump version before creating the
+     * node so that on read-back the V3.x migration path is not triggered.
+     * The migration code would overwrite connect_offset->id with 0, breaking
+     * parallel I/O which needs a valid HDF5 handle. */
+    if (section->connect_offset) {
+        if (cgi_require_version(cg, CG_LIBVER_V40) != CG_OK) return CG_ERROR;
+        if (cgi_new_node(section->id, section->connect_offset->name, "DataArray_t",
               &section->connect_offset->id, section->connect_offset->data_type,
               section->connect_offset->data_dim, section->connect_offset->dim_vals, NULL)) return CG_ERROR;
+    }
 
     /* ElementConnectivity */
     if (cgi_new_node(section->id, section->connect->name, "DataArray_t",

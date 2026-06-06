@@ -18270,21 +18270,6 @@ int cgi_require_version(cgns_file *file, int required_version) {
 
     /* Handle version upgrade based on low bound mode */
     if (file->low == CG_LIBVER_AUTO) {
-        /* PARALLEL SAFETY CHECK: Auto-upgrading in parallel mode is dangerous.
-         * Multiple MPI ranks simultaneously writing to the CGNSLibraryVersion
-         * node creates a race condition that can corrupt the version metadata.
-         * In parallel mode, user must set explicit version before writes. */
-        if (file->parallel_mode) {
-            cgi_error("AUTO version upgrade not supported in parallel mode. "
-                "Feature requires CGNS version %.2f but file is at %.2f. "
-                "Before parallel writes, call:\n"
-                "  cg_configure(CG_CONFIG_LIBVER_LOW, (void*)CG_LIBVER_Vxx)\n"
-                "or use cg_set_libver_bounds() to set an explicit version "
-                "that covers all features you will write.",
-                required_version / 1000.0, file->effective_version / 1000.0);
-            return CG_ERROR;
-        }
-
         /* AUTO mode: Automatically upgrade to required version
          * Use max() to ensure we never downgrade */
         current_min_version = file->effective_version;
@@ -18321,6 +18306,135 @@ int cgi_require_version(cgns_file *file, int required_version) {
             required_version / 1000.0, file->low / 1000.0);
         return CG_ERROR;
     }
+
+    return CG_OK;
+}
+
+/* Compute the 64-bit feature bitmask from current file content.
+ * Bit i is set when feature_table[i].detector returns true for any base. */
+long long cgi_compute_feature_mask(cgns_file *file) {
+    long long mask = 0;
+    for (int nb = 0; nb < file->nbases; nb++) {
+        cgns_base *base = &file->base[nb];
+        for (int i = 0; feature_table[i].feature_name != NULL; i++) {
+            if (feature_table[i].detector(base))
+                mask |= (1LL << i);
+        }
+    }
+    return mask;
+}
+
+/* Read the CGNSMinRequiredVersion_t node from the file root.
+ * Sets file->effective_version from the stored value (O(1) path).
+ * Sets file->has_min_ver_node = 1 if found, 0 if absent (legacy file). */
+int cgi_read_min_version_node(cgns_file *file) {
+    int nnod;
+    double *id;
+    int ndim;
+    cgsize_t dim_vals[12];
+    char_33 node_name, data_type;
+    void *data;
+
+    file->has_min_ver_node = 0;
+    file->feature_mask = 0;
+
+    if (cgi_get_nodes(file->rootid, "CGNSMinRequiredVersion_t", &nnod, &id))
+        return CG_ERROR;
+
+    if (nnod == 0) {
+        file->effective_version = 0;
+        return CG_OK;
+    }
+
+    if (cgi_read_node(id[0], node_name, data_type, &ndim, dim_vals, &data, 1)) {
+        free(id);
+        cgi_error("Error reading CGNSMinRequiredVersion_t node");
+        return CG_ERROR;
+    }
+    if (strcmp(data_type, "R4") != 0 || ndim != 1 || dim_vals[0] != 1) {
+        free(data);
+        free(id);
+        cgi_error("Unexpected format for CGNSMinRequiredVersion_t node");
+        return CG_ERROR;
+    }
+
+    float ver_float = *((float *)data);
+    free(data);
+    file->effective_version = (int)(ver_float * 1000.0 + 0.5);
+    file->has_min_ver_node = 1;
+
+#if CG_BUILD_HDF5
+    if (file->filetype == CGIO_FILE_HDF5) {
+        hid_t hid;
+        to_HDF_ID(id[0], hid);
+        if (H5Aexists(hid, "_CGNS_FeatureMask") > 0) {
+            hid_t aid = H5Aopen(hid, "_CGNS_FeatureMask", H5P_DEFAULT);
+            if (aid >= 0) {
+                H5Aread(aid, H5T_NATIVE_INT64, &file->feature_mask);
+                H5Aclose(aid);
+            }
+        }
+    }
+#endif
+
+    free(id);
+    return CG_OK;
+}
+
+/* Write or update the CGNSMinRequiredVersion_t node at the file root.
+ * Computes effective_version if not already set.
+ * Writes the _CGNS_FeatureMask attribute on HDF5 files. */
+int cgi_write_min_version_node(cgns_file *file) {
+    int nnod;
+    double *id;
+    double node_id;
+    cgsize_t dim_vals = 1;
+    float min_ver_float;
+
+    if (file->effective_version == 0)
+        file->effective_version = cgi_calculate_min_version(file);
+
+    min_ver_float = (float)(file->effective_version / 1000.0);
+
+    if (cgi_get_nodes(file->rootid, "CGNSMinRequiredVersion_t", &nnod, &id))
+        return CG_ERROR;
+
+    if (nnod > 0) {
+        if (cgio_write_all_data(file->cgio, id[0], &min_ver_float)) {
+            free(id);
+            cg_io_error("cgio_write_all_data");
+            return CG_ERROR;
+        }
+        node_id = id[0];
+        free(id);
+    } else {
+        if (cgi_new_node(file->rootid, "CGNSMinRequiredVersion",
+                "CGNSMinRequiredVersion_t", &node_id, "R4", 1, &dim_vals,
+                (void *)&min_ver_float))
+            return CG_ERROR;
+    }
+
+#if CG_BUILD_HDF5
+    if (file->filetype == CGIO_FILE_HDF5) {
+        long long mask = cgi_compute_feature_mask(file);
+        hid_t hid;
+        to_HDF_ID(node_id, hid);
+        if (H5Aexists(hid, "_CGNS_FeatureMask") > 0)
+            H5Adelete(hid, "_CGNS_FeatureMask");
+        hid_t sid = H5Screate(H5S_SCALAR);
+        if (sid >= 0) {
+            hid_t aid = H5Acreate2(hid, "_CGNS_FeatureMask",
+                                   H5T_NATIVE_INT64, sid,
+                                   H5P_DEFAULT, H5P_DEFAULT);
+            if (aid >= 0) {
+                H5Awrite(aid, H5T_NATIVE_INT64, &mask);
+                H5Aclose(aid);
+                file->feature_mask = mask;
+            }
+            H5Sclose(sid);
+        }
+    }
+#endif
 
     return CG_OK;
 }

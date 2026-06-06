@@ -61,8 +61,10 @@
  */
 #define CG_LIBVER_EARLIEST 1050  /* CGNS 1.05 - oldest supported library version */
 #define CG_LIBVER_V12      1200  /* CGNS 1.2  - CGNSBase_t gained CellDimension
-                                  *             and PhysicalDimension; used in
-                                  *             write-path version bump */
+                                  *             and PhysicalDimension */
+#define CG_LIBVER_V20      2000  /* CGNS 2.0  - modern base/connectivity baseline;
+                                  *             above the V1.1-V1.2 intermediate
+                                  *             StructuredDonor_t range [1100,1200] */
 #define CG_LIBVER_V30      3000  /* CGNS 3.0  - extended element types */
 #define CG_LIBVER_V31      3100  /* CGNS 3.1  - reordered element types */
 #define CG_LIBVER_V32      3200  /* CGNS 3.2  - NGON/NFACE v3.2 format */

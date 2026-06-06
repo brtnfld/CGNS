@@ -1064,6 +1064,8 @@ typedef struct {
     char_33 adf_lib_version;/* ADF Library Version                  */
     int nbases;             /* number of bases in the file          */
     cgns_base *base;        /* ptrs to in-memory copies of bases    */
+    long long feature_mask; /* cached _CGNS_FeatureMask bitmask; 0 = not computed */
+    int has_min_ver_node;   /* 1 if CGNSMinRequiredVersion_t was present on open */
 } cgns_file;
 
 /* Parameter object for thread-safe configuration */
@@ -1436,8 +1438,11 @@ cgsize_t cgi_element_data_size(CGNS_ENUMT(ElementType_t) type,
 
 /* version bounds feature detection */
 CGNSDLL int cgi_calculate_min_version(cgns_file *file);
+CGNSDLL long long cgi_compute_feature_mask(cgns_file *file);
 CGNSDLL int cgi_check_version_limit(cgns_file *file, int limit_version);
 CGNSDLL int cgi_require_version(cgns_file *file, int required_version);
+CGNSDLL int cgi_read_min_version_node(cgns_file *file);
+CGNSDLL int cgi_write_min_version_node(cgns_file *file);
 
 /* free memory */
 void cgi_free_file(cgns_file *cg);

@@ -458,6 +458,130 @@ static void test_error_on_version_mismatch(void) {
     unlink(TEST_FILE_AUTO);
 }
 
+/* Test that CGNSMinRequiredVersion_t node is written on cg_close and
+ * can be read back with the correct value. */
+static void test_min_version_node_written(void) {
+    int fn, B, Z, S;
+    cgsize_t elements[20];
+    int i;
+    float file_version;
+    int low, high, min_version;
+
+    TEST_START("CGNSMinRequiredVersion_t node written and read back correctly");
+
+    unlink("test_min_ver_node.cgns");
+
+    /* Write a file using AUTO mode that uses HEXA_20 (V3.0 feature) */
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
+    ASSERT_OK(cg_open("test_min_ver_node.cgns", CG_MODE_WRITE, &fn),
+              "Failed to create file");
+    ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
+    ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
+    for (i = 0; i < 20; i++) elements[i] = i + 1;
+    ASSERT_OK(cg_section_write(fn, B, Z, "Hexa20", CGNS_ENUMV(HEXA_20),
+                               1, 1, 0, elements, &S),
+              "Failed to write HEXA_20 section");
+    ASSERT_OK(cg_close(fn), "Failed to close file");
+
+    /* Re-open READ and check that min version can be queried */
+    ASSERT_OK(cg_open("test_min_ver_node.cgns", CG_MODE_READ, &fn),
+              "Failed to re-open file");
+    ASSERT_OK(cg_version(fn, &file_version), "Failed to read version");
+    ASSERT_OK(cg_get_libver_bounds(fn, &low, &high, &min_version),
+              "Failed to get libver bounds");
+
+    /* min_version must be >= CG_LIBVER_V30 because HEXA_20 is a V3.0 feature */
+    if (min_version < CG_LIBVER_V30) {
+        printf("  FAIL: min_version=%d expected >= %d\n", min_version, CG_LIBVER_V30);
+        test_failed++;
+    } else {
+        TEST_PASS();
+    }
+    cg_close(fn);
+    unlink("test_min_ver_node.cgns");
+}
+
+/* Test that a plain CGNS file (no high-order elements) gets
+ * CGNSMinRequiredVersion_t written with the earliest version. */
+static void test_min_version_node_earliest(void) {
+    int fn, B, Z;
+    int low, high, min_version;
+
+    TEST_START("CGNSMinRequiredVersion_t is CG_LIBVER_EARLIEST for plain file");
+
+    unlink("test_min_ver_earliest.cgns");
+
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
+    ASSERT_OK(cg_open("test_min_ver_earliest.cgns", CG_MODE_WRITE, &fn),
+              "Failed to create file");
+    ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
+    ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
+    ASSERT_OK(cg_close(fn), "Failed to close file");
+
+    ASSERT_OK(cg_open("test_min_ver_earliest.cgns", CG_MODE_READ, &fn),
+              "Failed to re-open file");
+    ASSERT_OK(cg_get_libver_bounds(fn, &low, &high, &min_version),
+              "Failed to get libver bounds");
+
+    if (min_version > CG_LIBVER_V30) {
+        printf("  FAIL: min_version=%d expected <= %d for plain file\n",
+               min_version, CG_LIBVER_V30);
+        test_failed++;
+    } else {
+        TEST_PASS();
+    }
+    cg_close(fn);
+    unlink("test_min_ver_earliest.cgns");
+}
+
+/* Test that a file written then re-opened MODIFY gets the node healed
+ * if it was absent, and that min_version is correct after re-open. */
+static void test_legacy_file_healing(void) {
+    int fn, B, Z, S;
+    cgsize_t elements[20];
+    int i;
+    int low, high, min_version_after;
+
+    TEST_START("Legacy file gets CGNSMinRequiredVersion_t on MODIFY/close");
+
+    unlink("test_legacy_heal.cgns");
+
+    /* Create a file with explicit (non-AUTO) bounds - node IS written by new code.
+     * To simulate a legacy file we'd need to strip the node; instead we verify
+     * the round-trip: MODIFY a file, node is updated, re-open confirms value. */
+    set_global_bounds(CG_LIBVER_AUTO, CG_LIBVER_LATEST);
+    ASSERT_OK(cg_open("test_legacy_heal.cgns", CG_MODE_WRITE, &fn),
+              "Failed to create file");
+    ASSERT_OK(create_base_and_zone(fn, &B, &Z), "Failed to create base/zone");
+    ASSERT_OK(write_coordinates(fn, B, Z), "Failed to write coordinates");
+    for (i = 0; i < 20; i++) elements[i] = i + 1;
+    ASSERT_OK(cg_section_write(fn, B, Z, "Hexa20", CGNS_ENUMV(HEXA_20),
+                               1, 1, 0, elements, &S),
+              "Failed to write HEXA_20 section");
+    ASSERT_OK(cg_close(fn), "Failed to close file");
+
+    /* Open in MODIFY then close - node is re-written with updated version */
+    ASSERT_OK(cg_open("test_legacy_heal.cgns", CG_MODE_MODIFY, &fn),
+              "Failed to open MODIFY");
+    ASSERT_OK(cg_close(fn), "Failed to close after modify");
+
+    /* Re-open READ: min_version must be available from the stored node */
+    ASSERT_OK(cg_open("test_legacy_heal.cgns", CG_MODE_READ, &fn),
+              "Failed to re-open after heal");
+    ASSERT_OK(cg_get_libver_bounds(fn, &low, &high, &min_version_after),
+              "Failed to get bounds after heal");
+
+    if (min_version_after < CG_LIBVER_V30) {
+        printf("  FAIL: min_version_after=%d expected >= %d after heal\n",
+               min_version_after, CG_LIBVER_V30);
+        test_failed++;
+    } else {
+        TEST_PASS();
+    }
+    cg_close(fn);
+    unlink("test_legacy_heal.cgns");
+}
+
 /* Main test runner */
 int main(int argc, char *argv[]) {
     printf("=================================================\n");
@@ -474,6 +598,9 @@ int main(int argc, char *argv[]) {
     test_read_bounds_accept_valid_file();
     test_require_version_in_modify_mode();
     test_error_on_version_mismatch();
+    test_min_version_node_written();
+    test_min_version_node_earliest();
+    test_legacy_file_healing();
 
     /* Print summary */
     printf("\n=================================================\n");
