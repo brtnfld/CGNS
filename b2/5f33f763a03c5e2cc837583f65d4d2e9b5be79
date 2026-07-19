@@ -1,0 +1,19 @@
+src/ptests/CMakeLists.txt
+  s_749558d753ec50::t_870d392b1d1ab2 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "b25f33f763a03c5e2cc837583f65d4d2e9b5be79",
+  "prompts": {},
+  "sessions": {
+    "s_749558d753ec50": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a09ad98d-68db-4a33-8cda-0d5e36b641b5",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "M. Scot Breitenfeld <brtnfld@hdfgroup.org>"
+    }
+  }
+}
