@@ -672,6 +672,15 @@ int cgp_coord_write(int fn, int B, int Z, CGNS_ENUMT(DataType_t) type,
  *          to be written by a given process. It is the responsibility of
  *          the application to ensure that the data type for the coordinate
  *          data matches that defined in the file; no conversions are done.
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_coord_write_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p coords.  Pass \c C_LOC(array) for each
+ *       when this rank contributes data.  To indicate no data, pass
+ *       \c C_NULL_PTR for all three; \p rmin and \p rmax are not examined
+ *       when \p coords is NULL:
+ *       \code call cgp_coord_write_data_f(fn, B, Z, C, C_LOC(rmin), C_LOC(rmax), C_LOC(coords(1)), ier) \endcode
+ *       \code call cgp_coord_write_data_f(fn, B, Z, C, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_coord_write_data(int fn, int B, int Z, int C,
     const cgsize_t *rmin, const cgsize_t *rmax, const void *coords)
@@ -848,6 +857,15 @@ int cgp_coord_general_write_data(int fn, int B, int Z, int C,
  *          by a given process. It is the responsibility of the application
  *          to ensure that the data type for the coordinate data matches that
  *          defined in the file; no conversions are done.
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_coord_read_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p coords.  Pass \c C_LOC(array) for each
+ *       when this rank contributes data.  To indicate no data, pass
+ *       \c C_NULL_PTR for all three; \p rmin and \p rmax are not examined
+ *       when \p coords is NULL:
+ *       \code call cgp_coord_read_data_f(fn, B, Z, C, C_LOC(rmin), C_LOC(rmax), C_LOC(coords(1)), ier) \endcode
+ *       \code call cgp_coord_read_data_f(fn, B, Z, C, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_coord_read_data(int fn, int B, int Z, int C,
     const cgsize_t *rmin, const cgsize_t *rmax, void *coords)
@@ -1118,6 +1136,15 @@ int cgp_poly_section_write(int fn, int B, int Z, const char *sectionname,
  *       for variable sized elements without knowledge of the entire element connectivity data.
  * \note It is the responsibility of the application to ensure that \e cgsize_t in the application is the
  *       same size as that defined in the file; no conversions are done.
+ * \note To indicate that a rank contributes no data, pass \p elements = NULL.
+ *       When \p elements is NULL, the values of \p start and \p end are ignored.
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_elements_write_data_f takes \c TYPE(C_PTR)
+ *       for \p elements.  Pass \c C_LOC(elements(1)) for data, or \c C_NULL_PTR
+ *       when this rank contributes no data:
+ *       \code call cgp_elements_write_data_f(fn, B, Z, S, start, end, C_LOC(elements(1)), ier) \endcode
+ *       \code call cgp_elements_write_data_f(fn, B, Z, S, start, end, C_NULL_PTR, ier) \endcode
  */
 int cgp_elements_write_data(int fn, int B, int Z, int S, cgsize_t start,
     cgsize_t end, const cgsize_t *elements)
@@ -1179,6 +1206,18 @@ int cgp_elements_write_data(int fn, int B, int Z, int S, cgsize_t start,
  * \param[in]  elements \PCONN_Elements
  * \param[in]  offsets  \PCONN_Offsets
  * \return \ier
+ *
+ * \note To indicate that a rank contributes no data, pass \p elements = NULL
+ *       and \p offsets = NULL.
+ *
+ * \par Fortran
+ *       \c cgp_poly_elements_write_data_f accepts only \c TYPE(C_PTR) for the
+ *       \p elements and \p offsets arguments (changed in CGNS 5.0; the previous
+ *       Fortran array overload has been removed because it could not safely express NULL).
+ *       Pass \c C_LOC(elements) and \c C_LOC(offsets) for data, or \c C_NULL_PTR
+ *       when this rank contributes no data:
+ *       \code call cgp_poly_elements_write_data_f(fn, B, Z, S, start, end, C_LOC(elements(1)), C_LOC(offsets(1)), ier) \endcode
+ *       \code call cgp_poly_elements_write_data_f(fn, B, Z, S, 0, 0, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_poly_elements_write_data(int fn, int B, int Z, int S, cgsize_t start,
                             cgsize_t end, const cgsize_t *elements, const cgsize_t *offsets)
@@ -1386,6 +1425,16 @@ int cgp_poly_elements_read_data_elements(int fn, int B, int Z, int S, cgsize_t s
  * \param[in]  end      \PCONN_end
  * \param[out] elements \PCONN_Elements
  * \return \ier
+ *
+ * \note To indicate that a rank contributes no data, pass \p elements = NULL.
+ *       When \p elements is NULL, the values of \p start and \p end are ignored.
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_elements_read_data_f takes \c TYPE(C_PTR)
+ *       for \p elements.  Pass \c C_LOC(elements(1)) for data, or \c C_NULL_PTR
+ *       when this rank contributes no data:
+ *       \code call cgp_elements_read_data_f(fn, B, Z, S, start, end, C_LOC(elements(1)), ier) \endcode
+ *       \code call cgp_elements_read_data_f(fn, B, Z, S, start, end, C_NULL_PTR, ier) \endcode
  */
 int cgp_elements_read_data(int fn, int B, int Z, int S, cgsize_t start,
     cgsize_t end, cgsize_t *elements)
@@ -1443,6 +1492,18 @@ int cgp_elements_read_data(int fn, int B, int Z, int S, cgsize_t start,
  * \param[in]  end         \PCONN_end
  * \param[in]  parent_data \PCONN_Elements
  * \return \ier
+ *
+ * \note To indicate that a rank contributes no data, pass \p parent_data = NULL.
+ *       When \p parent_data is NULL, the values of \p start and \p end are ignored.
+ *
+ * \par Fortran
+ *       \c cgp_parent_data_write_f accepts only \c TYPE(C_PTR) for the
+ *       \p parents argument (changed in CGNS 5.0; the previous Fortran array
+ *       overload has been removed because it could not safely express NULL).
+ *       Pass \c C_LOC(parent_data) for data, or \c C_NULL_PTR when this rank
+ *       contributes no data:
+ *       \code call cgp_parent_data_write_f(fn, B, Z, S, start, end, C_LOC(parent_data(1)), ier) \endcode
+ *       \code call cgp_parent_data_write_f(fn, B, Z, S, 0, 0, C_NULL_PTR, ier) \endcode
  */
 int cgp_parent_data_write(int fn, int B, int Z, int S,
 			  cgsize_t start, cgsize_t end,
@@ -1495,11 +1556,8 @@ int cgp_parent_data_write(int fn, int B, int Z, int S,
         section->parelem = CGNS_NEW(cgns_array, 1);
     }
 
-    /* Get total size across all processors */
-    cgsize_t num = end == 0 ? 0 : end - start + 1;
-    num = num < 0 ? 0 : num;
-    MPI_Datatype mpi_type = sizeof(cgsize_t) == 32 ? MPI_INT : MPI_LONG_LONG_INT;
-    MPI_Allreduce(MPI_IN_PLACE, &num, 1, mpi_type, MPI_SUM, ctx_cgio.pcg_mpi_comm);
+    /* ParentElements array must be sized to full section range */
+    cgsize_t num = section->range[1] - section->range[0] + 1;
 
     strcpy(section->parelem->data_type, CG_SIZE_DATATYPE);
     section->parelem->data_dim = 2;
@@ -1532,7 +1590,7 @@ int cgp_parent_data_write(int fn, int B, int Z, int S,
 
     if (cgi_write_array(section->id, section->parface)) return CG_ERROR;
 
-    /* ParentElements -- write data */
+    /* Calculate write range based on element numbers relative to section start */
     rmin[0] = start - section->range[0] + 1;
     rmax[0] = end - section->range[0] + 1;
     rmin[1] = 1;
@@ -1542,6 +1600,7 @@ int cgp_parent_data_write(int fn, int B, int Z, int S,
     cg_rw_t Data;
     Data.u.wbuf = parent_data;
 
+    /* Write ParentElements data */
     to_HDF_ID(section->parelem->id, hid);
     int herr = readwrite_data_parallel(hid, type, 2, rmin, rmax, &Data, CG_PAR_WRITE);
     if (herr != CG_OK)
@@ -1572,6 +1631,18 @@ int cgp_parent_data_write(int fn, int B, int Z, int S,
  * \param[in]  end            \PCONN_end
  * \param[out] parentelements \PCONN_Elements
  * \return \ier
+ *
+ * \note To indicate that a rank contributes no data, pass \p parentelements = NULL.
+ *       When \p parentelements is NULL, the values of \p start and \p end are ignored.
+ *
+ * \par Fortran
+ *       \c cgp_parentelements_read_data_f accepts only \c TYPE(C_PTR) for the
+ *       \p parentelements argument (changed in CGNS 5.0; the previous Fortran array
+ *       overload has been removed because it could not safely express NULL).
+ *       Pass \c C_LOC(parentelements) for data, or \c C_NULL_PTR when this rank
+ *       contributes no data:
+ *       \code call cgp_parentelements_read_data_f(fn, B, Z, S, start, end, C_LOC(parentelements(1)), ier) \endcode
+ *       \code call cgp_parentelements_read_data_f(fn, B, Z, S, 0, 0, C_NULL_PTR, ier) \endcode
  */
 int cgp_parentelements_read_data(int fn, int B, int Z, int S, cgsize_t start,
     cgsize_t end, cgsize_t *parentelements)
@@ -1681,11 +1752,8 @@ int cgp_parentelements_write_data(int fn, int B, int Z, int S, cgsize_t start,
         section->parelem = CGNS_NEW(cgns_array, 1);
     }
 
-    /* Get total size across all processors */
-    cgsize_t num = end == 0 ? 0 : end - start + 1;
-    num = num < 0 ? 0 : num;
-    MPI_Datatype mpi_type = sizeof(cgsize_t) == 32 ? MPI_INT : MPI_LONG_LONG_INT;
-    MPI_Allreduce(MPI_IN_PLACE, &num, 1, mpi_type, MPI_SUM, ctx_cgio.pcg_mpi_comm);
+    /* ParentElements array must be sized to full section range */
+    cgsize_t num = section->range[1] - section->range[0] + 1;
 
     strcpy(section->parelem->data_type, CG_SIZE_DATATYPE);
     section->parelem->data_dim = 2;
@@ -1747,6 +1815,14 @@ int cgp_field_write(int fn, int B, int Z, int S,
  * \param[in]  rmax \PSOL_range_max
  * \param[in]  data \PSOL_solution_array
  * \return \ier
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_field_write_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p data.  Pass \c C_LOC(array) when this
+ *       rank contributes data.  To indicate no data, pass \c C_NULL_PTR for
+ *       all three; \p rmin and \p rmax are not examined when \p data is NULL:
+ *       \code call cgp_field_write_data_f(fn, B, Z, S, F, C_LOC(rmin), C_LOC(rmax), C_LOC(data(1)), ier) \endcode
+ *       \code call cgp_field_write_data_f(fn, B, Z, S, F, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_field_write_data(int fn, int B, int Z, int S, int F,
     const cgsize_t *rmin, const cgsize_t *rmax, const void *data)
@@ -1906,6 +1982,14 @@ int cgp_field_general_write_data(int fn, int B, int Z, int S, int F,
  * \param[in]  rmax \PSOL_range_max
  * \param[in]  data \PSOL_solution_array
  * \return \ier
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_field_read_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p data.  Pass \c C_LOC(array) when this
+ *       rank contributes data.  To indicate no data, pass \c C_NULL_PTR for
+ *       all three; \p rmin and \p rmax are not examined when \p data is NULL:
+ *       \code call cgp_field_read_data_f(fn, B, Z, S, F, C_LOC(rmin), C_LOC(rmax), C_LOC(data(1)), ier) \endcode
+ *       \code call cgp_field_read_data_f(fn, B, Z, S, F, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_field_read_data(int fn, int B, int Z, int S, int F,
     const cgsize_t *rmin, const cgsize_t *rmax, void *data)
@@ -2130,8 +2214,7 @@ int cgp_particle_coord_write_data(int fn, int B, int P, int C,
 
        if(coords) {
           if (rmin[0] > rmax[0] || rmin[0] < 1 || rmax[0] > dims[0]) {
-             printf("%d %d %d", rmin[0]> rmax[0], rmin[0] <1, rmax[0] >dims[0]);
-             cgi_error("Invalid index ranges. cgp_coord_write_data");
+             cgi_error("Invalid index ranges. cgp_particle_coord_write_data");
              return CG_ERROR;
           }
        }
@@ -2812,10 +2895,18 @@ int cgp_array_write(const char *ArrayName, CGNS_ENUMT(DataType_t) DataType,
  * \brief Write array data in parallel.
  *
  * \param[in]  A    \PARR_A
- * \param[in]  rmin \PARR_range_min
- * \param[in]  rmax \PARR_range_max
- * \param[in]  data \PARR_data
+ * \param[in]  rmin \PARR_range_min In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
+ * \param[in]  rmax \PARR_range_max In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
+ * \param[in]  data \PARR_data In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
  * \return \ier
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_array_write_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p data.  Pass \c C_LOC(array) when this
+ *       rank contributes data.  To indicate no data, pass \c C_NULL_PTR for
+ *       all three:
+ *       \code call cgp_array_write_data_f(A, C_LOC(rmin(1)), C_LOC(rmax(1)), C_LOC(data(1)), ier) \endcode
+ *       \code call cgp_array_write_data_f(A, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_array_write_data(int A, const cgsize_t *rmin,
     const cgsize_t *rmax, const void *data)
@@ -2953,10 +3044,18 @@ int cgp_array_general_write_data(int A,
  * \brief Read array data in parallel.
  *
  * \param[in]  A    \PARR_A
- * \param[in]  rmin \PARR_range_min
- * \param[in]  rmax \PARR_range_max
- * \param[in]  data \PARR_data
+ * \param[in]  rmin \PARR_range_min In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
+ * \param[in]  rmax \PARR_range_max In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
+ * \param[out] data \PARR_data In Fortran, use C_LOC() to pass \e TYPE(C_PTR).
  * \return \ier
+ *
+ * \par Fortran
+ *       The Fortran interface \c cgp_array_read_data_f takes \c TYPE(C_PTR)
+ *       for \p rmin, \p rmax, and \p data.  Pass \c C_LOC(array) when this
+ *       rank contributes data.  To indicate no data, pass \c C_NULL_PTR for
+ *       all three:
+ *       \code call cgp_array_read_data_f(A, C_LOC(rmin(1)), C_LOC(rmax(1)), C_LOC(data(1)), ier) \endcode
+ *       \code call cgp_array_read_data_f(A, C_NULL_PTR, C_NULL_PTR, C_NULL_PTR, ier) \endcode
  */
 int cgp_array_read_data(int A, const cgsize_t *rmin,
     const cgsize_t *rmax, void *data)
@@ -3094,9 +3193,6 @@ static int readwrite_multi_data_parallel(size_t count, hid_t *dset_id, hid_t *me
                                          cg_rw_ptr_t *data, int ndims, const cgsize_t *rmin,
                                          const cgsize_t *rmax, enum cg_par_rw rw_mode)
 {
-  /*
-   *  Needs to handle a NULL dataset. MSB
-   */
     int k, n;
     hsize_t *start, *dims;
     herr_t herr;
@@ -3139,6 +3235,11 @@ static int readwrite_multi_data_parallel(size_t count, hid_t *dset_id, hid_t *me
     }
 
     for (k = 0; k < count; k++) {
+        /* Per-dataset NULL check: a single call may have a mix of valid and NULL buffers */
+        int has_data_k = (rw_mode == CG_PAR_READ) ?
+                         (data[0].u.rbuf[k] != NULL) :
+                         (data[0].u.wbuf[k] != NULL);
+
 	/* Create a shape for the data in memory */
         mem_space_id[k] = H5Screate_simple(ndims, dims, NULL);
         if (mem_space_id[k] < 0) {
@@ -3168,17 +3269,23 @@ static int readwrite_multi_data_parallel(size_t count, hid_t *dset_id, hid_t *me
 	  return CG_ERROR;
 	}
 
-	/* Select a section of the array in the file */
-        herr = H5Sselect_hyperslab(file_space_id[k], H5S_SELECT_SET, start,
-				   NULL, dims, NULL);
-	if (herr < 0) {
-          H5Sclose(mem_space_id[k]);
-          H5Dclose(dset_id[k]);
-	  cgi_error("H5Sselect_hyperslab() failed");
-	  free(start);
-	  free(dims);
-	  return CG_ERROR;
-	}
+        if (has_data_k) {
+	  /* Select a section of the array in the file */
+          herr = H5Sselect_hyperslab(file_space_id[k], H5S_SELECT_SET, start,
+				     NULL, dims, NULL);
+	  if (herr < 0) {
+            H5Sclose(mem_space_id[k]);
+            H5Dclose(dset_id[k]);
+	    cgi_error("H5Sselect_hyperslab() failed");
+	    free(start);
+	    free(dims);
+	    return CG_ERROR;
+	  }
+        } else {
+          /* No data for this dataset on this rank: select none so collective I/O proceeds */
+          H5Sselect_none(mem_space_id[k]);
+          H5Sselect_none(file_space_id[k]);
+        }
     }
 
     /* Set the access property list for data transfer */
@@ -3286,7 +3393,7 @@ int cgp_coord_multi_read_data(int fn, int B, int Z, int *C, const cgsize_t *rmin
     cg = cgi_get_file(fn);
     if (check_parallel(cg)) return CG_ERROR;
 
-    if (cgi_check_mode(cg->filename, cg->mode, CG_MODE_WRITE))
+    if (cgi_check_mode(cg->filename, cg->mode, CG_MODE_READ))
       goto error;
 
     dset_id = (hid_t *)malloc(nsets*sizeof(hid_t));
@@ -3307,12 +3414,18 @@ int cgp_coord_multi_read_data(int fn, int B, int Z, int *C, const cgsize_t *rmin
       }
     }
 
+    int has_data = 0;
+    for (n = 0; n < nsets; n++) {
+      if (buf[n]) { has_data = 1; break; }
+    }
     for (n = 0; n < zone->index_dim; n++) {
       dims[n] = zone->nijk[n] + zcoor->rind_planes[2*n] +
         zcoor->rind_planes[2*n+1];
-      if (rmin[n] > rmax[n] || rmin[n] < 1 || rmax[n] > dims[n]) {
-        cgi_error("Invalid index ranges.");
-        goto error;
+      if (has_data) {
+        if (rmin[n] > rmax[n] || rmin[n] < 1 || rmax[n] > dims[n]) {
+          cgi_error("Invalid index ranges.");
+          goto error;
+        }
       }
     }
 
@@ -3326,6 +3439,11 @@ int cgp_coord_multi_read_data(int fn, int B, int Z, int *C, const cgsize_t *rmin
     Data.u.rbuf = buf;
     status = readwrite_multi_data_parallel(nsets, dset_id, mem_type_id, mem_space_id, file_space_id, &Data,
                                          zone->index_dim, rmin, rmax, CG_PAR_READ);
+
+  free(dset_id);
+  free(mem_type_id);
+  free(mem_space_id);
+  free(file_space_id);
 
   return status;
 
@@ -3413,13 +3531,19 @@ int cgp_coord_multi_write_data(int fn, int B, int Z, int *C, const cgsize_t *rmi
       }
     }
 
+    int has_data = 0;
+    for (n = 0; n < nsets; n++) {
+      if (buf[n]) { has_data = 1; break; }
+    }
     for (n = 0; n < zone->index_dim; n++) {
         dims[n] = zone->nijk[n] + zcoor->rind_planes[2*n] +
                                   zcoor->rind_planes[2*n+1];
+      if (has_data) {
         if (rmin[n] > rmax[n] || rmin[n] < 1 || rmax[n] > dims[n]) {
-            cgi_error("Invalid index ranges.");
-            goto error;
+          cgi_error("Invalid index ranges.");
+          goto error;
         }
+      }
     }
 
     for (n = 0; n < nsets; n++) {
@@ -3432,6 +3556,11 @@ int cgp_coord_multi_write_data(int fn, int B, int Z, int *C, const cgsize_t *rmi
     Data.u.wbuf = buf;
     status =  readwrite_multi_data_parallel(nsets, dset_id, mem_type_id, mem_space_id, file_space_id, &Data,
                                             zone->index_dim, rmin, rmax, CG_PAR_WRITE);
+
+    free(dset_id);
+    free(mem_type_id);
+    free(mem_space_id);
+    free(file_space_id);
 
     return status;
 
@@ -3511,12 +3640,14 @@ int cgp_field_multi_write_data(int fn, int B, int Z, int S, int *F,
       if (field==0) goto error;
 
       /* verify that range requested does not exceed range stored */
-      for (m = 0; m < field->data_dim; m++) {
-        if (rmin[m] > rmax[m] ||
+      if (buf[n]) {
+        for (m = 0; m < field->data_dim; m++) {
+          if (rmin[m] > rmax[m] ||
             rmax[m] > field->dim_vals[m] ||
             rmin[m] < 1) {
-	  cgi_error("Invalid range of data requested");
-	  goto error;
+            cgi_error("Invalid range of data requested");
+            goto error;
+          }
         }
       }
 
@@ -3612,12 +3743,14 @@ int cgp_field_multi_read_data(int fn, int B, int Z, int S, int *F,
     if (field==0) goto error;
 
     /* verify that range requested does not exceed range stored */
-    for (m = 0; m < field->data_dim; m++) {
-      if (rmin[m] > rmax[m] ||
-	  rmax[m] > field->dim_vals[m] ||
-	  rmin[m] < 1) {
-	cgi_error("Invalid range of data requested");
-	goto error;
+    if (buf[n]) {
+      for (m = 0; m < field->data_dim; m++) {
+        if (rmin[m] > rmax[m] ||
+          rmax[m] > field->dim_vals[m] ||
+          rmin[m] < 1) {
+          cgi_error("Invalid range of data requested");
+          goto error;
+        }
       }
     }
 
@@ -3724,11 +3857,16 @@ int cgp_particle_coord_multi_read_data(int fn, int B, int P, int *C, const cgsiz
 
     dims = pzone->nparticles;
 
-    if (rmin[0] > rmax[0] || rmin[0] < 1 || rmax[0] > dims) {
-       cgi_error("Invalid index ranges.");
-       goto error;
+    int has_data = 0;
+    for (n = 0; n < nsets; n++) {
+      if (buf[n]) { has_data = 1; break; }
     }
-
+    if (has_data) {
+      if (rmin[0] > rmax[0] || rmin[0] < 1 || rmax[0] > dims) {
+         cgi_error("Invalid index ranges.");
+         goto error;
+      }
+    }
 
     for (n = 0; n < nsets; n++) {
       mem_type_id[n] = cgi_datatype(pcoor->coord[C[n]-1].data_type);
@@ -3740,6 +3878,11 @@ int cgp_particle_coord_multi_read_data(int fn, int B, int P, int *C, const cgsiz
     Data.u.rbuf = buf;
     status = readwrite_multi_data_parallel(nsets, dset_id, mem_type_id, mem_space_id, file_space_id, &Data,
                                            1, rmin, rmax, CG_PAR_READ);
+
+  free(dset_id);
+  free(mem_type_id);
+  free(mem_space_id);
+  free(file_space_id);
 
   return status;
 
@@ -3828,9 +3971,16 @@ int cgp_particle_coord_multi_write_data(int fn, int B, int P, int *C, const cgsi
     }
 
     dims = pzone->nparticles;
-    if (rmin[0] > rmax[0] || rmin[0] < 1 || rmax[0] > dims) {
-       cgi_error("Invalid index ranges.");
-       goto error;
+
+    int has_data = 0;
+    for (n = 0; n < nsets; n++) {
+      if (buf[n]) { has_data = 1; break; }
+    }
+    if (has_data) {
+      if (rmin[0] > rmax[0] || rmin[0] < 1 || rmax[0] > dims) {
+         cgi_error("Invalid index ranges.");
+         goto error;
+      }
     }
 
     for (n = 0; n < nsets; n++) {
@@ -3843,6 +3993,11 @@ int cgp_particle_coord_multi_write_data(int fn, int B, int P, int *C, const cgsi
     Data.u.wbuf = buf;
     status =  readwrite_multi_data_parallel(nsets, dset_id, mem_type_id, mem_space_id, file_space_id, &Data,
                                             1, rmin, rmax, CG_PAR_WRITE);
+
+    free(dset_id);
+    free(mem_type_id);
+    free(mem_space_id);
+    free(file_space_id);
 
     return status;
 
@@ -3923,12 +4078,14 @@ int cgp_particle_field_multi_write_data(int fn, int B, int P, int S, int *F,
       if (field==0) goto error;
 
       /* verify that range requested does not exceed range stored */
-      for (m = 0; m < field->data_dim; m++) {
-        if (rmin[m] > rmax[m] ||
-            rmax[m] > field->dim_vals[m] ||
-            rmin[m] < 1) {
-     cgi_error("Invalid range of data requested");
-     goto error;
+      if (buf[n]) {
+        for (m = 0; m < field->data_dim; m++) {
+          if (rmin[m] > rmax[m] ||
+              rmax[m] > field->dim_vals[m] ||
+              rmin[m] < 1) {
+            cgi_error("Invalid range of data requested");
+            goto error;
+          }
         }
       }
 
@@ -4024,12 +4181,14 @@ int cgp_particle_field_multi_read_data(int fn, int B, int P, int S, int *F,
     if (field==0) goto error;
 
     /* verify that range requested does not exceed range stored */
-    for (m = 0; m < field->data_dim; m++) {
-      if (rmin[m] > rmax[m] ||
-     rmax[m] > field->dim_vals[m] ||
-     rmin[m] < 1) {
-   cgi_error("Invalid range of data requested");
-   goto error;
+    if (buf[n]) {
+      for (m = 0; m < field->data_dim; m++) {
+        if (rmin[m] > rmax[m] ||
+	    rmax[m] > field->dim_vals[m] ||
+	    rmin[m] < 1) {
+	  cgi_error("Invalid range of data requested");
+	  goto error;
+        }
       }
     }
 
@@ -4119,12 +4278,14 @@ int cgp_array_multi_write_data(int fn, int *A, const cgsize_t *rmin,
     array = cgi_array_address(CG_MODE_READ, 0, A[n], "dummy", &have_dup, &ierr);
     if (array == NULL) goto error;
 
-    for (m = 0; m < array->data_dim; m++) {
-      if (rmin[m] > rmax[m] ||
-	  rmax[m] > array->dim_vals[m] ||
-	  rmin[m] < 1) {
-	cgi_error("Invalid range of data requested");
-	goto error;
+    if (buf[n]) {
+      for (m = 0; m < array->data_dim; m++) {
+        if (rmin[m] > rmax[m] ||
+	    rmax[m] > array->dim_vals[m] ||
+	    rmin[m] < 1) {
+	  cgi_error("Invalid range of data requested");
+	  goto error;
+        }
       }
     }
 
@@ -4216,12 +4377,14 @@ int cgp_array_multi_read_data(int fn, int *A, const cgsize_t *rmin,
     array = cgi_array_address(CG_MODE_READ, 0, A[n], "dummy", &have_dup, &ierr);
     if (array == NULL) goto error;
 
-    for (m = 0; m < array->data_dim; m++) {
-      if (rmin[m] > rmax[m] ||
-	  rmax[m] > array->dim_vals[m] ||
-	  rmin[m] < 1) {
-	cgi_error("Invalid range of data requested");
-	goto error;
+    if (buf[n]) {
+      for (m = 0; m < array->data_dim; m++) {
+        if (rmin[m] > rmax[m] ||
+	    rmax[m] > array->dim_vals[m] ||
+	    rmin[m] < 1) {
+	  cgi_error("Invalid range of data requested");
+	  goto error;
+        }
       }
     }
 
@@ -4271,6 +4434,17 @@ int cgp_array_multi_read_data(int fn, int *A, const cgsize_t *rmin,
  * \details Functions in <a href="./c_api.html#accessing-a-node">Accessing a Node</a>
  *          must be used to point to a PointSet for writing.
  *
+ * \note To indicate that a rank contributes no data, pass \p points = NULL.
+ *       When \p points is NULL, the values of \p rmin and \p rmax are ignored.
+ *
+ * \par Fortran
+ *       \c cgp_ptlist_write_data_f accepts \c TYPE(C_PTR) for the \p points
+ *       argument (changed in CGNS 5.0; the previous Fortran array overload
+ *       has been removed because it could not safely express NULL).
+ *       Pass \c C_LOC(points) for data, or \c C_NULL_PTR when this rank
+ *       contributes no data:
+ *       \code call cgp_ptlist_write_data_f(file_number, rmin, rmax, C_LOC(points(1)), ier) \endcode
+ *       \code call cgp_ptlist_write_data_f(file_number, 0, 0, C_NULL_PTR, ier) \endcode
  */
 int cgp_ptlist_write_data(int file_number, cgsize_t rmin,
     cgsize_t rmax, const cgsize_t *points)
@@ -4334,6 +4508,18 @@ int cgp_ptlist_write_data(int file_number, cgsize_t rmin,
  *
  * \details Functions in <a href="./c_api.html#accessing-a-node">Accessing a Node</a>
  *          must be used to point to a PointSet for reading.
+ *
+ * \note To indicate that a rank contributes no data, pass \p points = NULL.
+ *       When \p points is NULL, the values of \p rmin and \p rmax are ignored.
+ *
+ * \par Fortran
+ *       \c cgp_ptlist_read_data_f accepts \c TYPE(C_PTR) for the \p points
+ *       argument (changed in CGNS 5.0; the previous Fortran array overload
+ *       has been removed because it could not safely express NULL).
+ *       Pass \c C_LOC(points) for data, or \c C_NULL_PTR when this rank
+ *       contributes no data:
+ *       \code call cgp_ptlist_read_data_f(file_number, rmin, rmax, C_LOC(points(1)), ier) \endcode
+ *       \code call cgp_ptlist_read_data_f(file_number, 0, 0, C_NULL_PTR, ier) \endcode
  */
 int cgp_ptlist_read_data(int file_number, cgsize_t rmin, cgsize_t rmax, cgsize_t *points)
 {

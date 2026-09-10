@@ -14,18 +14,24 @@ jobs:
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
-    # Only run on push events or PRs from the same repository (not forks)
-    # Forks cannot access secrets, so this prevents the workflow from failing
+    # Only run on push events to the upstream repo, or same-repository PRs
+    # from a non-Dependabot actor. Forks cannot access secrets (SONAR_TOKEN
+    # is only configured on CGNS/CGNS), so this prevents the workflow from
+    # failing on forks. GitHub also withholds secrets from pull_request runs
+    # triggered by Dependabot, even for same-repo branches, so those must be
+    # excluded explicitly too.
     if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      (github.event_name == 'push' && github.repository == 'CGNS/CGNS') ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.head.repo.full_name == github.repository &&
+       github.actor != 'dependabot[bot]')
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: https://sonarcloud.io
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Shallow clones should be disabled for better relevancy of analysis
 
@@ -57,7 +63,7 @@ jobs:
         shell: bash
 
       - name: Install SonarQube Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8
 
       - name: Configure and Build with Build Wrapper
         run: |
@@ -97,9 +103,19 @@ jobs:
           gcovr -r .. --sonarqube --exclude-unreachable-branches --exclude-throw-branches > coverage.xml
         shell: bash
 
+      - name: Set SonarQube analysis parameters
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "SONAR_EXTRA_ARGS=-Dsonar.pullrequest.key=${{ github.event.pull_request.number }} -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }} -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          else
+            echo "SONAR_EXTRA_ARGS=-Dsonar.branch.name=${{ github.ref_name }}" >> $GITHUB_ENV
+          fi
+
       - name: Run SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: >
-            -Dsonar.branch.name=${{ github.ref_name }}
+            ${{ env.SONAR_EXTRA_ARGS }}
             -Dsonar.cfamily.compile-commands=cbuild/${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json

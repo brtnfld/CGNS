@@ -14,6 +14,7 @@ LDLIBS = $(CGNSLIB) $(BUILDLIBS)
 #----------
 
 CALL =	pcgns_ctest$(EXE) \
+	test_multisets$(EXE) \
 	cexample$(EXE) \
 	benchmark$(EXE) \
 	benchmark_hdf5$(EXE) \
@@ -28,6 +29,11 @@ CALL =	pcgns_ctest$(EXE) \
 	test_poly_unstructured$(EXE) \
 	test_mixed_par_ser$(EXE) \
 	thesis_benchmark$(EXE)
+
+# pcgns_unicode_test requires HDF5 >= 2.0.0 for Unicode filepath support.
+# It is not included in the default test run; build and run it manually:
+#   make pcgns_unicode_test && mpiexec -n 2 ./pcgns_unicode_test
+HDF5_UNICODE_TESTS = pcgns_unicode_test$(EXE)
 
 FALL =	pcgns_ftest$(EXE) \
 	ftest_zone$(EXE) \
@@ -114,89 +120,9 @@ test : $(TESTS)
 
 #----------
 
-pcgns_ctest$(EXE) : pcgns_ctest.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ pcgns_ctest.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-cexample$(EXE) : cexample.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ cexample.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-benchmark$(EXE) : benchmark.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ benchmark.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-benchmark_hdf5$(EXE) : benchmark_hdf5.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ benchmark_hdf5.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-open_close$(EXE) : open_close.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ open_close.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-comm_test$(EXE) : comm_test.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ comm_test.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-test_base$(EXE) : test_base.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_base.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-test_unstructured$(EXE) : test_unstructured.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_unstructured.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-test_unstruc_quad$(EXE) : test_unstruc_quad.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_unstruc_quad.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-test_zone$(EXE) : test_zone.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_zone.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-
-#----------
-
-test_general_readwrite$(EXE) : test_general_readwrite.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_general_readwrite.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-
-#----------
-
-test_poly_unstructured$(EXE) : test_poly_unstructured.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_poly_unstructured.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-
-#----------
-
-test_mixed_par_ser$(EXE) : test_mixed_par_ser.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ test_mixed_par_ser.c $(LDLIBS) $(CLIBS)
-	$(STRIP) $@
-
-#----------
-
-thesis_benchmark$(EXE) : thesis_benchmark.c $(CGNSLIB)
-	$(CC) $(COPTS) $(CEOUT)$@ thesis_benchmark.c $(LDLIBS) $(CLIBS)
+# Pattern rule for all single-source C tests
+%$(EXE) : %.c $(CGNSLIB)
+	$(CC) $(COPTS) $(CEOUT)$@ $< $(LDLIBS) $(CLIBS)
 	$(STRIP) $@
 
 #----------
@@ -255,6 +181,13 @@ Metadata_Stressing$(EXE) : Metadata_Stressing.c $(CGNSLIB)
 
 #----------
 
+pcgns_unicode_test$(EXE) : pcgns_unicode_test.c $(CGNSLIB)
+	$(CC) $(COPTS) $(CEOUT)$@ pcgns_unicode_test.c $(LDLIBS) $(CLIBS)
+	$(STRIP) $@
+
+#----------
+
+
 utilsf.$(O) : $(CGNSDIR)/tests/utilsf.F90
 	$(F77) $(FOPTS) -c $(CGNSDIR)/tests/utilsf.F90
 
@@ -266,4 +199,5 @@ allclean : clean
 	-$(RM) *~ *.bak
 	-$(RM) *.cgns *.cg?
 	-$(RM) CGNS_timing.txt
+	-$(RM) -r $(shell printf '\xc3\xa9coulement_par')
 
